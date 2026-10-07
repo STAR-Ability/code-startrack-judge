@@ -121,8 +121,11 @@ func run() error {
 	if fd == nil {
 		return errors.New("scheduler listener unavailable")
 	}
+	// Keep the supervised descriptor stable for lifetime boundary measurements.
+	// The listener owns a duplicate; neither descriptor may survive child exec.
+	syscall.CloseOnExec(3)
+	defer fd.Close()
 	listener, err := net.FileListener(fd)
-	fd.Close()
 	if err != nil {
 		return errors.New("scheduler listener unavailable")
 	}

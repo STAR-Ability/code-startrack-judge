@@ -1,0 +1,14 @@
+[
+  {
+    "source": "PLATFORM",
+    "platform": "startrack",
+    "problemId": "42",
+    "problemVersionId": "123e4567-e89b-12d3-a456-426614174101"
+  },
+  {
+    "source": "EXTERNAL",
+    "platform": "codeforces",
+    "problemId": "42",
+    "problemVersionId": null
+  }
+]

@@ -62,7 +62,9 @@ def main():
                             "-c", "log_min_error_statement=error"], "container start")
             created = True
             for _ in range(60):
-                ready = subprocess.run(docker + ["exec", container, "pg_isready", "-U", "postgres"], capture_output=True)
+                # The image's temporary initialization server accepts only Unix
+                # sockets. Wait for the final TCP listener before bootstrap SQL.
+                ready = subprocess.run(docker + ["exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "postgres"], capture_output=True)
                 if ready.returncode == 0:
                     break
                 time.sleep(0.5)

@@ -16,6 +16,7 @@ import (
 
 	"github.com/STAR-Ability/code-startrack-judge/internal/canonical"
 	"github.com/STAR-Ability/code-startrack-judge/internal/contract"
+	"github.com/STAR-Ability/code-startrack-judge/internal/packages"
 	persistence "github.com/STAR-Ability/code-startrack-judge/internal/persistence/problems"
 	"github.com/STAR-Ability/code-startrack-judge/internal/storage"
 )
@@ -151,7 +152,8 @@ func ApproveLicense(ctx context.Context, repo *persistence.Repository, store *st
 			return "", bounded(err)
 		}
 	}
-	archive, err := store.Read(ctx, source, 512<<20)
+	// Retained TAR bytes include bounded headers/padding in addition to payload.
+	archive, err := store.Read(ctx, source, packages.MaxArchiveBytes)
 	if err != nil {
 		return "", bounded(err)
 	}

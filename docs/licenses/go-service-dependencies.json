@@ -493,7 +493,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 228,
+          "dependencyPackageCount": 230,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -502,6 +502,7 @@
             "github.com/jackc/pgservicefile",
             "github.com/jackc/pgx/v5",
             "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
             "golang.org/x/sync",
             "golang.org/x/text"
           ]
@@ -597,7 +598,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 227,
+          "dependencyPackageCount": 229,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -606,6 +607,7 @@
             "github.com/jackc/pgservicefile",
             "github.com/jackc/pgx/v5",
             "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
             "golang.org/x/sync",
             "golang.org/x/text"
           ]
@@ -701,7 +703,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 228,
+          "dependencyPackageCount": 230,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -710,6 +712,7 @@
             "github.com/jackc/pgservicefile",
             "github.com/jackc/pgx/v5",
             "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
             "golang.org/x/sync",
             "golang.org/x/text"
           ]
@@ -797,7 +800,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 227,
+          "dependencyPackageCount": 229,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -806,6 +809,7 @@
             "github.com/jackc/pgservicefile",
             "github.com/jackc/pgx/v5",
             "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
             "golang.org/x/sync",
             "golang.org/x/text"
           ]

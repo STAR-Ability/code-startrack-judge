@@ -1,0 +1,27 @@
+{
+  "data": {
+    "snapshotId": "123e4567-e89b-12d3-a456-426614174100",
+    "catalogVersion": "18",
+    "items": [
+      {
+        "problem": {
+          "problemRef": {
+            "source": "PLATFORM",
+            "platform": "startrack",
+            "problemId": "44",
+            "problemVersionId": "123e4567-e89b-12d3-a456-426614174103"
+          },
+          "title": "Empty Array",
+          "difficulty": null,
+          "difficultyScale": "UNRATED",
+          "tags": [],
+          "url": null
+        },
+        "status": "PUBLISHED"
+      }
+    ],
+    "nextCursor": null,
+    "expiresAt": "2026-10-08T04:30:00Z"
+  },
+  "requestId": "123e4567-e89b-12d3-a456-426614174111"
+}
