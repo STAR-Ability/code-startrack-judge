@@ -1,0 +1,1579 @@
+{
+  "schemaVersion": 1,
+  "scope": "Owned native Go service and migration command dependency inventory. This is not the complete runtime container SBOM: go-judge, problemtools, compiler and operating-system payloads remain separate.",
+  "inventoryDate": "2026-10-08",
+  "entrypoints": [
+    "./cmd/judge-service",
+    "./cmd/judge-migrate"
+  ],
+  "goToolchain": {
+    "version": "1.26.8",
+    "spdxExpression": "BSD-3-Clause",
+    "source": {
+      "repositoryUrl": "https://github.com/golang/go",
+      "revision": "c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e",
+      "reference": "go1.26.8"
+    },
+    "archiveLock": "toolchain.lock.json",
+    "licenseEvidence": [
+      {
+        "upstreamPath": "LICENSE",
+        "localPath": "docs/licenses/go-service/go1.26.8/LICENSE",
+        "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/LICENSE"
+      },
+      {
+        "upstreamPath": "PATENTS",
+        "localPath": "docs/licenses/go-service/go1.26.8/PATENTS",
+        "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/PATENTS"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/crypto/LICENSE",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_crypto_LICENSE",
+        "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/crypto/LICENSE"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/crypto/PATENTS",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_crypto_PATENTS",
+        "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/crypto/PATENTS"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/net/LICENSE",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_net_LICENSE",
+        "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/net/LICENSE"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/net/PATENTS",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_net_PATENTS",
+        "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/net/PATENTS"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/sys/LICENSE",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_sys_LICENSE",
+        "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/sys/LICENSE"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/sys/PATENTS",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_sys_PATENTS",
+        "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/sys/PATENTS"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/text/LICENSE",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_text_LICENSE",
+        "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/text/LICENSE"
+      },
+      {
+        "upstreamPath": "src/vendor/golang.org/x/text/PATENTS",
+        "localPath": "docs/licenses/go-service/go1.26.8/src_vendor_golang.org_x_text_PATENTS",
+        "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+        "sourceUrl": "https://github.com/golang/go/blob/c293dd49cbe25e1fe8d97d94a5cb618e7b6d831e/src/vendor/golang.org/x/text/PATENTS"
+      }
+    ],
+    "notes": "Standard library/runtime plus vendored golang.org/x/crypto, net, sys and text legal texts. CGO_ENABLED=0 and empty GOEXPERIMENT; BoringSSL alternative crypto objects are not linked."
+  },
+  "modules": [
+    {
+      "modulePath": "github.com/cyberphone/json-canonicalization",
+      "version": "v0.0.0-20241213102144-19d51d7fe467",
+      "moduleSum": "h1:uX1JmpONuD549D73r6cgnxyUu18Zb7yHAy5AYU0Pm4Q=",
+      "goModSum": "h1:uzvlm1mxhHkdfqitSA92i7Se+S9ksOn3a3qmv/kyOCw=",
+      "source": {
+        "repositoryUrl": "https://github.com/cyberphone/json-canonicalization",
+        "revision": "19d51d7fe467d4706a3ff08adf8a748f29fc21e0",
+        "reference": "19d51d7fe467"
+      },
+      "license": {
+        "spdxExpression": "Apache-2.0",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version.",
+        "copyrightNotices": [
+          "Copyright 2018 Anders Rundgren",
+          "Copyright 2006-2019 WebPKI.org (http://webpki.org)."
+        ]
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_cyberphone_json-canonicalization/LICENSE",
+          "sha256": "6821faaddedf2d78c95bb6d98b127e9e616097afd2f6bcc34389f000d13ab12d",
+          "sourceUrl": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/LICENSE"
+        },
+        {
+          "upstreamPath": "python3/src/org/webpki/json/LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_cyberphone_json-canonicalization/Apache-2.0-LICENSE",
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "sourceUrl": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/python3/src/org/webpki/json/LICENSE"
+        },
+        {
+          "upstreamPath": "go/src/webpki.org/jsoncanonicalizer/jsoncanonicalizer.go",
+          "localPath": "docs/licenses/go-service/github.com_cyberphone_json-canonicalization/Go-source-LICENSE-header.txt",
+          "sha256": "867e50cb379ff27acf2437791d87cce4819d4ca116dfcaec4ad297c5c941a7d4",
+          "sourceSha256": "f77ac1b1e62ca9ab063cc558702ab830a0e6442fe71659d34d63897ea9c4e1ac",
+          "sourceUrl": "https://github.com/cyberphone/json-canonicalization/blob/19d51d7fe467d4706a3ff08adf8a748f29fc21e0/go/src/webpki.org/jsoncanonicalizer/jsoncanonicalizer.go",
+          "kind": "verbatim-source-license-header",
+          "firstLine": 1,
+          "lastLine": 16
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": true,
+      "linkScope": "OWNED_PACKAGE_TESTS_ONLY",
+      "importedPackages": [
+        "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
+      ]
+    },
+    {
+      "modulePath": "github.com/golang-migrate/migrate/v4",
+      "version": "v4.20.1",
+      "moduleSum": "h1:2N/ToVTKrKl58ynBpgeVJ4In7VcLCjWTZtm4eP1LxhU=",
+      "goModSum": "h1:DDPgKVb4ovSWc4FwSPfV2Uz1160f4XBiTHTrAJtljmM=",
+      "source": {
+        "repositoryUrl": "https://github.com/golang-migrate/migrate",
+        "revision": "504568a3cbd23b8754760f55a3d89aec1b0c4963",
+        "reference": "v4.20.1"
+      },
+      "license": {
+        "spdxExpression": "MIT",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_golang-migrate_migrate_v4/LICENSE",
+          "sha256": "4c250e1d2cb21c738d5ec785f6fb1e03cd1e9adecfab46feb9494847872455be",
+          "sourceUrl": "https://github.com/golang-migrate/migrate/blob/504568a3cbd23b8754760f55a3d89aec1b0c4963/LICENSE"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": true,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "github.com/golang-migrate/migrate/v4",
+        "github.com/golang-migrate/migrate/v4/database",
+        "github.com/golang-migrate/migrate/v4/database/multistmt",
+        "github.com/golang-migrate/migrate/v4/database/pgx/v5",
+        "github.com/golang-migrate/migrate/v4/internal/url",
+        "github.com/golang-migrate/migrate/v4/source",
+        "github.com/golang-migrate/migrate/v4/source/iofs"
+      ]
+    },
+    {
+      "modulePath": "github.com/jackc/pgerrcode",
+      "version": "v0.0.0-20220416144525-469b46aa5efa",
+      "moduleSum": "h1:s+4MhCQ6YrzisK6hFJUX53drDT4UsSW3DEhKn0ifuHw=",
+      "goModSum": "h1:a/s9Lp5W7n/DD0VrVoyJ00FbP2ytTPDVOivvn2bMlds=",
+      "source": {
+        "repositoryUrl": "https://github.com/jackc/pgerrcode",
+        "revision": "469b46aa5efae8a229646096c4d7026bf9ff89fe",
+        "reference": "469b46aa5efa"
+      },
+      "license": {
+        "spdxExpression": "MIT AND PostgreSQL",
+        "classificationEvidence": "Unmodified upstream LICENSE text at the exact version; pgerrcode combines MIT code and PostgreSQL data notices."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_jackc_pgerrcode/LICENSE",
+          "sha256": "ba651777b8362b30d778d60f7a0fcd1f01cdac79aa713d1a6f0a53bf5372fa2f",
+          "sourceUrl": "https://github.com/jackc/pgerrcode/blob/469b46aa5efae8a229646096c4d7026bf9ff89fe/LICENSE"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": false,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "github.com/jackc/pgerrcode"
+      ]
+    },
+    {
+      "modulePath": "github.com/jackc/pgpassfile",
+      "version": "v1.0.0",
+      "moduleSum": "h1:/6Hmqy13Ss2zCq62VdNG8tM1wchn8zjSGOBJ6icpsIM=",
+      "goModSum": "h1:CEx0iS5ambNFdcRtxPj5JhEz+xB6uRky5eyVu/W2HEg=",
+      "source": {
+        "repositoryUrl": "https://github.com/jackc/pgpassfile",
+        "revision": "99d8e8e28945ffceaf75b0299fcb2bb656b8a683",
+        "reference": "v1.0.0"
+      },
+      "license": {
+        "spdxExpression": "MIT",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_jackc_pgpassfile/LICENSE",
+          "sha256": "adb1663fda031df8f4344aa68f299fd87d80353e31339406742ded21dae65702",
+          "sourceUrl": "https://github.com/jackc/pgpassfile/blob/99d8e8e28945ffceaf75b0299fcb2bb656b8a683/LICENSE"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": false,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "github.com/jackc/pgpassfile"
+      ]
+    },
+    {
+      "modulePath": "github.com/jackc/pgservicefile",
+      "version": "v0.0.0-20240606120523-5a60cdf6a761",
+      "moduleSum": "h1:iCEnooe7UlwOQYpKFhBabPMi4aNAfoODPEFNiAnClxo=",
+      "goModSum": "h1:5TJZWKEWniPve33vlWYSoGYefn3gLQRzjfDlhSJ9ZKM=",
+      "source": {
+        "repositoryUrl": "https://github.com/jackc/pgservicefile",
+        "revision": "5a60cdf6a76120dc3d5152b95f3b5fd8aa7cc9eb",
+        "reference": "5a60cdf6a761"
+      },
+      "license": {
+        "spdxExpression": "MIT",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_jackc_pgservicefile/LICENSE",
+          "sha256": "fc505773403fe869ed64cc2235cdd13988a427bb7e3a7e7004a3f4b27420f8fc",
+          "sourceUrl": "https://github.com/jackc/pgservicefile/blob/5a60cdf6a76120dc3d5152b95f3b5fd8aa7cc9eb/LICENSE"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": false,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "github.com/jackc/pgservicefile"
+      ]
+    },
+    {
+      "modulePath": "github.com/jackc/pgx/v5",
+      "version": "v5.11.0",
+      "moduleSum": "h1:IzBBtyK9AHqf98cctWFifYSci2hgQR/cd56wB4p+ogg=",
+      "goModSum": "h1:mal1tBGAFfLHvZzaYh77YS/eC6IX9OWbRV1QIIM0Jn4=",
+      "source": {
+        "repositoryUrl": "https://github.com/jackc/pgx",
+        "revision": "5e583fa7aabfa88b796292f849fc9d7d75ac159d",
+        "reference": "v5.11.0"
+      },
+      "license": {
+        "spdxExpression": "MIT",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_jackc_pgx_v5/LICENSE",
+          "sha256": "467f95e074fe23079a5623ed652619682692041b8551da27e3c2ddb9659a1507",
+          "sourceUrl": "https://github.com/jackc/pgx/blob/5e583fa7aabfa88b796292f849fc9d7d75ac159d/LICENSE"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": true,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "github.com/jackc/pgx/v5",
+        "github.com/jackc/pgx/v5/internal/iobufpool",
+        "github.com/jackc/pgx/v5/internal/pgdatetime",
+        "github.com/jackc/pgx/v5/internal/pgio",
+        "github.com/jackc/pgx/v5/internal/sanitize",
+        "github.com/jackc/pgx/v5/internal/stmtcache",
+        "github.com/jackc/pgx/v5/pgconn",
+        "github.com/jackc/pgx/v5/pgconn/ctxwatch",
+        "github.com/jackc/pgx/v5/pgconn/internal/bgreader",
+        "github.com/jackc/pgx/v5/pgproto3",
+        "github.com/jackc/pgx/v5/pgtype",
+        "github.com/jackc/pgx/v5/pgxpool",
+        "github.com/jackc/pgx/v5/stdlib"
+      ]
+    },
+    {
+      "modulePath": "github.com/jackc/puddle/v2",
+      "version": "v2.2.2",
+      "moduleSum": "h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo=",
+      "goModSum": "h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=",
+      "source": {
+        "repositoryUrl": "https://github.com/jackc/puddle",
+        "revision": "bd09d14bd4018b6d65a9d7770e2f3ddf8b00af1c",
+        "reference": "v2.2.2"
+      },
+      "license": {
+        "spdxExpression": "MIT",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/github.com_jackc_puddle_v2/LICENSE",
+          "sha256": "2d50e98a4900b4d6457a38d39c1432fdc156fc2f7b365f2e33ec9344acbb0057",
+          "sourceUrl": "https://github.com/jackc/puddle/blob/bd09d14bd4018b6d65a9d7770e2f3ddf8b00af1c/LICENSE"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": false,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "github.com/jackc/puddle/v2",
+        "github.com/jackc/puddle/v2/internal/genstack"
+      ]
+    },
+    {
+      "modulePath": "golang.org/x/sync",
+      "version": "v0.21.0",
+      "moduleSum": "h1:HLII4xRRTtCRkxYp4HNFF0Js/Og6q2i++KXbg0gHCwM=",
+      "goModSum": "h1:9xrNwdLfx4jkKbNva9FpL6vEN7evnE43NNNJQ2LF3+0=",
+      "source": {
+        "repositoryUrl": "https://github.com/golang/sync",
+        "revision": "5071ed6a9f1617117556b66384f765c934de3698",
+        "reference": "v0.21.0"
+      },
+      "license": {
+        "spdxExpression": "BSD-3-Clause",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/golang.org_x_sync/LICENSE",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "sourceUrl": "https://github.com/golang/sync/blob/5071ed6a9f1617117556b66384f765c934de3698/LICENSE"
+        },
+        {
+          "upstreamPath": "PATENTS",
+          "localPath": "docs/licenses/go-service/golang.org_x_sync/PATENTS",
+          "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+          "sourceUrl": "https://github.com/golang/sync/blob/5071ed6a9f1617117556b66384f765c934de3698/PATENTS"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": false,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "golang.org/x/sync/semaphore"
+      ]
+    },
+    {
+      "modulePath": "golang.org/x/text",
+      "version": "v0.38.0",
+      "moduleSum": "h1:sXmwo9DwP3OK9EZ7PqAdaooSGozfl/3a6/xJcbzPRhE=",
+      "goModSum": "h1:YXZt3QhHUKYT53r2lLKFIVi6Ao1jdzrTR/KQ09qyxF4=",
+      "source": {
+        "repositoryUrl": "https://github.com/golang/text",
+        "revision": "f4bb6328041b090f85b93014bd369edfcd24bdef",
+        "reference": "v0.38.0"
+      },
+      "license": {
+        "spdxExpression": "BSD-3-Clause",
+        "classificationEvidence": "Unmodified upstream license grant and conditions at the exact version."
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/golang.org_x_text/LICENSE",
+          "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+          "sourceUrl": "https://github.com/golang/text/blob/f4bb6328041b090f85b93014bd369edfcd24bdef/LICENSE"
+        },
+        {
+          "upstreamPath": "PATENTS",
+          "localPath": "docs/licenses/go-service/golang.org_x_text/PATENTS",
+          "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc",
+          "sourceUrl": "https://github.com/golang/text/blob/f4bb6328041b090f85b93014bd369edfcd24bdef/PATENTS"
+        }
+      ],
+      "upstreamNoticeFiles": [],
+      "direct": false,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "golang.org/x/text/cases",
+        "golang.org/x/text/internal",
+        "golang.org/x/text/internal/language",
+        "golang.org/x/text/internal/language/compact",
+        "golang.org/x/text/internal/tag",
+        "golang.org/x/text/language",
+        "golang.org/x/text/runes",
+        "golang.org/x/text/secure/bidirule",
+        "golang.org/x/text/secure/precis",
+        "golang.org/x/text/transform",
+        "golang.org/x/text/unicode/bidi",
+        "golang.org/x/text/unicode/norm",
+        "golang.org/x/text/width"
+      ]
+    }
+  ],
+  "buildProfiles": [
+    {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "goExperiment": "",
+      "targets": [
+        {
+          "entrypoint": "./cmd/judge-service",
+          "dependencyPackageCount": 233,
+          "modulePaths": [
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-migrate",
+          "dependencyPackageCount": 223,
+          "modulePaths": [
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        }
+      ]
+    },
+    {
+      "goos": "linux",
+      "goarch": "arm64",
+      "cgoEnabled": false,
+      "goExperiment": "",
+      "targets": [
+        {
+          "entrypoint": "./cmd/judge-service",
+          "dependencyPackageCount": 232,
+          "modulePaths": [
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-migrate",
+          "dependencyPackageCount": 222,
+          "modulePaths": [
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        }
+      ]
+    },
+    {
+      "goos": "darwin",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "goExperiment": "",
+      "targets": [
+        {
+          "entrypoint": "./cmd/judge-service",
+          "dependencyPackageCount": 233,
+          "modulePaths": [
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-migrate",
+          "dependencyPackageCount": 223,
+          "modulePaths": [
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        }
+      ]
+    },
+    {
+      "goos": "darwin",
+      "goarch": "arm64",
+      "cgoEnabled": false,
+      "goExperiment": "",
+      "targets": [
+        {
+          "entrypoint": "./cmd/judge-service",
+          "dependencyPackageCount": 232,
+          "modulePaths": [
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-migrate",
+          "dependencyPackageCount": 222,
+          "modulePaths": [
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        }
+      ]
+    }
+  ],
+  "testOnlyModules": [
+    "github.com/cyberphone/json-canonicalization"
+  ],
+  "excludedModuleGraph": [
+    {
+      "modulePath": "cel.dev/expr",
+      "version": "v0.25.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go",
+      "version": "v0.123.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/auth",
+      "version": "v0.20.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/auth/oauth2adapt",
+      "version": "v0.2.8",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/compute/metadata",
+      "version": "v0.9.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/iam",
+      "version": "v1.11.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/longrunning",
+      "version": "v1.1.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/monitoring",
+      "version": "v1.29.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/spanner",
+      "version": "v1.92.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "cloud.google.com/go/storage",
+      "version": "v1.56.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/99designs/go-keychain",
+      "version": "v0.0.0-20191008050251-8e49817e8af4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/99designs/keyring",
+      "version": "v1.2.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/azure-sdk-for-go/sdk/azcore",
+      "version": "v1.4.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/azure-sdk-for-go/sdk/internal",
+      "version": "v1.1.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/go-ansiterm",
+      "version": "v0.0.0-20250102033503-faa5f7b0171c",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/go-autorest",
+      "version": "v14.2.0+incompatible",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/go-autorest/autorest/adal",
+      "version": "v0.9.16",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/go-autorest/autorest/date",
+      "version": "v0.3.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/go-autorest/logger",
+      "version": "v0.2.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Azure/go-autorest/tracing",
+      "version": "v0.6.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/ClickHouse/clickhouse-go",
+      "version": "v1.4.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp",
+      "version": "v1.6.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp",
+      "version": "v1.33.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric",
+      "version": "v0.53.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping",
+      "version": "v0.53.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/Microsoft/go-winio",
+      "version": "v0.6.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/andybalholm/brotli",
+      "version": "v1.0.4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/apache/arrow/go/v10",
+      "version": "v10.0.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/apache/thrift",
+      "version": "v0.24.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go",
+      "version": "v1.49.6",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2",
+      "version": "v1.16.16",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream",
+      "version": "v1.4.8",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/credentials",
+      "version": "v1.12.20",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/feature/s3/manager",
+      "version": "v1.11.33",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/internal/configsources",
+      "version": "v1.1.23",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/internal/endpoints/v2",
+      "version": "v2.4.17",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/internal/v4a",
+      "version": "v1.0.14",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding",
+      "version": "v1.9.9",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/service/internal/checksum",
+      "version": "v1.1.18",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/service/internal/presigned-url",
+      "version": "v1.9.17",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/service/internal/s3shared",
+      "version": "v1.13.17",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/aws-sdk-go-v2/service/s3",
+      "version": "v1.27.11",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/aws/smithy-go",
+      "version": "v1.13.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/cenkalti/backoff/v4",
+      "version": "v4.1.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/cespare/xxhash/v2",
+      "version": "v2.3.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/cloudflare/golz4",
+      "version": "v0.0.0-20150217214814-ef862a3cdc58",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/cncf/xds/go",
+      "version": "v0.0.0-20260202195803-dba9d589def2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/cockroachdb/cockroach-go/v2",
+      "version": "v2.1.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/containerd/errdefs",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/containerd/errdefs/pkg",
+      "version": "v0.3.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/cznic/mathutil",
+      "version": "v0.0.0-20180504122225-ca4c9f2c1369",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/danieljoos/wincred",
+      "version": "v1.1.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/davecgh/go-spew",
+      "version": "v1.1.2-0.20180830191138-d8f796af33cc",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/dhui/dktest",
+      "version": "v0.4.6",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/distribution/reference",
+      "version": "v0.6.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/docker/docker",
+      "version": "v28.5.2+incompatible",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/docker/go-connections",
+      "version": "v0.7.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/docker/go-units",
+      "version": "v0.5.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/dvsekhvalnov/jose2go",
+      "version": "v1.7.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/edsrzf/mmap-go",
+      "version": "v0.0.0-20170320065105-0bce6a688712",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/envoyproxy/go-control-plane/envoy",
+      "version": "v1.37.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/envoyproxy/protoc-gen-validate",
+      "version": "v1.3.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/felixge/httpsnoop",
+      "version": "v1.1.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/form3tech-oss/jwt-go",
+      "version": "v3.2.5+incompatible",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/fsouza/fake-gcs-server",
+      "version": "v1.17.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/gabriel-vasile/mimetype",
+      "version": "v1.4.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/go-jose/go-jose/v4",
+      "version": "v4.1.4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/go-logr/logr",
+      "version": "v1.4.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/go-logr/stdr",
+      "version": "v1.2.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/go-sql-driver/mysql",
+      "version": "v1.5.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/gobuffalo/here",
+      "version": "v0.6.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/goccy/go-json",
+      "version": "v0.9.11",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/gocql/gocql",
+      "version": "v0.0.0-20210515062232-b7ef815b4556",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/godbus/dbus",
+      "version": "v0.0.0-20190726142602-4481cbc300e2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/golang-jwt/jwt/v4",
+      "version": "v4.5.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/golang-sql/civil",
+      "version": "v0.0.0-20190719163853-cb61b32ac6fe",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/golang-sql/sqlexp",
+      "version": "v0.1.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/golang/snappy",
+      "version": "v0.0.4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/google/flatbuffers",
+      "version": "v2.0.8+incompatible",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/google/go-github/v39",
+      "version": "v39.2.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/google/go-querystring",
+      "version": "v1.1.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/google/s2a-go",
+      "version": "v0.1.9",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/google/uuid",
+      "version": "v1.6.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/googleapis/enterprise-certificate-proxy",
+      "version": "v0.3.17",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/googleapis/gax-go/v2",
+      "version": "v2.22.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/gorilla/handlers",
+      "version": "v1.4.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/gorilla/mux",
+      "version": "v1.7.4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/grpc-ecosystem/grpc-gateway/v2",
+      "version": "v2.27.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/gsterjov/go-libsecret",
+      "version": "v0.0.0-20161001094733-a6f4afe4910c",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/hailocab/go-hostpool",
+      "version": "v0.0.0-20160125115350-e80d13ce29ed",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/jackc/chunkreader/v2",
+      "version": "v2.0.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/jackc/pgconn",
+      "version": "v1.14.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/jackc/pgio",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/jackc/pgproto3/v2",
+      "version": "v2.3.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/jackc/pgtype",
+      "version": "v1.14.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/jackc/pgx/v4",
+      "version": "v4.18.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/jmespath/go-jmespath",
+      "version": "v0.4.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/k0kubun/pp",
+      "version": "v2.3.0+incompatible",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/kardianos/osext",
+      "version": "v0.0.0-20190222173326-2bc1f35cddc0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/kballard/go-shellquote",
+      "version": "v0.0.0-20180428030007-95032a82bc51",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/klauspost/asmfmt",
+      "version": "v1.3.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/klauspost/compress",
+      "version": "v1.16.7",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/klauspost/cpuid/v2",
+      "version": "v2.0.9",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/kr/pretty",
+      "version": "v0.3.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/ktrysmt/go-bitbucket",
+      "version": "v0.6.4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/lib/pq",
+      "version": "v1.10.9",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/markbates/pkger",
+      "version": "v0.15.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/mattn/go-colorable",
+      "version": "v0.1.6",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/mattn/go-isatty",
+      "version": "v0.0.16",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/mattn/go-sqlite3",
+      "version": "v1.14.22",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/microsoft/go-mssqldb",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/minio/asm2plan9s",
+      "version": "v0.0.0-20200509001527-cdd76441f9d8",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/minio/c2goasm",
+      "version": "v0.0.0-20190812172519-36a3d3bbc4f3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/mitchellh/mapstructure",
+      "version": "v1.1.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/moby/docker-image-spec",
+      "version": "v1.3.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/moby/moby/api",
+      "version": "v1.54.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/moby/moby/client",
+      "version": "v0.4.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/moby/sys/sequential",
+      "version": "v0.6.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/moby/term",
+      "version": "v0.5.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/montanaflynn/stats",
+      "version": "v0.7.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/morikuni/aec",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/mtibben/percent",
+      "version": "v0.2.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/mutecomm/go-sqlcipher/v4",
+      "version": "v4.4.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/nakagami/firebirdsql",
+      "version": "v0.0.0-20190310045651-3c02a58cfed8",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/neo4j/neo4j-go-driver",
+      "version": "v1.8.1-0.20200803113522-b626aa943eba",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/onsi/ginkgo",
+      "version": "v1.16.4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/onsi/gomega",
+      "version": "v1.15.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/opencontainers/go-digest",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/opencontainers/image-spec",
+      "version": "v1.1.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/pierrec/lz4/v4",
+      "version": "v4.1.16",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/pkg/browser",
+      "version": "v0.0.0-20210911075715-681adbf594b8",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/pkg/errors",
+      "version": "v0.9.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/planetscale/vtprotobuf",
+      "version": "v0.6.1-0.20240319094008-0393e58bdf10",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/pmezard/go-difflib",
+      "version": "v1.0.1-0.20181226105442-5d4384ee4fb2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/remyoudompheng/bigfft",
+      "version": "v0.0.0-20200410134404-eec4a21b6bb0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/rqlite/gorqlite",
+      "version": "v0.0.0-20230708021416-2acd02b70b79",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/shopspring/decimal",
+      "version": "v1.2.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/sirupsen/logrus",
+      "version": "v1.9.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/snowflakedb/gosnowflake",
+      "version": "v1.6.19",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/spiffe/go-spiffe/v2",
+      "version": "v2.8.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/stretchr/objx",
+      "version": "v0.1.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/stretchr/testify",
+      "version": "v1.11.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/xanzy/go-gitlab",
+      "version": "v0.15.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/xdg-go/pbkdf2",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/xdg-go/scram",
+      "version": "v1.1.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/xdg-go/stringprep",
+      "version": "v1.0.4",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/youmark/pkcs8",
+      "version": "v0.0.0-20240726163527-a2c0da244d78",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "github.com/zeebo/xxh3",
+      "version": "v1.0.2",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "gitlab.com/nyarla/go-crypt",
+      "version": "v0.0.0-20160106005555-d9a5dc2b789b",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.mongodb.org/mongo-driver",
+      "version": "v1.17.7",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opencensus.io",
+      "version": "v0.24.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/auto/sdk",
+      "version": "v1.2.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/contrib/detectors/gcp",
+      "version": "v1.44.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
+      "version": "v0.69.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+      "version": "v0.69.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/otel",
+      "version": "v1.44.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/otel/exporters/otlp/otlptrace",
+      "version": "v1.29.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/otel/metric",
+      "version": "v1.44.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/otel/sdk",
+      "version": "v1.44.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/otel/sdk/metric",
+      "version": "v1.44.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "go.opentelemetry.io/otel/trace",
+      "version": "v1.44.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/crypto",
+      "version": "v0.53.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/exp",
+      "version": "v0.0.0-20230315142452-642cacee5cc0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/mod",
+      "version": "v0.36.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/net",
+      "version": "v0.56.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/oauth2",
+      "version": "v0.36.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/sys",
+      "version": "v0.46.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/telemetry",
+      "version": "v0.0.0-20260508192327-42602be52be6",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/term",
+      "version": "v0.44.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/time",
+      "version": "v0.15.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/tools",
+      "version": "v0.45.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/tools/godoc",
+      "version": "v0.1.0-deprecated",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "golang.org/x/xerrors",
+      "version": "v0.0.0-20231012003039-104605ab7028",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "google.golang.org/api",
+      "version": "v0.287.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "google.golang.org/genproto",
+      "version": "v0.0.0-20260630182238-925bb5da69e7",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "google.golang.org/genproto/googleapis/api",
+      "version": "v0.0.0-20260630182238-925bb5da69e7",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "google.golang.org/genproto/googleapis/rpc",
+      "version": "v0.0.0-20260630182238-925bb5da69e7",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "google.golang.org/grpc",
+      "version": "v1.82.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "google.golang.org/protobuf",
+      "version": "v1.36.11",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "gopkg.in/check.v1",
+      "version": "v1.0.0-20201130134442-10cb98267c6c",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "gopkg.in/inf.v0",
+      "version": "v0.9.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "lukechampine.com/uint128",
+      "version": "v1.2.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/b",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/cc/v3",
+      "version": "v3.36.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/ccgo/v3",
+      "version": "v3.16.9",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/db",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/file",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/fileutil",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/golex",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/internal",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/libc",
+      "version": "v1.17.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/lldb",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/mathutil",
+      "version": "v1.5.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/memory",
+      "version": "v1.2.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/opt",
+      "version": "v0.1.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/ql",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/sortutil",
+      "version": "v1.1.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/sqlite",
+      "version": "v1.18.1",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/strutil",
+      "version": "v1.1.3",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/token",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    },
+    {
+      "modulePath": "modernc.org/zappy",
+      "version": "v1.0.0",
+      "reason": "NOT_IMPORTED_BY_OWNED_COMMANDS_OR_PACKAGE_TESTS"
+    }
+  ],
+  "redistributionRequirements": [
+    "Retain each license/copyright notice and applicable PATENTS text with redistributed source and binaries.",
+    "Apache-2.0 full legal text plus cyberphone source copyright are retained; no upstream NOTICE file exists in that module.",
+    "The PostgreSQL terms embedded in pgerrcode are retained in addition to its MIT terms.",
+    "Native Go artifacts must include this inventory and docs/licenses/go-service/; future dependency changes must refresh the measured closure and obtain license evidence before redistribution."
+  ],
+  "validation": {
+    "licenseCopiesVerifiedAgainstImmutableOrigin": 22,
+    "method": "Bytes copied from Go checksum-verified module cache or pinned Go SDK and compared with raw files at immutable Git commit URLs."
+  },
+  "goModSha256": "f7dc5c29690e02379db9b6ce98cb725c4197143dfc7e2a47cc7d350fa772087e",
+  "goSumSha256": "0c45cf05dbf7a7c8e84450d775b4db0a299bb084ece71cc1ea4cff48cb093f75",
+  "toolchainLockSha256": "c255097c26a6efe62e203da8fb1986716ee43aea2b6f49fb983ff5bb541f50a1"
+}

@@ -13,3 +13,4 @@ These initial records are **Accepted as engineering direction already constraine
 | [0003](0003-immutable-problem-history.md) | Immutable problem/package history and frozen execution context | Accepted |
 | [0004](0004-explicit-package-compatibility.md) | Preserve originals and use an explicit problem-package adapter | Accepted |
 | [0005](0005-mature-linux-sandbox.md) | Pinned upstream sandbox with Linux security validation | Accepted |
+| [0006](0006-go-service-and-locked-build.md) | Go service, source boundaries and exact native build dependencies | Accepted |

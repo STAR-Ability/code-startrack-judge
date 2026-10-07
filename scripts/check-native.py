@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+"""Required native checks with the exact verified SDK and no automatic resolver."""
+
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def main() -> int:
+    subprocess.run([sys.executable, "scripts/toolchain.py", "verify"], cwd=ROOT, check=True)
+    version = json.loads((ROOT / "toolchain.lock.json").read_text())["goVersion"]
+    sdk = ROOT / ".local" / "toolchains" / f"go{version}" / "go" / "bin"
+    env = dict(os.environ, GOTOOLCHAIN="local", GOWORK="off", GOFLAGS="", GOEXPERIMENT="")
+    sources = subprocess.check_output(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT,
+    ).split(b"\0")
+    files = sorted({os.fsdecode(p) for p in sources if p.endswith(b".go")})
+    if files:
+        formatted = subprocess.check_output([str(sdk / "gofmt"), "-l", *files], cwd=ROOT, env=env, text=True)
+        if formatted:
+            print("Go formatting required:\n" + formatted, file=sys.stderr)
+            return 1
+        for command in [["vet", "-mod=readonly", "./..."], ["test", "-mod=readonly", "-race", "./..."], ["build", "-mod=readonly", "-trimpath", "./..."]]:
+            subprocess.run([str(sdk / "go"), *command], cwd=ROOT, env=env, check=True)
+        subprocess.run([sys.executable, "scripts/check-go-service-licenses.py"], cwd=ROOT, env=env, check=True)
+        subprocess.run(["node", "scripts/verify-canonical-golden.mjs"], cwd=ROOT, env=env, check=True)
+        schema_python = ROOT / ".local" / "contract-schema-tests" / "bin" / "python"
+        if not schema_python.is_file():
+            print("Schema test environment missing; run make contract-test-setup", file=sys.stderr)
+            return 1
+        subprocess.run([str(schema_python), "scripts/test-contract-schema.py"], cwd=ROOT, env=env, check=True)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except (OSError, ValueError, subprocess.SubprocessError):
+        print("native checks failed", file=sys.stderr)
+        sys.exit(1)

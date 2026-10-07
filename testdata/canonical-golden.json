@@ -1,0 +1,508 @@
+{
+  "schemaVersion": 1,
+  "profile": "RFC8785/JCS binary64 UTF-8; SHA-256 lowercase hex; request wrapper excludes only requestId",
+  "consumerNote": "JSON counters are nonnegative safe integers and bigint identities are strings; binary64-rounding-not-dto-counter tests generic JCS, not an admissible counter. Full envelope hash differs from task-only hash. Request inputs have already passed DTO normalization.",
+  "jsonVectors": [
+    {
+      "name": "rfc8785-serialization-example",
+      "input": "{\"numbers\":[333333333.33333329,1E30,4.50,2e-3,0.000000000000000000000000001],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\",\"literals\":[null,true,false]}",
+      "canonical": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27],\"string\":\"€$\\u000f\\nA'B\\\"\\\\\\\\\\\"/\"}",
+      "sha256": "2d5e01a318d0f0879ab568c4be289c8b1f64ef8921a53c6277d5e069978baacb"
+    },
+    {
+      "name": "rfc8785-utf16-property-order",
+      "input": "{\"1\":\"One\",\"€\":\"Euro Sign\",\"\\r\":\"Carriage Return\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\",\"😀\":\"Emoji: Grinning Face\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\"}",
+      "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+      "sha256": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c"
+    },
+    {
+      "name": "utf16-supplementary-before-bmp",
+      "input": "{\"\\ue000\":\"bmp\",\"\\ud800\\udc00\":\"supplementary\",\"nested\":[{\"z\":2,\"a\":1}]}",
+      "canonical": "{\"nested\":[{\"a\":1,\"z\":2}],\"𐀀\":\"supplementary\",\"\":\"bmp\"}",
+      "sha256": "08720d0df0558d5f43d112b67da78803028d490bee8c5f4188b8b1902605a66c"
+    },
+    {
+      "name": "binary64-exponent-boundaries",
+      "input": "[-0,-0.0,0.000001,0.0000009999999999999999,1e21,1e20,1e-7,1.7976931348623157e308,5e-324,333333333.3333333]",
+      "canonical": "[0,0,0.000001,0.000001,1e+21,100000000000000000000,1e-7,1.7976931348623157e+308,5e-324,333333333.3333333]",
+      "sha256": "6e89282602abd2fc82bee2b59c9ce31976e9f8c141302d81b0a54640e0e5c8b3"
+    },
+    {
+      "name": "binary64-rounding-not-dto-counter",
+      "input": "[9007199254740993,1.0000000000000001]",
+      "canonical": "[9007199254740992,1]",
+      "sha256": "6f0a5f65321ab04da83cab8fa86073d50b35b98dc147ca475c6f14b7a253b89f"
+    },
+    {
+      "name": "unicode-not-normalized",
+      "input": "{\"\\u00e9\":\"composed\",\"e\\u0301\":\"decomposed\",\"line\":\"\\u2028\\u2029\",\"replacement\":\"\\ufffd\"}",
+      "canonical": "{\"é\":\"decomposed\",\"line\":\"  \",\"replacement\":\"�\",\"é\":\"composed\"}",
+      "sha256": "5adfbbd7def8f2a12cf6c3e6c908f43bad6a13798393a2819d44c3e1b3d1e57e"
+    },
+    {
+      "name": "escaped-string-and-control",
+      "input": "{\"value\":\"\\u0000\\b\\t\\n\\f\\r\\\"\\\\\\/\"}",
+      "canonical": "{\"value\":\"\\u0000\\b\\t\\n\\f\\r\\\"\\\\/\"}",
+      "sha256": "11424ace1d89988feb9827ef9fd0245f0309439003a975ba678be7a2ca0c0a9e"
+    },
+    {
+      "name": "null-explicit",
+      "input": "{\"value\":null}",
+      "canonical": "{\"value\":null}",
+      "sha256": "1c197daef20de3f47eec5e2f735ec6669869d3180cc29f35be4788511e0af0f8"
+    },
+    {
+      "name": "null-missing",
+      "input": "{}",
+      "canonical": "{}",
+      "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "name": "array-order-ba",
+      "input": "[\"b\",\"a\"]",
+      "canonical": "[\"b\",\"a\"]",
+      "sha256": "02d8bc3008a9bb0dcc4b86d7fd3428ced792355c733c19756bec5a56dc61b2c5"
+    },
+    {
+      "name": "array-order-ab",
+      "input": "[\"a\",\"b\"]",
+      "canonical": "[\"a\",\"b\"]",
+      "sha256": "0473ef2dc0d324ab659d3580c1134e9d812035905c4781fdd6d529b0c6860e13"
+    },
+    {
+      "name": "bigint-identities-as-strings",
+      "input": "{\"submissionId\":\"9223372036854775807\",\"problemId\":\"9007199254740993\"}",
+      "canonical": "{\"problemId\":\"9007199254740993\",\"submissionId\":\"9223372036854775807\"}",
+      "sha256": "bf461f8bd8884d5356c77a1148c89079c008934ee3e81fc3f458c283f2b8af4a"
+    },
+    {
+      "name": "scalar-number",
+      "input": " -0.0 ",
+      "canonical": "0",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "name": "scalar-string",
+      "input": " \"hello\" ",
+      "canonical": "\"hello\"",
+      "sha256": "5aa762ae383fbb727af3c7a36d4940a5b8c40a989452d2304fc958ff3f354e7a"
+    },
+    {
+      "name": "scalar-null",
+      "input": " null ",
+      "canonical": "null",
+      "sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"
+    },
+    {
+      "name": "scalar-boolean",
+      "input": " true ",
+      "canonical": "true",
+      "sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "name": "safe-counter-limit",
+      "input": "{\"count\":9007199254740991}",
+      "canonical": "{\"count\":9007199254740991}",
+      "sha256": "3ff114a6ddf32febedb230bf411bca321e5d8b3f016194a98543cba07d50b306"
+    },
+    {
+      "name": "callback-full-envelope",
+      "input": "{\"eventId\":\"00000000-0000-4000-8000-000000000003\",\"eventType\":\"JUDGE_TASK_UPDATED\",\"occurredAt\":\"2026-10-08T00:00:00Z\",\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"aggregateId\":\"00000000-0000-4000-8000-000000000002\",\"revision\":1,\"payload\":{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"revision\":1,\"status\":\"QUEUED\",\"error\":null,\"createdAt\":\"2026-10-08T00:00:00Z\",\"updatedAt\":\"2026-10-08T00:00:00Z\",\"finishedAt\":null,\"judgeTaskId\":\"00000000-0000-4000-8000-000000000002\",\"submissionId\":\"9007199254740993\",\"result\":null}}",
+      "canonical": "{\"aggregateId\":\"00000000-0000-4000-8000-000000000002\",\"eventId\":\"00000000-0000-4000-8000-000000000003\",\"eventType\":\"JUDGE_TASK_UPDATED\",\"occurredAt\":\"2026-10-08T00:00:00Z\",\"payload\":{\"createdAt\":\"2026-10-08T00:00:00Z\",\"error\":null,\"finishedAt\":null,\"judgeTaskId\":\"00000000-0000-4000-8000-000000000002\",\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"result\":null,\"revision\":1,\"status\":\"QUEUED\",\"submissionId\":\"9007199254740993\",\"updatedAt\":\"2026-10-08T00:00:00Z\"},\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"revision\":1}",
+      "sha256": "7f5c38e13fd2f51be85a18ede297c8315585e683aa34ed764dd0e98ed7eef444"
+    },
+    {
+      "name": "callback-task-payload",
+      "input": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"revision\":1,\"status\":\"QUEUED\",\"error\":null,\"createdAt\":\"2026-10-08T00:00:00Z\",\"updatedAt\":\"2026-10-08T00:00:00Z\",\"finishedAt\":null,\"judgeTaskId\":\"00000000-0000-4000-8000-000000000002\",\"submissionId\":\"9007199254740993\",\"result\":null}",
+      "canonical": "{\"createdAt\":\"2026-10-08T00:00:00Z\",\"error\":null,\"finishedAt\":null,\"judgeTaskId\":\"00000000-0000-4000-8000-000000000002\",\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"result\":null,\"revision\":1,\"status\":\"QUEUED\",\"submissionId\":\"9007199254740993\",\"updatedAt\":\"2026-10-08T00:00:00Z\"}",
+      "sha256": "e555b408676a607432dca6c54f618b49c5ad83f0bfe5a5359d9493e53661703e"
+    },
+    {
+      "name": "judge-result-all-fields",
+      "input": "{\"verdict\":\"AC\",\"timeMs\":1,\"memoryBytes\":1048576,\"passedTestCount\":1,\"totalTestCount\":1,\"score\":null,\"compileLog\":null,\"diagnosticCode\":null,\"judgedAt\":\"2026-10-08T00:00:01Z\"}",
+      "canonical": "{\"compileLog\":null,\"diagnosticCode\":null,\"judgedAt\":\"2026-10-08T00:00:01Z\",\"memoryBytes\":1048576,\"passedTestCount\":1,\"score\":null,\"timeMs\":1,\"totalTestCount\":1,\"verdict\":\"AC\"}",
+      "sha256": "a1021c7d2e3d7c1ceb4109da1d46d4ca3948a218a05ee4a33e8f17a5fdd1e145"
+    },
+    {
+      "name": "metadata-immutable-projection",
+      "input": "{\"packageArtifactId\":\"00000000-0000-4000-8000-000000000004\",\"title\":\"A + B\",\"statementFormat\":\"MARKDOWN\",\"statementContent\":\"# A + B\\n\",\"statementInput\":null,\"statementOutput\":null,\"samples\":[{\"input\":\"1 2\\n\",\"output\":\"3\\n\"}],\"tags\":[\"math\",\"implementation\"],\"difficulty\":null,\"difficultyScale\":\"UNRATED\",\"ratingBasis\":null,\"timeLimitMs\":1000,\"wallLimitMs\":3000,\"memoryLimitBytes\":268435456,\"outputLimitBytes\":1048576,\"languageIds\":[\"cpp17\"],\"judgeMode\":\"BATCH_PASS_FAIL\",\"checkerConfig\":{\"type\":\"DEFAULT\",\"profile\":\"kattis-default-v1.20260907\",\"implementation\":{\"repositoryUrl\":\"https://github.com/Kattis/problemtools\",\"revision\":\"6010cbaa37a1612117f49566b2fff8646d53faa2\",\"sourcePath\":\"support/default_validator/default_validator.cc\",\"sourceSha256\":\"2901f589366382433562ec550b2f0c979ad94e3a3a4f737ef013bdd4fa334328\"},\"caseSensitive\":false,\"spaceChangeSensitive\":false,\"floatAbsoluteTolerance\":null,\"floatRelativeTolerance\":null}}",
+      "canonical": "{\"checkerConfig\":{\"caseSensitive\":false,\"floatAbsoluteTolerance\":null,\"floatRelativeTolerance\":null,\"implementation\":{\"repositoryUrl\":\"https://github.com/Kattis/problemtools\",\"revision\":\"6010cbaa37a1612117f49566b2fff8646d53faa2\",\"sourcePath\":\"support/default_validator/default_validator.cc\",\"sourceSha256\":\"2901f589366382433562ec550b2f0c979ad94e3a3a4f737ef013bdd4fa334328\"},\"profile\":\"kattis-default-v1.20260907\",\"spaceChangeSensitive\":false,\"type\":\"DEFAULT\"},\"difficulty\":null,\"difficultyScale\":\"UNRATED\",\"judgeMode\":\"BATCH_PASS_FAIL\",\"languageIds\":[\"cpp17\"],\"memoryLimitBytes\":268435456,\"outputLimitBytes\":1048576,\"packageArtifactId\":\"00000000-0000-4000-8000-000000000004\",\"ratingBasis\":null,\"samples\":[{\"input\":\"1 2\\n\",\"output\":\"3\\n\"}],\"statementContent\":\"# A + B\\n\",\"statementFormat\":\"MARKDOWN\",\"statementInput\":null,\"statementOutput\":null,\"tags\":[\"math\",\"implementation\"],\"timeLimitMs\":1000,\"title\":\"A + B\",\"wallLimitMs\":3000}",
+      "sha256": "d565c663888ba18b2b3ccf09e0534cf3aabacd6804b3f8b8cc4669e14adf2778"
+    },
+    {
+      "name": "rfc8785-appendix-b-0000000000000000",
+      "ieee754hex": "0000000000000000",
+      "input": "0.0000000000000000",
+      "canonical": "0",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "name": "rfc8785-appendix-b-8000000000000000",
+      "ieee754hex": "8000000000000000",
+      "input": "-0",
+      "canonical": "0",
+      "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+    },
+    {
+      "name": "rfc8785-appendix-b-0000000000000001",
+      "ieee754hex": "0000000000000001",
+      "input": "4.9406564584124654e-324",
+      "canonical": "5e-324",
+      "sha256": "c46e7ca1be4c8734f373a56530787288fa2058d73d07855e9247e949f811a42a"
+    },
+    {
+      "name": "rfc8785-appendix-b-8000000000000001",
+      "ieee754hex": "8000000000000001",
+      "input": "-4.9406564584124654e-324",
+      "canonical": "-5e-324",
+      "sha256": "046f4049d09944fcb2efbf2ddb0ea8f05e0204591d6d02c9106efc88190fa7f9"
+    },
+    {
+      "name": "rfc8785-appendix-b-7fefffffffffffff",
+      "ieee754hex": "7fefffffffffffff",
+      "input": "1.7976931348623157e+308",
+      "canonical": "1.7976931348623157e+308",
+      "sha256": "c2784e1abd6317452708f3fbf9641c16b959561bc621a1d408c23a20aa2cb585"
+    },
+    {
+      "name": "rfc8785-appendix-b-ffefffffffffffff",
+      "ieee754hex": "ffefffffffffffff",
+      "input": "-1.7976931348623157e+308",
+      "canonical": "-1.7976931348623157e+308",
+      "sha256": "f0347276b171ff0c36491c912285a2833de7313d1a103a4b1be0274bfe7c021f"
+    },
+    {
+      "name": "rfc8785-appendix-b-4340000000000000",
+      "ieee754hex": "4340000000000000",
+      "input": "9007199254740992.0",
+      "canonical": "9007199254740992",
+      "sha256": "c681da39d7273a6a24c15c9cac3a75526ff2ecf8ba4ee60346a0c70c8163bdb2"
+    },
+    {
+      "name": "rfc8785-appendix-b-c340000000000000",
+      "ieee754hex": "c340000000000000",
+      "input": "-9007199254740992.0",
+      "canonical": "-9007199254740992",
+      "sha256": "83e109bfd7fb4984b47a46f363627c18dbbd7e57e36b05a04cd162d304df72e9"
+    },
+    {
+      "name": "rfc8785-appendix-b-4430000000000000",
+      "ieee754hex": "4430000000000000",
+      "input": "2.9514790517935283e+20",
+      "canonical": "295147905179352830000",
+      "sha256": "7933ef1b34c194c7a327ef424e54282dd2872bc7bda27812f9edf7882ca340c0"
+    },
+    {
+      "name": "rfc8785-appendix-b-44b52d02c7e14af5",
+      "ieee754hex": "44b52d02c7e14af5",
+      "input": "9.9999999999999975e+22",
+      "canonical": "9.999999999999997e+22",
+      "sha256": "143eadc1fc2fe10a563df313c717399d1835652d710fa189119ff2e1d5cde33d"
+    },
+    {
+      "name": "rfc8785-appendix-b-44b52d02c7e14af6",
+      "ieee754hex": "44b52d02c7e14af6",
+      "input": "9.9999999999999992e+22",
+      "canonical": "1e+23",
+      "sha256": "0b1af6b73e932475817f8eb620deecf21ad7570df3400a23db5c79a9001597f7"
+    },
+    {
+      "name": "rfc8785-appendix-b-44b52d02c7e14af7",
+      "ieee754hex": "44b52d02c7e14af7",
+      "input": "1.0000000000000001e+23",
+      "canonical": "1.0000000000000001e+23",
+      "sha256": "de7cb5db5ee06bf7ef5b74ebcf94cd9d7efda28125905f7ff590724953173c7b"
+    },
+    {
+      "name": "rfc8785-appendix-b-444b1ae4d6e2ef4e",
+      "ieee754hex": "444b1ae4d6e2ef4e",
+      "input": "9.9999999999999974e+20",
+      "canonical": "999999999999999700000",
+      "sha256": "dcabf7269f6bb6ec5ba8b9530825cd7ffe215d4dd26e0a237f9d753513792c07"
+    },
+    {
+      "name": "rfc8785-appendix-b-444b1ae4d6e2ef4f",
+      "ieee754hex": "444b1ae4d6e2ef4f",
+      "input": "9.9999999999999987e+20",
+      "canonical": "999999999999999900000",
+      "sha256": "914b4f8b4bbe2f6e7c36ad7791fc842a7516d149e694b3a71b78cee465ff6d7a"
+    },
+    {
+      "name": "rfc8785-appendix-b-444b1ae4d6e2ef50",
+      "ieee754hex": "444b1ae4d6e2ef50",
+      "input": "1.0000000000000000e+21",
+      "canonical": "1e+21",
+      "sha256": "241c4643fa70b1dcde1205b71be4e3bebb17e9f880c8e1a33d0ead6c27271d3c"
+    },
+    {
+      "name": "rfc8785-appendix-b-3eb0c6f7a0b5ed8c",
+      "ieee754hex": "3eb0c6f7a0b5ed8c",
+      "input": "9.9999999999999974e-7",
+      "canonical": "9.999999999999997e-7",
+      "sha256": "2ace34b29d30d300aeacd4f2bb83367fa186f11a3f02ed461f35f00fd741a242"
+    },
+    {
+      "name": "rfc8785-appendix-b-3eb0c6f7a0b5ed8d",
+      "ieee754hex": "3eb0c6f7a0b5ed8d",
+      "input": "9.9999999999999995e-7",
+      "canonical": "0.000001",
+      "sha256": "159fb29a827ad04b260aa6c8ab6d8637f8f2b38af5c4f3cb49d6a21205e040f8"
+    },
+    {
+      "name": "rfc8785-appendix-b-41b3de4355555553",
+      "ieee754hex": "41b3de4355555553",
+      "input": "333333333.33333319",
+      "canonical": "333333333.3333332",
+      "sha256": "0fdb7bafaf219ccaf278cd0c0a580473db01c774a0baafe72a07d01230ac5c6d"
+    },
+    {
+      "name": "rfc8785-appendix-b-41b3de4355555554",
+      "ieee754hex": "41b3de4355555554",
+      "input": "333333333.33333325",
+      "canonical": "333333333.33333325",
+      "sha256": "bcbe1777b7d3c91c19c7f90100c595a9b3f1d9b395567da4258baf7ac655d403"
+    },
+    {
+      "name": "rfc8785-appendix-b-41b3de4355555555",
+      "ieee754hex": "41b3de4355555555",
+      "input": "333333333.33333331",
+      "canonical": "333333333.3333333",
+      "sha256": "6bd9be1c141028789cc35db62f1b43e80d5d4ee24d6d542e775deb16799ff4c7"
+    },
+    {
+      "name": "rfc8785-appendix-b-41b3de4355555556",
+      "ieee754hex": "41b3de4355555556",
+      "input": "333333333.33333337",
+      "canonical": "333333333.3333334",
+      "sha256": "1e099031ca0cb3cf4054688f7e2e8c95fc72828de5fa7605ce3f729e6cf79d43"
+    },
+    {
+      "name": "rfc8785-appendix-b-41b3de4355555557",
+      "ieee754hex": "41b3de4355555557",
+      "input": "333333333.33333343",
+      "canonical": "333333333.33333343",
+      "sha256": "cf68ab5e198a77538aafd967fb122a305ba1df95c9348b1fe3dff453c7f7215f"
+    },
+    {
+      "name": "rfc8785-appendix-b-becbf647612f3696",
+      "ieee754hex": "becbf647612f3696",
+      "input": "-0.0000033333333333333333",
+      "canonical": "-0.0000033333333333333333",
+      "sha256": "4e703d4e0928e4f339d03e1fb5454ddc33db657ad735b02530d98123b4fd4b61"
+    },
+    {
+      "name": "rfc8785-appendix-b-43143ff3c1cb0959",
+      "ieee754hex": "43143ff3c1cb0959",
+      "input": "1424953923781206.3",
+      "canonical": "1424953923781206.2",
+      "sha256": "e1547479d27f057e3197d49417a1dcbe19dd8781b34fa9f83b789925943d00cb"
+    }
+  ],
+  "requestVectors": [
+    {
+      "name": "judge-request",
+      "operation": "JUDGE",
+      "problemId": null,
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"submissionId\":\"9007199254740993\",\"problemRef\":{\"source\":\"PLATFORM\",\"platform\":\"startrack\",\"problemId\":\"42\",\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\"},\"languageId\":\"cpp17\",\"sourceCode\":\"// café\\r\\nint main(){return 0;}\\r\\n\",\"sourceSha256\":\"0fbba736e5d1caa02c9d1b35c52eb6050ef2a8001dc334a5ca4ea04fee08f56d\"}",
+      "canonical": "{\"body\":{\"languageId\":\"cpp17\",\"problemRef\":{\"platform\":\"startrack\",\"problemId\":\"42\",\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\",\"source\":\"PLATFORM\"},\"sourceCode\":\"// café\\r\\nint main(){return 0;}\\r\\n\",\"sourceSha256\":\"0fbba736e5d1caa02c9d1b35c52eb6050ef2a8001dc334a5ca4ea04fee08f56d\",\"submissionId\":\"9007199254740993\"},\"operation\":\"JUDGE\",\"problemId\":null}",
+      "sha256": "64d3206b2d02d0f27dc791b0aa7aba8bee2027da4d8156b9f8791bdecb70f67c"
+    },
+    {
+      "name": "judge-request-another-id-same-hash",
+      "operation": "JUDGE",
+      "problemId": null,
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000006\",\"submissionId\":\"9007199254740993\",\"problemRef\":{\"source\":\"PLATFORM\",\"platform\":\"startrack\",\"problemId\":\"42\",\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\"},\"languageId\":\"cpp17\",\"sourceCode\":\"// café\\r\\nint main(){return 0;}\\r\\n\",\"sourceSha256\":\"0fbba736e5d1caa02c9d1b35c52eb6050ef2a8001dc334a5ca4ea04fee08f56d\"}",
+      "canonical": "{\"body\":{\"languageId\":\"cpp17\",\"problemRef\":{\"platform\":\"startrack\",\"problemId\":\"42\",\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\",\"source\":\"PLATFORM\"},\"sourceCode\":\"// café\\r\\nint main(){return 0;}\\r\\n\",\"sourceSha256\":\"0fbba736e5d1caa02c9d1b35c52eb6050ef2a8001dc334a5ca4ea04fee08f56d\",\"submissionId\":\"9007199254740993\"},\"operation\":\"JUDGE\",\"problemId\":null}",
+      "sha256": "64d3206b2d02d0f27dc791b0aa7aba8bee2027da4d8156b9f8791bdecb70f67c"
+    },
+    {
+      "name": "import-path-order-ab",
+      "operation": "IMPORT",
+      "problemId": null,
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"source\":\"OJ_LAB\",\"repositoryUrl\":\"https://github.com/oj-lab/problem-packages\",\"revision\":\"a4e1d6f106879043eb30af640ba46d0fcbf8053f\",\"packagePaths\":[\"problems/a\",\"problems/b\"]}",
+      "canonical": "{\"body\":{\"packagePaths\":[\"problems/a\",\"problems/b\"],\"repositoryUrl\":\"https://github.com/oj-lab/problem-packages\",\"revision\":\"a4e1d6f106879043eb30af640ba46d0fcbf8053f\",\"source\":\"OJ_LAB\"},\"operation\":\"IMPORT\",\"problemId\":null}",
+      "sha256": "0c548ea079ea001dbab873315c98f9a36924a9512f682a5c1e33637b4345e2f7"
+    },
+    {
+      "name": "import-path-order-ba",
+      "operation": "IMPORT",
+      "problemId": null,
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"source\":\"OJ_LAB\",\"repositoryUrl\":\"https://github.com/oj-lab/problem-packages\",\"revision\":\"a4e1d6f106879043eb30af640ba46d0fcbf8053f\",\"packagePaths\":[\"problems/b\",\"problems/a\"]}",
+      "canonical": "{\"body\":{\"packagePaths\":[\"problems/b\",\"problems/a\"],\"repositoryUrl\":\"https://github.com/oj-lab/problem-packages\",\"revision\":\"a4e1d6f106879043eb30af640ba46d0fcbf8053f\",\"source\":\"OJ_LAB\"},\"operation\":\"IMPORT\",\"problemId\":null}",
+      "sha256": "3ec422d5ecdf902f79a463d715941ae3141b2fe7c37a54567e174d930de7ad10"
+    },
+    {
+      "name": "publish-problem-42",
+      "operation": "PUBLISH",
+      "problemId": "42",
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\"}",
+      "canonical": "{\"body\":{\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\"},\"operation\":\"PUBLISH\",\"problemId\":\"42\"}",
+      "sha256": "6a08a45e93a272361daf19f319ec6ff22f4e56571081c95e091b7f7f09eb3b26"
+    },
+    {
+      "name": "publish-problem-43",
+      "operation": "PUBLISH",
+      "problemId": "43",
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\"}",
+      "canonical": "{\"body\":{\"problemVersionId\":\"00000000-0000-4000-8000-000000000005\"},\"operation\":\"PUBLISH\",\"problemId\":\"43\"}",
+      "sha256": "e32f110a8e9a39b22eb4d078707315ef9989fc2ce733798eba6aafef2a13187c"
+    },
+    {
+      "name": "withdraw-problem-42",
+      "operation": "WITHDRAW",
+      "problemId": "42",
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"reason\":\"retired\"}",
+      "canonical": "{\"body\":{\"reason\":\"retired\"},\"operation\":\"WITHDRAW\",\"problemId\":\"42\"}",
+      "sha256": "f3008fa283faaf8df7d427890deac142092f6264ec9a48add224230c35a2cb48"
+    },
+    {
+      "name": "metadata-normalized",
+      "operation": "METADATA_VERSION",
+      "problemId": "42",
+      "body": "{\"requestId\":\"00000000-0000-4000-8000-000000000001\",\"baseProblemVersionId\":\"00000000-0000-4000-8000-000000000005\",\"tags\":[\"math\",\"implementation\"],\"difficulty\":null,\"difficultyScale\":\"UNRATED\"}",
+      "canonical": "{\"body\":{\"baseProblemVersionId\":\"00000000-0000-4000-8000-000000000005\",\"difficulty\":null,\"difficultyScale\":\"UNRATED\",\"tags\":[\"math\",\"implementation\"]},\"operation\":\"METADATA_VERSION\",\"problemId\":\"42\"}",
+      "sha256": "545eeb332876421be1109401d9b0b9d38e9246b83d316265034743107863df35"
+    }
+  ],
+  "sourceVectors": [
+    {
+      "name": "source-crlf",
+      "source": "// café\r\nint main(){return 0;}\r\n",
+      "sha256": "0fbba736e5d1caa02c9d1b35c52eb6050ef2a8001dc334a5ca4ea04fee08f56d"
+    },
+    {
+      "name": "source-lf",
+      "source": "// café\nint main(){return 0;}\n",
+      "sha256": "ebc6e7cff89c34cbf26f54e105fc4f34eabfac616d7e5ea90e97f2b3295605dd"
+    },
+    {
+      "name": "source-composed",
+      "source": "// café\n",
+      "sha256": "14952601d4c2321aea9341ebb808fea2eed00877cbf362c62b4745421b46b387"
+    },
+    {
+      "name": "source-decomposed",
+      "source": "// café\n",
+      "sha256": "d8b0f2aa4da2e3771c2253863acd801384b50d6d56be9d9415b2f1ea2fa73b9c"
+    },
+    {
+      "name": "source-bom",
+      "source": "﻿int main(){}\n",
+      "sha256": "6d0d2b09a05816110b97735d76a8f44033aaf9df85b6cc19a727085ffd8e90c2"
+    },
+    {
+      "name": "source-trailing-whitespace",
+      "source": "int main(){} \n",
+      "sha256": "7e35ea557f211cbc8fb9ed0d320973789995454b0dd97ccf9d86a15a63717769"
+    }
+  ],
+  "invalidVectors": [
+    {
+      "name": "duplicate-literal",
+      "input": "{\"a\":1,\"a\":2}",
+      "error": "duplicate"
+    },
+    {
+      "name": "duplicate-decoded",
+      "input": "{\"a\":1,\"\\u0061\":2}",
+      "error": "duplicate"
+    },
+    {
+      "name": "nested-duplicate",
+      "input": "{\"x\":[{\"z\":1,\"z\":2}]}",
+      "error": "duplicate"
+    },
+    {
+      "name": "duplicate-supplementary",
+      "input": "{\"😀\":1,\"\\ud83d\\ude00\":2}",
+      "error": "duplicate"
+    },
+    {
+      "name": "surrogate-high-alone",
+      "input": "{\"x\":\"\\ud800\"}",
+      "error": "surrogate"
+    },
+    {
+      "name": "surrogate-low-alone",
+      "input": "[\"\\udfff\"]",
+      "error": "surrogate"
+    },
+    {
+      "name": "surrogate-reversed",
+      "input": "[\"\\udfff\\ud800\"]",
+      "error": "surrogate"
+    },
+    {
+      "name": "surrogate-high-high",
+      "input": "[\"\\ud800\\ud800\"]",
+      "error": "surrogate"
+    },
+    {
+      "name": "surrogate-high-nonsurrogate",
+      "input": "[\"\\ud800\\u0041\"]",
+      "error": "surrogate"
+    },
+    {
+      "name": "surrogate-key",
+      "input": "{\"\\ud800\":1}",
+      "error": "surrogate"
+    },
+    {
+      "name": "nonfinite-overflow",
+      "input": "[1e400]",
+      "error": "json"
+    },
+    {
+      "name": "nan",
+      "input": "[NaN]",
+      "error": "json"
+    },
+    {
+      "name": "infinity",
+      "input": "[Infinity]",
+      "error": "json"
+    },
+    {
+      "name": "numeric-leading-zero",
+      "input": "[01]",
+      "error": "json"
+    },
+    {
+      "name": "numeric-hex",
+      "input": "[0x1]",
+      "error": "json"
+    },
+    {
+      "name": "numeric-plus",
+      "input": "[+1]",
+      "error": "json"
+    },
+    {
+      "name": "trailing-comma",
+      "input": "{\"a\":1,}",
+      "error": "json"
+    },
+    {
+      "name": "multiple-values",
+      "input": "{} {}",
+      "error": "json"
+    },
+    {
+      "name": "bom",
+      "input": "﻿{}",
+      "error": "json"
+    },
+    {
+      "name": "invalid-utf8",
+      "inputBase64": "eyJ4Ijoi/yJ9",
+      "error": "utf8"
+    }
+  ],
+  "byteVectors": [
+    {
+      "name": "binary-artifact-exact-bytes",
+      "inputBase64": "AP8NCg==",
+      "sha256": "e9489f37fb3051e9efa1dc916004d7274e7b63975e3209708947267f2393a9be"
+    }
+  ]
+}

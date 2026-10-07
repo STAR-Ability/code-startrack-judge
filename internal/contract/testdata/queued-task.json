@@ -1,0 +1,12 @@
+{
+  "requestId": "123e4567-e89b-12d3-a456-426614174000",
+  "revision": 1,
+  "status": "QUEUED",
+  "error": null,
+  "createdAt": "2026-10-08T00:00:00Z",
+  "updatedAt": "2026-10-08T00:00:00Z",
+  "finishedAt": null,
+  "judgeTaskId": "123e4567-e89b-12d3-a456-426614174002",
+  "submissionId": "9223372036854775807",
+  "result": null
+}
