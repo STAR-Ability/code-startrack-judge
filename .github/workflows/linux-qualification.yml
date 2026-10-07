@@ -1,0 +1,62 @@
+name: Trusted Linux image qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_digest:
+        description: 'Published protected-main image digest, sha256 followed by 64 lowercase hex digits'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: trusted-linux-qualification
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    name: Synthetic Linux runtime checks
+    if: >-
+      github.repository == 'STAR-Ability/code-startrack-judge' &&
+      github.ref == 'refs/heads/main' && github.ref_protected
+    runs-on: [self-hosted, Linux, X64, judge-sandbox-qualification]
+    environment: judge-sandbox-qualification
+    timeout-minutes: 45
+    env:
+      QUALIFICATION_EVIDENCE_DIR: ${{ runner.temp }}/judge-linux-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+      DOCKER_CONFIG: ${{ runner.temp }}/judge-linux-registry-auth-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Authenticate read access to the fixed registry
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          install -d -m 0700 "$DOCKER_CONFIG"
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Qualify the exact image on the reviewed dedicated Linux profile
+        env:
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        run: |
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          sudo -n env "DOCKER_CONFIG=$DOCKER_CONFIG" docker --context default pull "ghcr.io/star-ability/code-startrack-judge@$IMAGE_DIGEST"
+          sudo -n env "DOCKER_CONFIG=$DOCKER_CONFIG" python3 scripts/linux-qualify.py \
+            --image "ghcr.io/star-ability/code-startrack-judge@$IMAGE_DIGEST" \
+            --expected-commit "$GITHUB_SHA" --docker-context default \
+            --evidence "$QUALIFICATION_EVIDENCE_DIR"
+      - name: Preserve sanitized actual qualification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: linux-qualification-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.QUALIFICATION_EVIDENCE_DIR }}/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Remove registry read credentials
+        if: always()
+        run: rm -rf -- "$DOCKER_CONFIG"

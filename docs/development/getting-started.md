@@ -43,9 +43,10 @@ be running. The default host port is `127.0.0.1:15432`.
 `infra-up` waits for PostgreSQL's health check and fails on errors/timeouts.
 `infra-down` stops containers and retains the named database volume. `db-version`
 queries the actual running PostgreSQL server; it is **not** a schema version.
-`migration-status` currently reports repository level **0**, no SQL and no
-installed migration tracking. It does not certify the contents of a connected
-database. [Migration policy](../../migrations/README.md) owns the later workflow.
+`migration-status` reports available forward files, currently level **5**.
+`database-status` verifies the connected database's applied level and checksum
+history. Follow the [native migration runbook](migrations.md) to provision roles
+and apply the reviewed release ceiling.
 
 ## Environment reference
 

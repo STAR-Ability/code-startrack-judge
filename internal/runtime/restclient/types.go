@@ -101,6 +101,35 @@ func (s Status) valid() bool {
 	return false
 }
 
+// FileErrorType preserves only a bounded pinned structural enum, never the
+// failed path or raw diagnostic. Role-aware adapters may distinguish resource
+// caps from infrastructure file-operation failures without parsing messages.
+type FileErrorType string
+
+const (
+	CopyInOpenFile        FileErrorType = "CopyInOpenFile"
+	CopyInCreateDir       FileErrorType = "CopyInCreateDir"
+	CopyInCreateFile      FileErrorType = "CopyInCreateFile"
+	CopyInCopyContent     FileErrorType = "CopyInCopyContent"
+	CopyOutOpen           FileErrorType = "CopyOutOpen"
+	CopyOutNotRegularFile FileErrorType = "CopyOutNotRegularFile"
+	CopyOutSizeExceeded   FileErrorType = "CopyOutSizeExceeded"
+	CopyOutCreateFile     FileErrorType = "CopyOutCreateFile"
+	CopyOutCopyContent    FileErrorType = "CopyOutCopyContent"
+	CollectSizeExceeded   FileErrorType = "CollectSizeExceeded"
+	Symlink               FileErrorType = "Symlink"
+)
+
+func (t FileErrorType) valid() bool {
+	switch t {
+	case CopyInOpenFile, CopyInCreateDir, CopyInCreateFile, CopyInCopyContent,
+		CopyOutOpen, CopyOutNotRegularFile, CopyOutSizeExceeded, CopyOutCreateFile,
+		CopyOutCopyContent, CollectSizeExceeded, Symlink:
+		return true
+	}
+	return false
+}
+
 // Result retains exact numeric measurements and opaque cached-output identities.
 // Raw upstream errors, file paths, tool diagnostics and inline output are never
 // retained in this projection. Cached byte content requires an explicit download.
@@ -114,6 +143,7 @@ type Result struct {
 	CachedFiles    map[string]FileID
 	HasError       bool
 	FileErrorCount int
+	FileErrorTypes []FileErrorType
 }
 
 func (r Result) String() string {

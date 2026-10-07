@@ -1,0 +1,26 @@
+#include <tunables/global>
+# Candidate profile: qualification and independent review are required for each
+# exact image/kernel/runtime. No Docker socket, host-root mount, or privileged mode.
+profile startrack-v02 flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+  userns,
+  network,
+  file,
+  capability chown,
+  capability fowner,
+  capability kill,
+  capability setuid,
+  capability setgid,
+  capability sys_admin,
+  capability sys_resource,
+  capability setfcap,
+  mount,
+  remount,
+  umount,
+  pivot_root,
+  signal (receive) peer=unconfined,
+  signal (send,receive) peer=startrack-v02,
+  ptrace (read) peer=startrack-v02,
+  deny ptrace (trace),
+  deny /sys/kernel/security/** rwklx,
+}

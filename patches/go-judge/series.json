@@ -54,6 +54,21 @@
           "mode": "100644"
         }
       ]
+    },
+    {
+      "path": "patches/go-judge/0002-final-process-memory-hardening.patch",
+      "sha256": "d10f627b3786c349718cbc0fdd5aa5e5802ee5e4b60b00d30528cf964f664536",
+      "reason": "Set and measure PR_SET_DUMPABLE=0 inside the final credential-bearing Linux go-judge executable, because execve resets launcher-only hardening. A failed syscall/readback stops startup before main. No sandbox role or namespace/capability boundary is weakened.",
+      "licenseImpact": "New Code Startrack Linux startup integration source is separately Apache-2.0 attributed; original upstream files and MIT license remain unchanged.",
+      "upgradeCondition": "Retain until a reviewed exact upstream executable measures nondumpability after exec. Verify actual sibling /proc memory/environment denial and final runtime PID under the released Linux profile; portable compilation is insufficient.",
+      "files": [
+        {
+          "path": "cmd/go-judge/startrack_processguard_linux.go",
+          "baseSha256": null,
+          "patchedSha256": "d6c67d0e9b6373536b794c1681905de83de46c599d599a3eddde3c9e3703ba9e",
+          "mode": "100644"
+        }
+      ]
     }
   ]
 }

@@ -310,9 +310,65 @@ def check_upstream(root: Path, contract_text: str, active_manifest: dict) -> lis
                 for patch in component["patches"]:
                     errors.extend(check_hash(root, patch, "path", context))
         for component in lock.get("supplemental_licenses", []):
-            errors.extend(check_evidence(root, component, f"supplemental {component.get('name')}"))
+            context = f"supplemental {component.get('name')}"
+            errors.extend(check_evidence(root, component, context))
+            patches = component.get("patches", [])
+            if not isinstance(patches, list):
+                errors.append(f"{context}: invalid patch inventory")
+            elif patches:
+                descriptor = f"patches/{component['name']}/series.json"
+                if component.get("source_assembly") != {"policy": "verified-go-module-vendor", "descriptor": descriptor}:
+                    errors.append(f"{context}: missing verified vendor assembly policy")
+                series = json.loads((root / descriptor).read_text(encoding="utf-8"))
+                if series.get("schemaVersion") != 1 or series.get("component") != component["name"] or series.get("baseCommit") != component["commit"] or series.get("baseVersion") != component.get("version") or series.get("repository") != component["repository"]:
+                    errors.append(f"{context}: vendor series does not match locked source identity")
+                if series.get("patches") != patches:
+                    errors.append(f"{context}: locked patch inventory differs from reviewed vendor series")
+                for patch in patches:
+                    errors.extend(check_hash(root, patch, "path", context))
     except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
         errors.append(f"upstream.lock.json: {exc}")
+    return errors
+
+
+def check_security_profile(root: Path) -> list[str]:
+    """Bind the outer filter to reviewed upstream bytes and the sole delta.
+
+    This validates source assembly, never Linux execution or qualification.
+    """
+    errors = []
+    context = "outer seccomp profile"
+    try:
+        lock = json.loads((root / "docker/security-profile.lock.json").read_text())
+        if lock.get("schemaVersion") != 1 or lock.get("module") != "github.com/moby/profiles/seccomp" or lock.get("repository") != "https://github.com/moby/profiles":
+            errors.append(f"{context}: invalid source identity")
+        commit, version = lock.get("commit", ""), lock.get("version", "")
+        if not COMMIT.fullmatch(commit) or not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", version) or lock.get("tag") != "seccomp/" + version:
+            errors.append(f"{context}: exact reviewed source revision/release required")
+        prefix = "https://raw.githubusercontent.com/moby/profiles/" + commit
+        if lock.get("sourcePath") != "seccomp/default.json" or lock.get("profileSourceURL") != prefix + "/seccomp/default.json" or lock.get("licenseSourceURL") != prefix + "/LICENSE":
+            errors.append(f"{context}: source URLs must bind the exact revision")
+        if not SHA256.fullmatch(lock.get("moduleArchiveSha256", "")) or any(not re.fullmatch(r"h1:[A-Za-z0-9+/]{43}=", lock.get(field, "")) for field in ("moduleSum", "goModSum")):
+            errors.append(f"{context}: missing exact module archive provenance")
+        for relative, field in (("docker/seccomp-source.json", "upstreamProfileSha256"),
+                                ("docker/startrack-v02.seccomp.json", "profileSha256"),
+                                ("docs/licenses/moby-seccomp/LICENSE", "licenseSha256")):
+            path = root / relative
+            if path.is_symlink() or not path.is_file():
+                errors.append(f"{context}: regular retained evidence required: {relative}")
+            else:
+                errors.extend(check_hash(root, {"local_path": relative, "sha256": lock.get(field)}, "local_path", context))
+        delta = {"addedSyscalls": ["pivot_root"], "action": "SCMP_ACT_ALLOW", "requiresOuterCapability": "CAP_SYS_ADMIN"}
+        if lock.get("delta") != delta:
+            errors.append(f"{context}: only the reviewed capability-conditioned pivot_root delta is allowed")
+        original = json.loads((root / "docker/seccomp-source.json").read_text())
+        candidate = json.loads((root / "docker/startrack-v02.seccomp.json").read_text())
+        expected = json.loads(json.dumps(original))
+        expected["syscalls"].append({"names": ["pivot_root"], "action": "SCMP_ACT_ALLOW", "includes": {"caps": ["CAP_SYS_ADMIN"]}})
+        if candidate != expected:
+            errors.append(f"{context}: profile differs from the reviewed upstream plus sole delta")
+    except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:
+        errors.append(f"{context}: invalid retained source/lock ({type(exc).__name__})")
     return errors
 
 
@@ -427,6 +483,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     contract_errors, contract_text, active_manifest, state = check_contracts(root)
     errors.extend(contract_errors)
     errors.extend(check_upstream(root, contract_text, active_manifest))
+    errors.extend(check_security_profile(root))
     level = state.get("repositoryMigrationLevel")
     if not isinstance(level, int) or isinstance(level, bool) or level < 0 or level != len(migration_files):
         errors.append("release state: repositoryMigrationLevel must match the numbered repository migration files")
@@ -441,6 +498,35 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
 
 
 class ValidatorTests(unittest.TestCase):
+    def test_outer_seccomp_source_and_sole_delta_are_bound(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = ("docker/security-profile.lock.json", "docker/seccomp-source.json",
+                     "docker/startrack-v02.seccomp.json", "docs/licenses/moby-seccomp/LICENSE")
+            for relative in paths:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((ROOT / relative).read_bytes())
+            self.assertEqual(check_security_profile(root), [])
+            profile = root / "docker/startrack-v02.seccomp.json"
+            baseline = profile.read_bytes()
+            candidate = json.loads(baseline)
+            candidate["syscalls"][-1].pop("includes")
+            profile.write_text(json.dumps(candidate))
+            lock_path = root / "docker/security-profile.lock.json"
+            lock = json.loads(lock_path.read_text())
+            lock["profileSha256"] = digest(profile)
+            lock_path.write_text(json.dumps(lock))
+            self.assertTrue(any("sole delta" in error for error in check_security_profile(root)))
+            profile.write_bytes(baseline)
+            lock["profileSha256"] = digest(profile)
+            lock["profileSourceURL"] = "https://raw.githubusercontent.com/moby/profiles/main/seccomp/default.json"
+            lock_path.write_text(json.dumps(lock))
+            self.assertTrue(any("exact revision" in error for error in check_security_profile(root)))
+            license_path = root / "docs/licenses/moby-seccomp/LICENSE"
+            license_path.write_text("modified retained license")
+            self.assertTrue(any("checksum mismatch" in error for error in check_security_profile(root)))
+
     def test_links_and_fences(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -499,6 +585,43 @@ class ValidatorTests(unittest.TestCase):
             self.assertEqual(manifest["upstreamComponents"], ["new-tool"])
             (root / "docs/contracts/v0.2/api.md").write_text("rewritten old contract", encoding="utf-8")
             self.assertTrue(any("checksum mismatch" in error for error in check_contracts(root)[0]))
+
+    def test_supplemental_patch_lock_rejects_identity_inventory_and_byte_drift(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            folder = root / "patches/sandbox"
+            folder.mkdir(parents=True)
+            evidence = root / "LICENSE"
+            evidence.write_text("retained license", encoding="utf-8")
+            patch_file = folder / "0001-reviewed.patch"
+            patch_file.write_text("reviewed patch bytes", encoding="utf-8")
+            component = {
+                "name": "sandbox", "repository": "https://github.com/example/sandbox.git",
+                "commit": "a" * 40, "version": "v1.0.0",
+                "evidence": [{"local_path": "LICENSE", "sha256": digest(evidence),
+                              "upstream_path": "LICENSE", "source_url": "https://github.com/example/sandbox/blob/" + "a" * 40 + "/LICENSE"}],
+                "patches": [{"path": "patches/sandbox/0001-reviewed.patch", "sha256": digest(patch_file)}],
+                "source_assembly": {"policy": "verified-go-module-vendor", "descriptor": "patches/sandbox/series.json"},
+            }
+            lock = {"schema_version": 1, "contract_version": "0.2.0", "components": [], "supplemental_licenses": [component]}
+            series = {"schemaVersion": 1, "component": "sandbox", "repository": component["repository"],
+                      "baseCommit": component["commit"], "baseVersion": component["version"], "patches": component["patches"]}
+            (root / "upstream.lock.json").write_text(json.dumps(lock), encoding="utf-8")
+            descriptor = folder / "series.json"
+            descriptor.write_text(json.dumps(series), encoding="utf-8")
+            manifest = {"contractVersion": "0.2.0", "upstreamComponents": []}
+            self.assertEqual(check_upstream(root, "", manifest), [])
+            for field, changed in (("baseCommit", "b" * 40), ("baseVersion", "v2.0.0"), ("patches", [])):
+                with self.subTest(field=field):
+                    descriptor.write_text(json.dumps(dict(series, **{field: changed})), encoding="utf-8")
+                    self.assertTrue(check_upstream(root, "", manifest))
+            descriptor.write_text(json.dumps(series), encoding="utf-8")
+            patch_file.write_text("unreviewed patch bytes", encoding="utf-8")
+            self.assertTrue(any("checksum mismatch" in error for error in check_upstream(root, "", manifest)))
+            patch_file.write_text("reviewed patch bytes", encoding="utf-8")
+            component["source_assembly"]["policy"] = "unverified-vendor"
+            (root / "upstream.lock.json").write_text(json.dumps(lock), encoding="utf-8")
+            self.assertTrue(check_upstream(root, "", manifest))
 
     def test_python_credential_literals_and_syntax(self):
         self.assertEqual(check_python('password = values["POSTGRES_PASSWORD"]\nconfig = {"POSTGRES_PASSWORD": ""}\n', "test.py"), [])

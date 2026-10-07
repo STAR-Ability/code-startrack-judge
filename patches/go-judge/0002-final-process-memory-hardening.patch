@@ -1,0 +1,25 @@
+--- /dev/null
++++ b/cmd/go-judge/startrack_processguard_linux.go
+@@ -0,0 +1,22 @@
++//go:build linux
++
++// SPDX-License-Identifier: Apache-2.0
++// Code Startrack addition: execve resets the launcher's dumpability setting.
++package main
++
++import (
++	"os"
++	"syscall"
++)
++
++func init() {
++	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, 4, 0, 0); errno != 0 {
++		os.Stderr.WriteString("required runtime process hardening unavailable\n")
++		os.Exit(1)
++	}
++	value, _, errno := syscall.Syscall(syscall.SYS_PRCTL, 3, 0, 0)
++	if errno != 0 || value != 0 {
++		os.Stderr.WriteString("required runtime process hardening unavailable\n")
++		os.Exit(1)
++	}
++}

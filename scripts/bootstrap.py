@@ -110,7 +110,18 @@ def main() -> None:
     if command == "migration-status":
         migrations = sorted((ROOT / "migrations").glob("*.sql"))
         if migrations:
-            fail("SQL migrations now exist: implement/use the reviewed native migration runner before reporting an applied level.")
+            # Repository availability is distinct from a connected database's
+            # applied/checksummed history. The native runner owns that history.
+            numbers = []
+            for migration in migrations:
+                match = re.fullmatch(r"([0-9]{6})_[a-z0-9_]+\.up\.sql", migration.name)
+                if match is None:
+                    fail("Repository migration filename is invalid; run make check.")
+                numbers.append(int(match.group(1)))
+            if numbers != list(range(1, len(numbers) + 1)):
+                fail("Repository migration identities are not contiguous; run make check.")
+            print(f"Repository migration level: {len(numbers)}. Available forward files only; use make database-status for applied history/checksums.")
+            return
         print("Repository migration level: 0. No SQL migrations shipped; database tracking and the native runner are not implemented yet.")
         return
     check_tools()

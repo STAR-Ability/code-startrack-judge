@@ -1,0 +1,48 @@
+diff --git a/pkg/forkexec/consts_linux.go b/pkg/forkexec/consts_linux.go
+--- a/pkg/forkexec/consts_linux.go
++++ b/pkg/forkexec/consts_linux.go
+@@ -41,11 +41,9 @@
+ 		Pid:     0,
+ 	}
+ 
+-	dropCapData = unix.CapUserData{
+-		Effective:   0,
+-		Permitted:   0,
+-		Inheritable: 0,
+-	}
++	// Code Startrack: capability ABI v3 consumes two 12-byte data records.
++	// Keep both zeroed so the kernel never reads adjacent globals.
++	dropCapData = [2]unix.CapUserData{}
+ 
+ 	// 1ms
+ 	etxtbsyRetryInterval = unix.Timespec{
+diff --git a/pkg/forkexec/fork_child_linux.go b/pkg/forkexec/fork_child_linux.go
+--- a/pkg/forkexec/fork_child_linux.go
++++ b/pkg/forkexec/fork_child_linux.go
+@@ -362,7 +362,7 @@
+ 		if err1 != 0 {
+ 			childExitError(pipe, LocDropCapability, err1)
+ 		}
+-		_, _, err1 = syscall.RawSyscall(syscall.SYS_CAPSET, uintptr(unsafe.Pointer(&dropCapHeader)), uintptr(unsafe.Pointer(&dropCapData)), 0)
++		_, _, err1 = syscall.RawSyscall(syscall.SYS_CAPSET, uintptr(unsafe.Pointer(&dropCapHeader)), uintptr(unsafe.Pointer(&dropCapData[0])), 0)
+ 		if err1 != 0 {
+ 			childExitError(pipe, LocSetCap, err1)
+ 		}
+@@ -395,7 +395,7 @@
+ 					if err1 != 0 {
+ 						childExitError(pipe, LocKeepCapability, err1)
+ 					}
+-					_, _, err1 = syscall.RawSyscall(syscall.SYS_CAPSET, uintptr(unsafe.Pointer(&dropCapHeader)), uintptr(unsafe.Pointer(&dropCapData)), 0)
++					_, _, err1 = syscall.RawSyscall(syscall.SYS_CAPSET, uintptr(unsafe.Pointer(&dropCapHeader)), uintptr(unsafe.Pointer(&dropCapData[0])), 0)
+ 					if err1 != 0 {
+ 						childExitError(pipe, LocSetCap, err1)
+ 					}
+@@ -460,7 +460,7 @@
+ 					if err1 != 0 {
+ 						childExitError(pipe, LocKeepCapability, err1)
+ 					}
+-					_, _, err1 = syscall.RawSyscall(syscall.SYS_CAPSET, uintptr(unsafe.Pointer(&dropCapHeader)), uintptr(unsafe.Pointer(&dropCapData)), 0)
++					_, _, err1 = syscall.RawSyscall(syscall.SYS_CAPSET, uintptr(unsafe.Pointer(&dropCapHeader)), uintptr(unsafe.Pointer(&dropCapData[0])), 0)
+ 					if err1 != 0 {
+ 						childExitError(pipe, LocSetCap, err1)
+ 					}

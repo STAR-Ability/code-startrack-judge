@@ -25,6 +25,12 @@ build:
 	$(PYTHON) scripts/toolchain.py verify
 	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/judge-service ./cmd/judge-service
 	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/judge-migrate ./cmd/judge-migrate
+	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/judge-admin ./cmd/judge-admin
+	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/judge-outbox ./cmd/judge-outbox
+	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/startrack-judger ./cmd/startrack-judger
+	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/startrack-runtime-init ./cmd/startrack-runtime-init
+	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/startrack-runtime-matrix ./cmd/startrack-runtime-matrix
+	CGO_ENABLED=0 $(GO) build -mod=readonly -trimpath -o build/startrack-supervisor ./cmd/startrack-supervisor
 
 run:
 	$(PYTHON) scripts/toolchain.py verify

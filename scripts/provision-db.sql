@@ -9,11 +9,16 @@ SET log_statement = 'none';
 SET log_min_error_statement = 'panic';
 SET log_min_duration_statement = -1;
 SET log_min_duration_sample = -1;
+SET log_transaction_sample_rate = 0;
 SET log_duration = off;
+SET log_min_messages = 'panic';
+SET log_error_verbosity = 'terse';
 SET log_parameter_max_length = 0;
 SET log_parameter_max_length_on_error = 0;
 SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_settings WHERE name='pgaudit.log')
        THEN set_config('pgaudit.log', 'none', false) ELSE 'none' END AS audit_policy \gset
+SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_settings WHERE name='pgaudit.role')
+       THEN set_config('pgaudit.role', '', false) ELSE '' END AS object_audit_policy \gset
 \getenv judge_migration_password JUDGE_MIGRATION_PASSWORD
 \getenv judge_runtime_password JUDGE_RUNTIME_PASSWORD
 \if :{?judge_migration_password}

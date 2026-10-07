@@ -6,16 +6,22 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/STAR-Ability/code-startrack-judge/internal/persistence/migrate"
+	"github.com/STAR-Ability/code-startrack-judge/internal/processguard"
 	"github.com/STAR-Ability/code-startrack-judge/migrations"
 )
 
 func main() {
+	if processguard.Harden() != nil {
+		fmt.Fprintln(os.Stderr, "PROCESS_HARDENING_UNAVAILABLE")
+		os.Exit(1)
+	}
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -28,7 +34,7 @@ func run() error {
 	}
 	command := os.Args[1]
 	flags := flag.NewFlagSet("judge-migrate "+command, flag.ContinueOnError)
-	flags.SetOutput(os.Stderr)
+	flags.SetOutput(io.Discard)
 	ceiling := flags.Int("ceiling", 0, "apply through this release's forward ceiling (0 means highest)")
 	if err := flags.Parse(os.Args[2:]); err != nil {
 		return fmt.Errorf("invalid migration command flags")

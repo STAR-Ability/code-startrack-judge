@@ -14,6 +14,12 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 - Go 1.26.8 service, strict internal HTTP/DTO/hash boundaries, native dependency/license inventory and reproducible build checks.
 - Initial forward PostgreSQL schema, checksum-aware migration runner and separately scoped provisioning/runtime roles.
 - Provenance-tracked upstream hardening patches and private binary-safe sandbox REST transport.
+- Immutable private-object storage and problem/artifact/version repositories with garbage collection that preserves historical owners.
+- Asynchronous fixed-revision OJ-Lab imports, deterministic USTAR adaptation, retained rejection diagnostics and streamed private validation evidence.
+- Append-only trusted ADMIN license receipts, immutable metadata versions, publication/withdrawal and consistent protected catalog snapshots.
+- C++17 task admission, live capability checks, fenced scheduling with three counted recoveries, atomic results/case history and transactional callback snapshots.
+- Fixed-target callback delivery, durable retry/dead letters and explicit audited manual redelivery.
+- Five forward schema migrations and actual PostgreSQL integrity, concurrency, privilege and SQL-log redaction checks.
 
 ### Changed
 
@@ -22,7 +28,8 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 ### Security
 
 - Explicit separation of portable development from Linux sandbox qualification; isolation failures must stop execution.
+- Final Linux entrypoints measure nondumpability after execution; exact upstream patches and vendor source inventories preserve reviewed provenance.
 
 ### Planned
 
-- V0.2 business workflows, package adapters, task/outbox execution and actual image/Linux deployment qualification.
+- Final Linux image and isolated problemtools qualification, cross-service compatibility, protected release merge and official immutable artifact publication.

@@ -1,0 +1,433 @@
+===== 0_importpath.go sha256:c527c7d4290dd5f3aca413aaba6015ff104525999a4f3bc8c95537ae46c8b327 =====
+// Copyright (c) 2012-2018 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== base.fastpath.generated.go sha256:87c0f023a47b3af09e54f775150e61ae4754d83bd176612b64c432e5c080ac43 =====
+//go:build !notfastpath && !codec.notfastpath
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+// Code generated from fastpath.go.tmpl - DO NOT EDIT.
+
+
+===== binc.base.go sha256:52c9d5171d9d02c70b51f4c1141ddc9e2ed816ecc610ac591c483c1e371a3019 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== binc.fastpath.mono.generated.go sha256:db238d3dbc6a6dd632274047579d28f51487d0dec92f1f81852da115e429b1ec =====
+//go:build !notmono && !codec.notmono && !notfastpath && !codec.notfastpath
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== binc.mono.generated.go sha256:be66fabbd009cce2e0bc59a15ba75732a785a542f6238cb6b639c5d321f78b25 =====
+//go:build !notmono && !codec.notmono
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== cbor.base.go sha256:0aef039551ce6700f20769f5139f89af843bcaedf146392dd13266b558a7cd8c =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== cbor.fastpath.mono.generated.go sha256:5c0eb0db1bddba8dee99dcf4fd070cfa79b30845cd153ac3b0db35875118be51 =====
+//go:build !notmono && !codec.notmono && !notfastpath && !codec.notfastpath
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== cbor.mono.generated.go sha256:afca0e7c129b099069c14fbe4ceeebb6d2d348e14f0d324491c8436d9c9aa056 =====
+//go:build !notmono && !codec.notmono
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== custom_time.go sha256:51cf3f09a7088d10a5a8a05190ced26b9f9b2a8a7f1a611f3b85a76e63f154af =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== decimal.go sha256:64cf9c907ec14d0a32a68dd7f1058ec1c59e06480ca211ce5b8854d2198c7fdd =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== decode.base.go sha256:4d886a40ca75ab69ea6479cd64f86166e52c1b57e7e3e9c48122b86037921766 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== doc.go sha256:32529f334297cb372ce9c0819248633a65fbabf3eee8c7b66a7215bf01807095 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+/*
+Package codec provides a High Performance, Feature-Rich Idiomatic Go
+codec/encoding library for binc, msgpack, cbor, json.
+
+Supported Serialization formats are:
+
+  - msgpack: https://github.com/msgpack/msgpack
+  - binc: http://github.com/ugorji/binc
+  - cbor: http://cbor.io http://tools.ietf.org/html/rfc7049
+  - json: http://json.org http://tools.ietf.org/html/rfc7159
+  - simple: (unpublished)
+
+For detailed usage information, read the primer at http://ugorji.net/blog/go-codec-primer .
+
+The idiomatic Go support is as seen in other encoding packages in
+the standard library (ie json, xml, gob, etc).
+
+Rich Feature Set includes:
+
+  - Simple but extremely powerful and feature-rich API
+  - Support for go 1.21 and above, selectively using newer APIs for later releases
+  - Excellent code coverage ( ~ 85-90% )
+  - Very High Performance, significantly outperforming libraries for Gob, Json, Bson, etc
+  - Careful selected use of 'unsafe' for targeted performance gains.
+  - 100% safe mode supported, where 'unsafe' is not used at all.
+  - Lock-free (sans mutex) concurrency for scaling to 100's of cores
+  - In-place updates during decode, with option to zero value in maps and slices prior to decode
+  - Coerce types where appropriate e.g. decode an int in the stream into a
+    float, decode numbers from formatted strings, etc
+  - Corner Cases: Overflows, nil maps/slices, nil values in streams are handled correctly
+  - Standard field renaming via tags
+  - Support for omitting empty fields during an encoding
+  - Encoding from any value and decoding into pointer to any value (struct,
+    slice, map, primitives, pointers, interface{}, etc)
+  - Extensions to support efficient encoding/decoding of any named types
+  - Support encoding.(Binary|Text)(M|Unm)arshaler interfaces
+  - Support using existence of `IsZero() bool` to determine if a zero value
+  - Decoding without a schema (into a interface{}). Includes Options to
+    configure what specific map or slice type to use when decoding an encoded
+    list or map into a nil interface{}
+  - Mapping a non-interface type to an interface, so we can decode appropriately
+    into any interface type with a correctly configured non-interface value.
+  - Encode a struct as an array, and decode struct from an array in the data stream
+  - Option to encode struct keys as numbers (instead of strings) (to support
+    structured streams with fields encoded as numeric codes)
+  - Comprehensive support for anonymous fields
+  - Fast (no-reflection) encoding/decoding of common maps and slices
+  - Code-generation for faster performance, supported in go 1.6+
+  - Support binary (e.g. messagepack, cbor) and text (e.g. json) formats
+  - Support indefinite-length formats to enable true streaming (for formats
+    which support it e.g. json, cbor)
+  - Support canonical encoding, where a value is ALWAYS encoded as same sequence of bytes.
+    This mostly applies to maps, where iteration order is non-deterministic.
+  - NIL in data stream decoded as zero value
+  - Never silently skip data when decoding. User decides whether to return an
+    error or silently skip data when keys or indexes in the data stream do not
+    map to fields in the struct.
+  - Detect and error when encoding a cyclic reference (instead of stack overflow shutdown)
+  - Encode/Decode from/to chan types (for iterative streaming support)
+  - Drop-in replacement for encoding/json. `json:` key in struct tag supported.
+  - Provides a RPC Server and Client Codec for net/rpc communication protocol.
+  - Handle unique idiosyncrasies of codecs e.g. For messagepack,
+    configure how ambiguities in handling raw bytes are resolved and provide
+    rpc server/client codec to support msgpack-rpc protocol defined at:
+    https://github.com/msgpack-rpc/msgpack-rpc/blob/master/spec.md
+
+# Supported build tags
+
+We gain performance by code-generating fast-paths for slices and maps of built-in types,
+and monomorphizing generic code explicitly so we gain inlining and de-virtualization benefits.
+
+The results are 20-50% performance improvements over v1.2.
+
+Building and running is configured using build tags as below.
+
+At runtime:
+
+- codec.safe: run in safe mode (not using unsafe optimizations)
+- codec.notmono: use generics code (bypassing performance-boosting monomorphized code)
+- codec.notfastpath: skip fast path code for slices and maps of built-in types (number, bool, string, bytes)
+
+Each of these "runtime" tags have a convenience synonym i.e. safe, notmono, notfastpath.
+Pls use these mostly during development - use codec.XXX in your go files.
+
+Build only:
+
+- codec.build: used to generate fastpath and monomorphization code
+
+Test only:
+
+- codec.notmammoth: skip the mammoth generated tests
+
+# Extension Support
+
+Users can register a function to handle the encoding or decoding of
+their custom types.
+
+There are no restrictions on what the custom type can be. Some examples:
+
+	type BisSet   []int
+	type BitSet64 uint64
+	type UUID     string
+	type MyStructWithUnexportedFields struct { a int; b bool; c []int; }
+	type GifImage struct { ... }
+
+As an illustration, MyStructWithUnexportedFields would normally be
+encoded as an empty map because it has no exported fields, while UUID
+would be encoded as a string. However, with extension support, you can
+encode any of these however you like.
+
+There is also seamless support provided for registering an extension (with a tag)
+but letting the encoding mechanism default to the standard way.
+
+# Custom Encoding and Decoding
+
+This package maintains symmetry in the encoding and decoding halfs.
+We determine how to encode or decode by walking this decision tree
+
+  - is there an extension registered for the type?
+  - is type a codec.Selfer?
+  - is format binary, and is type a encoding.BinaryMarshaler and BinaryUnmarshaler?
+  - is format specifically json, and is type a encoding/json.Marshaler and Unmarshaler?
+  - is format text-based, and type an encoding.TextMarshaler and TextUnmarshaler?
+  - else we use a pair of functions based on the "kind" of the type e.g. map, slice, int64, etc
+
+This symmetry is important to reduce chances of issues happening because the
+encoding and decoding sides are out of sync e.g. decoded via very specific
+encoding.TextUnmarshaler but encoded via kind-specific generalized mode.
+
+Consequently, if a type only defines one-half of the symmetry
+(e.g. it implements UnmarshalJSON() but not MarshalJSON() ),
+then that type doesn't satisfy the check and we will continue walking down the
+decision tree.
+
+# RPC
+
+RPC Client and Server Codecs are implemented, so the codecs can be used
+with the standard net/rpc package.
+
+# Usage
+
+The Handle is SAFE for concurrent READ, but NOT SAFE for concurrent modification.
+
+The Encoder and Decoder are NOT safe for concurrent use.
+
+Consequently, the usage model is basically:
+
+  - Create and initialize the Handle before any use.
+    Once created, DO NOT modify it.
+  - Multiple Encoders or Decoders can now use the Handle concurrently.
+    They only read information off the Handle (never write).
+  - However, each Encoder or Decoder MUST not be used concurrently
+  - To re-use an Encoder/Decoder, call Reset(...) on it first.
+    This allows you use state maintained on the Encoder/Decoder.
+
+Sample usage model:
+
+	// create and configure Handle
+	var (
+	  bh codec.BincHandle
+	  mh codec.MsgpackHandle
+	  ch codec.CborHandle
+	)
+
+	mh.MapType = reflect.TypeOf(map[string]interface{}(nil))
+
+	// configure extensions
+	// e.g. for msgpack, define functions and enable Time support for tag 1
+	// mh.SetExt(reflect.TypeOf(time.Time{}), 1, myExt)
+
+	// create and use decoder/encoder
+	var (
+	  r io.Reader
+	  w io.Writer
+	  b []byte
+	  h = &bh // or mh to use msgpack
+	)
+
+	dec = codec.NewDecoder(r, h)
+	dec = codec.NewDecoderBytes(b, h)
+	err = dec.Decode(&v)
+
+	enc = codec.NewEncoder(w, h)
+	enc = codec.NewEncoderBytes(&b, h)
+	err = enc.Encode(v)
+
+	//RPC Server
+	go func() {
+	    for {
+	        conn, err := listener.Accept()
+	        rpcCodec := codec.GoRpc.ServerCodec(conn, h)
+	        //OR rpcCodec := codec.MsgpackSpecRpc.ServerCodec(conn, h)
+	        rpc.ServeCodec(rpcCodec)
+	    }
+	}()
+
+	//RPC Communication (client side)
+	conn, err = net.Dial("tcp", "localhost:5555")
+	rpcCodec := codec.GoRpc.ClientCodec(conn, h)
+	//OR rpcCodec := codec.MsgpackSpecRpc.ClientCodec(conn, h)
+	client := rpc.NewClientWithCodec(rpcCodec)
+
+# Running Tests
+
+To run tests, use the following:
+
+	go test
+
+To run the full suite of tests, use the following:
+
+	go test -tags codec.alltests -run Suite
+
+You can run the tag 'codec.safe' to run tests or build in safe mode. e.g.
+
+	go test -tags codec.safe -run Json
+	go test -tags "codec.alltests codec.safe" -run Suite
+
+You can run the tag 'codec.notmono' to build bypassing the monomorphized code e.g.
+
+	go test -tags codec.notmono -run Json
+
+Running Benchmarks
+
+	cd bench
+	go test -bench . -benchmem -benchtime 1s
+
+Please see http://github.com/ugorji/go-codec-bench .
+
+# Caveats
+
+Struct fields matching the following are ignored during encoding and decoding
+  - struct tag value set to -
+  - func, complex numbers, unsafe pointers
+  - unexported and not embedded
+  - unexported and embedded and not struct kind
+  - unexported and embedded pointers (from go1.10)
+
+Every other field in a struct will be encoded/decoded.
+
+Embedded fields are encoded as if they exist in the top-level struct,
+with some caveats. See Encode documentation.
+*/
+
+===== encode.base.go sha256:3ed96729d6b264f01b0550ae3525d57884068b1ac307f045f8296cec1dad81b9 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== goversion_swissmap_unsafe.go sha256:61b440362eecdd845c53d5bf36f869b6d667eeffc8871d0d992bdba9d0f5e2e6 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+//go:build !safe && !codec.safe && !appengine && go1.24
+
+
+===== helper.go sha256:355fd7e570ad6c8820006867f2bcc07bffc7e8ebb3a1bf741722ef6fed66f760 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== helper_unsafe.go sha256:780118d915dc13ed190f859180e13539f7dc5405bc0625b3afcb475b90f2b076 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+//go:build !safe && !codec.safe && !appengine && go1.21
+
+// minimum of go 1.21 is needed, as that is the minimum for all features and linked functions we need
+// - typedmemclr : go1.8
+// - mapassign_fastXXX: go1.9
+// - clear was added in go1.21
+// - unsafe.String(Data): go1.20
+// - unsafe.Add: go1.17
+// - generics/any: go1.18
+// etc
+
+
+===== helper_unsafe_compiler_gc.go sha256:6126e4e1942e2582415d12a9d1a47bc8f22cf704402e75c709cd449bdb9ef3cf =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+//go:build !safe && !codec.safe && !appengine && go1.9 && gc
+
+
+===== init.mono.go sha256:5254075f799defc5bd2acc8a3cb264dfda3e1b060670265a4875ed14d4999e1b =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+//go:build !notmono && !codec.notmono
+
+
+===== json.base.go sha256:9cea603f54007f86fcb579812f3379b73b68d29e97f9abc88ea6ef2ceaf97570 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== json.fastpath.mono.generated.go sha256:65ac7b03661350a7bc2258c611c5641f13edcd1ee691fd4384ea7aeb400d0126 =====
+//go:build !notmono && !codec.notmono && !notfastpath && !codec.notfastpath
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== json.mono.generated.go sha256:998d0e3befc23a58896841b6263d292a1f70f5b1a82dd14eec45ddf9c58f1bc4 =====
+//go:build !notmono && !codec.notmono
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== msgpack.base.go sha256:91c2dcb6f66aa55ed9213c9d2d412682aa1b4135bc6322c318eb0d156d20d2a1 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== msgpack.fastpath.mono.generated.go sha256:25e50616cc7a3667a85a014b1df5b6f91302bf0f5185ffe44b91255ec447af8a =====
+//go:build !notmono && !codec.notmono && !notfastpath && !codec.notfastpath
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== msgpack.mono.generated.go sha256:f3c6d5654c0a2b090685a8d1951829ecc6b263669310b5b2c5095a50abebb921 =====
+//go:build !notmono && !codec.notmono
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== reader.go sha256:d5864d992d931e57d4b3d7b7b7428691c64ec601dd4596306fdaf577c89e58c0 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== rpc.go sha256:b08f067c337be24f8c7f7585cc9f45b19ca6ee8bc8f1df1e13e41481c598394f =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== simple.base.go sha256:b5868e1bb2137584941aa8dfa7310902f78f8a38279cf2cb06893bb7f613b594 =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== simple.fastpath.mono.generated.go sha256:3fdebb9df22886df29ab87027bf074dd24bcaab0b462685fa112cde36d8bc02c =====
+//go:build !notmono && !codec.notmono && !notfastpath && !codec.notfastpath
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== simple.mono.generated.go sha256:2727f2ace97c7f826ed5e9c6f4166bc032b3fe61c421276efbc6852b0112527b =====
+//go:build !notmono && !codec.notmono
+
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+
+===== writer.go sha256:36c63d31bf6ba8f7dd60e247419e4b8c1fa2b7d664399a23005b0833262b0c2f =====
+// Copyright (c) 2012-2020 Ugorji Nwoke. All rights reserved.
+// Use of this source code is governed by a MIT license found in the LICENSE file.
+
+

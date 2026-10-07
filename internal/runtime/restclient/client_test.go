@@ -598,7 +598,7 @@ func TestPinnedFileErrorStringEnums(t *testing.T) {
 				_, _ = fmt.Fprintf(w, `[{"status":%q,"exitStatus":0,"time":123,"memory":456,"runTime":789,"fileError":[{"name":"stdout","type":%q,"message":"hidden-answer-canary"}]}]`, status, kind)
 			})
 			results, err := client.Run(context.Background(), fixtureRequest())
-			if err != nil || len(results) != 1 || results[0].Status != status || results[0].FileErrorCount != 1 {
+			if err != nil || len(results) != 1 || results[0].Status != status || results[0].FileErrorCount != 1 || len(results[0].FileErrorTypes) != 1 || results[0].FileErrorTypes[0] != FileErrorType(kind) {
 				t.Fatalf("pinned file error response rejected: %v", err)
 			}
 		})

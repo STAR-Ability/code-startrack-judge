@@ -1,6 +1,6 @@
 # Architecture and ownership
 
-Code Startrack Judge & Problem Service owns platform problems and recoverable raw judgment facts. It receives trusted internal requests from backend; backend controls the public user experience and all user authorization. The target release is V0.2 under contract `0.2.0`. Phase 0 provides the engineering foundation; the modules below are planned implementation boundaries, not deployed functionality.
+Code Startrack Judge & Problem Service owns platform problems and recoverable raw judgment facts. It receives trusted internal requests from backend; backend controls the public user experience and all user authorization. The target release is V0.2 under contract `0.2.0`. The modules below are implemented repository boundaries. Final image qualification, cross-service acceptance and a production release remain separate gates.
 
 Read the [active contracts](../contracts/README.md) before implementation. This overview explains their architectural consequences and does not replace their DTOs, constraints, error codes, or acceptance criteria.
 
@@ -28,7 +28,7 @@ flowchart LR
 
 The recovered [whole-system integration contract](../contracts/v0.2/integration.md) defines the four-service topology and integration flow. [Q-001](../contracts/open-questions.md#q-001--missing-whole-system-architecture-contract) records its byte-identical recovery and provenance; deployment acceptance remains a separate gate.
 
-## Planned modules and ownership seams
+## Modules and ownership seams
 
 | Module | Responsibility | Shared boundary to freeze before parallel implementation |
 |---|---|---|
@@ -41,7 +41,7 @@ The recovered [whole-system integration contract](../contracts/v0.2/integration.
 | Persistent workers | Leased scheduling, fencing, recovery, immutable results/cases | Recovery graph, attempt budget and atomic terminal commit |
 | Callback delivery | Transactional event snapshots, stable event IDs, durable retry/dead letters | Backend inbox/polling convergence and canonical event hashes |
 
-Keep adapters separate from pinned upstream source. A Go business service is a strong candidate because the pinned demo/runtime are Go; the bootstrap workstream must record the actual language/toolchain choice after reading upstream build constraints. Do not introduce a microservice or framework for each module. Implement the smallest service that preserves these seams.
+Adapters remain separate from pinned upstream source. The business service uses Go with the exact locked SDK, as recorded in [ADR 0006](../adr/0006-go-service-and-locked-build.md). HTTP, repositories, orchestration and execution adapters communicate through small explicit interfaces within one business service.
 
 ## Durable facts and reproducibility
 
@@ -49,7 +49,7 @@ The database owns task and catalog truth, not an in-memory channel or Redis pubs
 
 Problem identity persists across imports. Problem versions, package bytes, test order, checker behavior, license evidence, language configuration, execution limits, sandbox version and actual toolchain image digest make a historical judgment understandable. Updating a published problem does not change an accepted task's input. Withdrawal blocks new submissions and retains old records and artifacts.
 
-The service retains source hashes and results; backend retains the long-term source. The judge's transient source/workspace is cleaned 24 hours after terminal completion under the contract. Re-execution later therefore requires a separately authorized source handoff from backend plus retained toolchain/runtime artifacts; Phase 0 must not claim a public rejudge API or indefinitely retained judge source.
+The service retains source hashes and results; backend retains the long-term source. The judge's transient source/workspace is cleaned 24 hours after terminal completion under the contract. Re-execution later therefore requires a separately authorized source handoff from backend plus retained toolchain/runtime artifacts. This does not create a public rejudge API or indefinitely retained judge source.
 
 Objects and database rows cannot share a physical transaction. Write checksum-named private objects first, register them in a short transaction, and reconcile orphaned objects when registration fails. Never announce task/import acceptance before its required durable facts exist.
 
@@ -59,7 +59,7 @@ V0.2 specifies one `judge-problem-service` business container: a nonroot API/per
 
 Process supervision, user/capability separation, environment allowlists, cgroup delegation and mounts need real Linux qualification. Keeping processes in one container does not itself prove privilege or credential separation. The sandbox process receives no database/backend/S2S secrets; API and import workers submit only minimum frozen execution inputs. User programs, reference solutions, validators and checkers are untrusted.
 
-The pinned demo/runtime use different default transports/ports; [Q-008](../contracts/open-questions.md#q-008--bottom-level-transport-and-binding-reconciliation) must be settled before wiring them. The pinned go-judge startup code also logs its configuration and bottom-level auth token in normal logging paths. Runtime integration must prevent those secret disclosures through verified configuration or a minimal reviewed, provenance-tracked logging patch. Pinning upstream is not evidence that its default deployment/logging meets this service's security contract.
+The [Q-008 clarification](../contracts/open-questions.md#q-008--bottom-level-transport-and-binding-reconciliation) fixes the private low-level REST transport. The owned judger receives typed requests through an authenticated Unix socket; the API has no low-level runtime token. [Provenance-tracked upstream patches](../upstream/patches.md) remove configuration/token/raw-payload logging and unauthorized diagnostics. Linux qualification must verify the actual listeners, credentials and process boundaries of the final image.
 
 Portable development covers database, DTOs, metadata, mocks and non-security-critical tests. Only an appropriate Linux host can validate cgroups, seccomp, namespaces, filesystem/network isolation and CPU/wall/memory/output limits. go-judge must use `--no-fallback`; seccomp must stay enabled. Missing isolation makes judge readiness fail and stops new execution, while safe historical reads can remain available. Production capacity must bound sandbox concurrency so co-hosted backend/algorithm work stays healthy.
 

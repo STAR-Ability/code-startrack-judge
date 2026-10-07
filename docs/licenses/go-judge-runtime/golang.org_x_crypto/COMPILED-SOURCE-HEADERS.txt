@@ -1,0 +1,133 @@
+===== chacha20/chacha_generic.go sha256:34403e82b1387b4402b00ce30c1364508c333f4bdbe671321690c6ebaa8d3180 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package chacha20 implements the ChaCha20 and XChaCha20 encryption algorithms
+// as specified in RFC 8439 and draft-irtf-cfrg-xchacha-01.
+
+===== chacha20/chacha_noasm.go sha256:bbdb67ceb30ef13efc54e17935f47e00744b96754e03364e606d4f1f8f9085c1 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (!arm64 && !s390x && !ppc64 && !ppc64le) || !gc || purego
+
+
+===== chacha20/xor.go sha256:c3adc8555766e36629b4dd3fcd579969d2d2737c65a379db997253a2b7b18072 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found src the LICENSE file.
+
+
+===== chacha20poly1305/chacha20poly1305.go sha256:08400b984074331e97c7e2a1d9701f14cb8f9919b3eb3e0d1bb8e3549961cac2 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package chacha20poly1305 implements the ChaCha20-Poly1305 AEAD and its
+// extended nonce variant XChaCha20-Poly1305, as specified in RFC 8439 and
+// draft-irtf-cfrg-xchacha-01.
+
+===== chacha20poly1305/chacha20poly1305_amd64.go sha256:bae40d20a6077f0f5570b28086cdc4cb6e51aaa757e54b32ba99770f8b234869 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build gc && !purego
+
+
+===== chacha20poly1305/chacha20poly1305_generic.go sha256:f3e04c8517e163f94ec2bb6e7b634ef239432ed7422b1d8695cfc446c8551181 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== chacha20poly1305/fips140only_go1.26.go sha256:60368cae6d4d630509309819d7f397532c6f7812978c12983bca375e4ae810aa =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build go1.26
+
+
+===== chacha20poly1305/xchacha20poly1305.go sha256:7325ab1f70b6ab4a241ca0237f050202ddb35225a690c8146006e51a6ceeb685 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/alias/alias.go sha256:7bb0ef254a7e9360ec43e3129fad11d27edcc611bf87c12dba089f6e381f462e =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !purego
+
+// Package alias implements memory aliasing tests.
+
+===== internal/poly1305/poly1305.go sha256:c4b20ab7330e47ee155a775f69ae3b0e432c75d74ad005cf764228a69ddf6da6 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package poly1305 implements Poly1305 one-time message authentication code as
+// specified in https://cr.yp.to/mac/poly1305-20050329.pdf.
+//
+// Poly1305 is a fast, one-time authentication function. It is infeasible for an
+// attacker to generate an authenticator for a message without the key. However, a
+// key must only be used for a single message. Authenticating two different
+// messages with the same key allows an attacker to forge authenticators for other
+// messages with the same key.
+//
+// Poly1305 was originally coupled with AES in order to make Poly1305-AES. AES was
+// used with a fixed key in order to generate one-time keys from an nonce.
+// However, in this package AES isn't used and the one-time key is specified
+// directly.
+
+===== internal/poly1305/sum_asm.go sha256:39e3031ebe8eccf3ac0324c1d8d21fbbac8b74e9bd48737b0c042c28b4676d43 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build gc && !purego && (amd64 || loong64 || ppc64 || ppc64le || riscv64)
+
+
+===== internal/poly1305/sum_generic.go sha256:b0094a2895d5bda42dcaaf57c0b31fc914c3b6c6aa6237aab0100a6d78346933 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// This file provides the generic implementation of Sum and MAC. Other files
+// might provide optimized assembly implementations of some of this code.
+
+
+===== sha3/hashes.go sha256:ee3a3940020475dea7cd93e4d67cf9092c846ce3a141901835cc70595cb34893 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package sha3 implements the SHA-3 hash algorithms and the SHAKE extendable
+// output functions defined in FIPS 202.
+//
+// Most of this package is a wrapper around the crypto/sha3 package in the
+// standard library. The only exception is the legacy Keccak hash functions.
+
+===== sha3/legacy_hash.go sha256:fcb820da94155a697afeb404731291b98f028bda6dfcc1e865c3d65671acbeb7 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== sha3/legacy_keccakf.go sha256:cd0fa888d34f8e39b435fe7b19c942dd229fe72861f5b3706c9306f848215075 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== sha3/shake.go sha256:45266f3ce645f53d2540d1d4a33528f3da6988885ae85b733d1f80878ed42960 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+

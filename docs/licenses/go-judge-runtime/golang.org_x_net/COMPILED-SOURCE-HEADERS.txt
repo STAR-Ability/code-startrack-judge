@@ -1,0 +1,1453 @@
+===== bpf/asm.go sha256:d44fc7e3f7e4d3cd145691641bd82e646aca0d6b31f9101e7b879dd5826ebff6 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== bpf/constants.go sha256:7a5887a6faaeacfb37113df3405b87e815c2b3a4af49496c6789031f22a9ec2a =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== bpf/doc.go sha256:07200a62d906fc6ecbbdcd4809414bded21436ec5711c2688fbdb2aaab813158 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+/*
+Package bpf implements marshaling and unmarshaling of programs for the
+Berkeley Packet Filter virtual machine, and provides a Go implementation
+of the virtual machine.
+
+BPF's main use is to specify a packet filter for network taps, so that
+the kernel doesn't have to expensively copy every packet it sees to
+userspace. However, it's been repurposed to other areas where running
+user code in-kernel is needed. For example, Linux's seccomp uses BPF
+to apply security policies to system calls. For simplicity, this
+documentation refers only to packets, but other uses of BPF have their
+own data payloads.
+
+BPF programs run in a restricted virtual machine. It has almost no
+access to kernel functions, and while conditional branches are
+allowed, they can only jump forwards, to guarantee that there are no
+infinite loops.
+
+# The virtual machine
+
+The BPF VM is an accumulator machine. Its main register, called
+register A, is an implicit source and destination in all arithmetic
+and logic operations. The machine also has 16 scratch registers for
+temporary storage, and an indirection register (register X) for
+indirect memory access. All registers are 32 bits wide.
+
+Each run of a BPF program is given one packet, which is placed in the
+VM's read-only "main memory". LoadAbsolute and LoadIndirect
+instructions can fetch up to 32 bits at a time into register A for
+examination.
+
+The goal of a BPF program is to produce and return a verdict (uint32),
+which tells the kernel what to do with the packet. In the context of
+packet filtering, the returned value is the number of bytes of the
+packet to forward to userspace, or 0 to ignore the packet. Other
+contexts like seccomp define their own return values.
+
+In order to simplify programs, attempts to read past the end of the
+packet terminate the program execution with a verdict of 0 (ignore
+packet). This means that the vast majority of BPF programs don't need
+to do any explicit bounds checking.
+
+In addition to the bytes of the packet, some BPF programs have access
+to extensions, which are essentially calls to kernel utility
+functions. Currently, the only extensions supported by this package
+are the Linux packet filter extensions.
+
+# Security Considerations
+
+The implementation of the BPF VM in this package is suitable for
+testing BPF programs. It aims for consistency with other BPF VM
+implementations, but divergence in behavior is not considered a
+security issue.
+
+# Examples
+
+This packet filter selects all ARP packets.
+
+	bpf.Assemble([]bpf.Instruction{
+		// Load "EtherType" field from the ethernet header.
+		bpf.LoadAbsolute{Off: 12, Size: 2},
+		// Skip over the next instruction if EtherType is not ARP.
+		bpf.JumpIf{Cond: bpf.JumpNotEqual, Val: 0x0806, SkipTrue: 1},
+		// Verdict is "send up to 4k of the packet to userspace."
+		bpf.RetConstant{Val: 4096},
+		// Verdict is "ignore packet."
+		bpf.RetConstant{Val: 0},
+	})
+
+This packet filter captures a random 1% sample of traffic.
+
+	bpf.Assemble([]bpf.Instruction{
+		// Get a 32-bit random number from the Linux kernel.
+		bpf.LoadExtension{Num: bpf.ExtRand},
+		// 1% dice roll?
+		bpf.JumpIf{Cond: bpf.JumpLessThan, Val: 2^32/100, SkipFalse: 1},
+		// Capture.
+		bpf.RetConstant{Val: 4096},
+		// Ignore.
+		bpf.RetConstant{Val: 0},
+	})
+*/
+
+===== bpf/instructions.go sha256:e7fc06d58e3fb2cbb0dcd8a6fcf3b88b94920c94bb0034b2a6df955948319f3d =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== bpf/setter.go sha256:fbdbd316e2188e7f3277488638236d220ef6e166aa16886f0f06b6119e834681 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== bpf/vm.go sha256:919f8ad180e64306e4a1d957e58c1db14acbb601eec73d6e938757646d03419c =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== bpf/vm_instructions.go sha256:e27be7b52fd33cdaa523846267b5a2e9f309d06d0e529109e5288ba30757ad0d =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http/httpguts/guts.go sha256:3da54270a625540809f2f767e54e18acf27199aca64b6cf16d6d3fa3999de959 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package httpguts provides functions implementing various details
+// of the HTTP specification.
+//
+// This package is shared by the standard library (which vendors it)
+// and x/net/http2. It comes with no API stability promise.
+
+===== http/httpguts/httplex.go sha256:8cfd5819dc821d45f82fde10afff4b2e652535b0091e0559fc8ad7766051a2c2 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/ascii.go sha256:d8ee0e0a6b2c41a17a18e263b7f9b5701174dbe10e59496daadc9db6a647f708 =====
+// Copyright 2021 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/ciphers.go sha256:623262af28491cd81b3570936cd06757f629d2ae4fb6ef087af6762f30d7a5eb =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/client_conn_pool.go sha256:ee773ca6b4e00a999f916214138ca74ea06a9d3d8d6fdffba354871587019dcf =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+// Transport code's client connection pooling.
+
+
+===== http2/client_priority_go126.go sha256:b51147502bb7e74c384f1dd249c951920055b380d18fe38862532f8f24736db9 =====
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !go1.27
+
+
+===== http2/clientconn.go sha256:75517095356686258410eebac3a058152f4e4fcf85d98732e55e72db3d8860b8 =====
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/config.go sha256:d167984b5523fecaf2b99b626c7a4be2d7fc2268b6719b01913263cb80ca4d5a =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+
+===== http2/config_go126.go sha256:59a922ba01b0c7a4c2a5155613306f2bce7fb358992541b321b6df5c594dd2c6 =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build go1.26
+
+
+===== http2/databuffer.go sha256:ad318dab6f9b9520c5b2262a74928f199befd7c8565454a89c1d2fc10bf901d6 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/errors.go sha256:fde1284c85d1730c86183ce604cfb22e917edfcd4ed9544a4a12d511befbea49 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/flow.go sha256:cdf7ad077c182118d3967a63d33f0731717b060b43bded46796d226c8fcb11f2 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Flow control
+
+
+===== http2/frame.go sha256:7087a540c7d8c93b142d0b97b6f3a6b780be48863cbd0cf2187de845743857b7 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/gotrack.go sha256:2e404e35aa3d9c0350ce72191e5b1b525c6bb8ead1ce5bf8d8533aaf1c8efd3c =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Defensive debug-only utility to track that functions run on the
+// goroutine that they're supposed to.
+
+
+===== http2/h2c/h2c.go sha256:f5f641c1140b573d1ffbd96a0d4d69387c500003b0c79650b3de6e2b050ce6d5 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package h2c is deprecated.
+//
+// This package used to support unencrypted HTTP/2.
+// Unencrypted HTTP/2 is now supported directly by
+// the net/http package.
+//
+// To start a server with unencrypted HTTP/2 support:
+//
+//	srv := &http.Server{Addr: address}
+//	srv.Protocols = new(http.Protocols)
+//	srv.Protocols.SetHTTP1(true)
+//	srv.Protocols.SetUnencryptedHTTP2(true)
+//	srv.ListenAndServe()
+//
+// To use HTTP/2 for unencrypted client requests:
+//
+//	tr := &http.Transport{}
+//	tr.Protocols = new(http.Protocols)
+//	tr.Protocols.SetUnencryptedHTTP2(true)
+//	client := &http.Client{Transport: tr}
+//
+// Deprecated: This package is deprecated.
+
+===== http2/hpack/encode.go sha256:b39a13dcfd94e03231ab39fe0cfdde3695a6674a481575385237f34dc669d846 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/hpack/hpack.go sha256:e1a1b7c22e9df2d1d2da30ac382347a9076ba8736084635957bc7a6d7ddb5034 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package hpack implements HPACK, a compression format for
+// efficiently representing HTTP header fields in the context of HTTP/2.
+//
+// See http://tools.ietf.org/html/draft-ietf-httpbis-header-compression-09
+
+===== http2/hpack/huffman.go sha256:3d41693bd77da34093c1d334842d8cbeffb3a2f3e0fa5cf0af5e6e9e65b19be1 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/hpack/tables.go sha256:adfd7d2e7b49b99ab21ae3ce296c8d9d6bc657362e6b5e522fe89065d67bd48b =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/http2.go sha256:e1b38f7628feed3fd9482d2e705f07a8aecf58d8068c09e012a56b6b448452c2 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package http2 implements the HTTP/2 protocol.
+//
+// Almost no users should need to import this package directly.
+// The net/http package supports HTTP/2 natively.
+//
+// To enable or disable HTTP/2 support in net/http clients and servers, see
+// [http.Transport.Protocols] and [http.Server.Protocols].
+//
+// To configure HTTP/2 parameters, see
+// [http.Transport.HTTP2] and [http.Server.HTTP2].
+//
+// To create HTTP/1 or HTTP/2 connections, see
+// [http.Transport.NewClientConn].
+
+===== http2/pipe.go sha256:3fbe00025d441802c154549f5bd7562b9937ff43f1ce64c987bda75fcaf7f518 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/server.go sha256:cf07329cd7d5d95909a5404f3b29f10f4252189012b98ad4c8fdbfca384cb9d1 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+// TODO: turn off the serve goroutine when idle, so
+// an idle conn only has the readFrames goroutine active. (which could
+// also be optimized probably to pin less memory in crypto/tls). This
+// would involve tracking when the serve goroutine is active (atomic
+// int32 read/CAS probably?) and starting it up when frames arrive,
+// and shutting it down when all handlers exit. the occasional PING
+// packets could use time.AfterFunc to call sc.wakeStartServeLoop()
+// (which is a no-op if already running) and then queue the PING write
+// as normal. The serve loop would then exit in most cases (if no
+// Handlers running) and not be woken up again until the PING packet
+// returns.
+
+// TODO (maybe): add a mechanism for Handlers to going into
+// half-closed-local mode (rw.(io.Closer) test?) but not exit their
+// handler, and continue to be able to read from the
+// Request.Body. This would be a somewhat semantic change from HTTP/1
+// (or at least what we expose in net/http), so I'd probably want to
+// add it there too. For now, this package says that returning from
+// the Handler ServeHTTP function means you're both done reading and
+// done writing, without a way to stop just one or the other.
+
+
+===== http2/server_common.go sha256:2b647d6f7d74433fdd66960e1aae6f73c9c5033cb1a5d90431bf71a01755f5f1 =====
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/transport.go sha256:2a9e06b766540b61e7a62333c85ec8956e113e8b37380e0d77e648821d5928fa =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+// Transport code.
+
+
+===== http2/transport_common.go sha256:baa716a2225da933b038f9111fce7ca7e9771342abb7a9e391650d3f14cb9a4d =====
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/unencrypted.go sha256:8efbd1156e499e01d14dd2c8095a5318256d34f24d25fd74ced760dde5b5ab42 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/write.go sha256:be8997734245f7b15c72cbc65f6ed20ebef6d7ae463a14d733e777c20661ce5f =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/writesched.go sha256:c09ff6579f38fac88fab3e925f89de0b40713edd6e941790c6c3deb40a16ea66 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+
+===== http2/writesched_common.go sha256:fed2317a546f28aef250b55971a44621218c4076a30e03bb57369839998ba202 =====
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== http2/writesched_priority_rfc7540.go sha256:423a3617111d0b5d44d1e1c5718f89e590b07eca56f48b41073b79a7f956ed77 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+
+===== http2/writesched_priority_rfc9218.go sha256:cabdfd7cd04d6723d11b5f26b39ed97517e99a665896cf26f65cbabdbb761e86 =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+
+===== http2/writesched_random.go sha256:071126c1cc5308dd8b37c01dcf9bab2b8cdcb3ab4fc237b03740b8d257ecf873 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+
+===== http2/writesched_roundrobin.go sha256:1168ebd908b1cae2e695e76babde24cd33a8d085ceaf93fe11c1582de7570a2b =====
+// Copyright 2023 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !(go1.27 && !http2legacy)
+
+
+===== idna/idna.go sha256:26de47c66ae70e53c5bedffca7fd61aefcde2ef8df6db37c9a50a3fb3c152aab =====
+// Code generated by running "go generate" in golang.org/x/text. DO NOT EDIT.
+
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package idna implements IDNA2008 using the compatibility processing
+// defined by UTS (Unicode Technical Standard) #46, which defines a standard to
+// deal with the transition from IDNA2003.
+//
+// IDNA2008 (Internationalized Domain Names for Applications), is defined in RFC
+// 5890, RFC 5891, RFC 5892, RFC 5893 and RFC 5894.
+// UTS #46 is defined in https://www.unicode.org/reports/tr46.
+// See https://unicode.org/cldr/utility/idna.jsp for a visualization of the
+// differences between these two standards.
+
+===== idna/punycode.go sha256:3e65858245f1a7d32e225aba714a305d3ef34496acb839956a7b15d1c7a34eb7 =====
+// Code generated by running "go generate" in golang.org/x/text. DO NOT EDIT.
+
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== idna/trie.go sha256:8d2a16a56e4cab9d23a7afb49443bfe7a5ff0d74e885acc9121b4a9c598825eb =====
+// Code generated by running "go generate" in golang.org/x/text. DO NOT EDIT.
+
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/httpcommon/ascii.go sha256:7446cfcfe70f682d5ad3102ca0aeef3bfbef86c799f0c61af9be9e942fe950dd =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/httpcommon/headermap.go sha256:ee95dbc37a39a5a9ac3bc048ba3233f13d3f5e18e2faa8ba44d588218a888ade =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/httpcommon/request.go sha256:ba011a886d277d17f10f5d2828cd4da7c920b63801ec6912cfdb99877787bc4f =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/httpsfv/httpsfv.go sha256:bb64129bf25faa9065a029ec0f0b7ffd61abbb49e561100ff66614ab5705001a =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package httpsfv provides functionality for dealing with HTTP Structured
+// Field Values.
+
+===== internal/socket/cmsghdr.go sha256:93f9c4fdf14267c9c1af899e7d18f491cafd032c7e7c385e90e6c9ddcadf7728 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== internal/socket/cmsghdr_linux_64bit.go sha256:f3980a56072e9b63af88e178eca2f0a1fa4e941bd6f55a55965e4277b7775e26 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (arm64 || amd64 || loong64 || ppc64 || ppc64le || mips64 || mips64le || riscv64 || s390x) && linux
+
+
+===== internal/socket/cmsghdr_unix.go sha256:fd56595a67890b30aad62c4eb3f9eb9dd94d92e0f8b6e563aaf7d24a4f83bdf7 =====
+// Copyright 2020 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== internal/socket/complete_dontwait.go sha256:3bf5218fe4199f3678551e6bfccc71923796fe91b7a431322ab798bf2d051813 =====
+// Copyright 2021 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
+
+
+===== internal/socket/error_unix.go sha256:5bb94cc01a2a002540eabf025bad33add287e10aee9eb8bd5adc57fd9fda908a =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== internal/socket/iovec_64bit.go sha256:b0affa4c544d18a0f9f9485e42ddc76ad413668c320b709ca26cf8055f5a765e =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (arm64 || amd64 || loong64 || ppc64 || ppc64le || mips64 || mips64le || riscv64 || s390x) && (aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || zos)
+
+
+===== internal/socket/mmsghdr_unix.go sha256:559969a558f416da29b3f9eb5cfe103071898228a450c3499a67fefa36324a23 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || linux || netbsd
+
+
+===== internal/socket/msghdr_linux.go sha256:2582c55b2ace940ef817895c23bb42c687a5d634264657f24af841eb9d10bc11 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/socket/msghdr_linux_64bit.go sha256:fc34d6de546767d46ae99c2d743ecb00362967b2c8ad03df7a43bbceb50ecc1b =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (arm64 || amd64 || loong64 || ppc64 || ppc64le || mips64 || mips64le || riscv64 || s390x) && linux
+
+
+===== internal/socket/norace.go sha256:7aeb97aa0c4b5678b5a9d1ebfa8105def20ea6f51e41b8537c7f389774c61311 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !race
+
+
+===== internal/socket/rawconn.go sha256:16955777ba12d008fb71416b64c50687f5d224b2d035d0771bfe6c98c082f2f7 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/socket/rawconn_mmsg.go sha256:e623bf989de589b1339a77d2758cca044b9ebc6c6ba4d96bf2f26e57fbb324b7 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux
+
+
+===== internal/socket/rawconn_msg.go sha256:db7de50ce15a843f400ef959a01f3170a9a4444c9fe499c2bd907d1cceca0202 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || windows || zos
+
+
+===== internal/socket/socket.go sha256:d7f3b8907414648710c0241e2c717df473568a0eb467214ccb0f901838937a8b =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package socket provides a portable interface for socket system
+// calls.
+
+===== internal/socket/sys_const_unix.go sha256:0f4985aef1899553a334e66d011e3b37b64c1ca7ba6e6f1b4cb5f77fb6b1db4e =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== internal/socket/sys_linux.go sha256:dfd18b8f0c4ac7966125a3c22a6e316d8e787d03db7dec549edc306b7b53daa2 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux && !s390x && !386
+
+
+===== internal/socket/sys_linux_amd64.go sha256:6dd57fedcf8eb9520ced6b69951cd35ab520a083cb5d9f114e25b1372b46be6a =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/socket/sys_posix.go sha256:0d3b6f84759807e6d798999372b4f126dfd8058a4981d27bc16a93c6485f4779 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || windows || zos
+
+
+===== internal/socket/sys_unix.go sha256:facf54b3bc8b1e36552241cdf5bf3f5cd1010cf864f995cb0cf2ed3830036d6c =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
+
+
+===== internal/timeseries/timeseries.go sha256:fb2a98dacbeb1a456b79bf48d4c90ec1f213fad4cbafd87564326b61e5d909ce =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package timeseries implements a time series structure for stats collection.
+
+===== ipv4/batch.go sha256:ecebc1f6db9c34f651a3908d79dcaafe97c7a652cf9a5212b049d51e924f9092 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/control.go sha256:45a7a981ae39c5d72ad25592701678a87814e71785f71531303862fb15c86e80 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/control_pktinfo.go sha256:27cc2aca690ba98dffd60968834e2432c6e6d21a21cb871d96fbaa6815ad3bee =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build darwin || linux || solaris
+
+
+===== ipv4/control_unix.go sha256:cf2189990ddd2c27b2ec5337bc740ba8589113e80bcaf8feb7f895752b268363 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
+
+
+===== ipv4/dgramopt.go sha256:9d2ab29185417f444a38f00354cfdd124e031ed6116bc61d5f5f735c5726a198 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/doc.go sha256:fd086c081fb6e9cd14ce0358084337126f1586993d3daf866a23d07b7128f7d2 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package ipv4 implements IP-level socket options for the Internet
+// Protocol version 4.
+//
+// The package provides IP-level socket options that allow
+// manipulation of IPv4 facilities.
+//
+// The IPv4 protocol and basic host requirements for IPv4 are defined
+// in RFC 791 and RFC 1122.
+// Host extensions for multicasting and socket interface extensions
+// for multicast source filters are defined in RFC 1112 and RFC 3678.
+// IGMPv1, IGMPv2 and IGMPv3 are defined in RFC 1112, RFC 2236 and RFC
+// 3376.
+// Source-specific multicast is defined in RFC 4607.
+//
+// # Unicasting
+//
+// The options for unicasting are available for net.TCPConn,
+// net.UDPConn and net.IPConn which are created as network connections
+// that use the IPv4 transport. When a single TCP connection carrying
+// a data flow of multiple packets needs to indicate the flow is
+// important, Conn is used to set the type-of-service field on the
+// IPv4 header for each packet.
+//
+//	ln, err := net.Listen("tcp4", "0.0.0.0:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer ln.Close()
+//	for {
+//		c, err := ln.Accept()
+//		if err != nil {
+//			// error handling
+//		}
+//		go func(c net.Conn) {
+//			defer c.Close()
+//
+// The outgoing packets will be labeled DiffServ assured forwarding
+// class 1 low drop precedence, known as AF11 packets.
+//
+//			if err := ipv4.NewConn(c).SetTOS(0x28); err != nil {
+//				// error handling
+//			}
+//			if _, err := c.Write(data); err != nil {
+//				// error handling
+//			}
+//		}(c)
+//	}
+//
+// # Multicasting
+//
+// The options for multicasting are available for net.UDPConn and
+// net.IPConn which are created as network connections that use the
+// IPv4 transport. A few network facilities must be prepared before
+// you begin multicasting, at a minimum joining network interfaces and
+// multicast groups.
+//
+//	en0, err := net.InterfaceByName("en0")
+//	if err != nil {
+//		// error handling
+//	}
+//	en1, err := net.InterfaceByIndex(911)
+//	if err != nil {
+//		// error handling
+//	}
+//	group := net.IPv4(224, 0, 0, 250)
+//
+// First, an application listens to an appropriate address with an
+// appropriate service port.
+//
+//	c, err := net.ListenPacket("udp4", "0.0.0.0:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c.Close()
+//
+// Second, the application joins multicast groups, starts listening to
+// the groups on the specified network interfaces. Note that the
+// service port for transport layer protocol does not matter with this
+// operation as joining groups affects only network and link layer
+// protocols, such as IPv4 and Ethernet.
+//
+//	p := ipv4.NewPacketConn(c)
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: group}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en1, &net.UDPAddr{IP: group}); err != nil {
+//		// error handling
+//	}
+//
+// The application might set per packet control message transmissions
+// between the protocol stack within the kernel. When the application
+// needs a destination address on an incoming packet,
+// SetControlMessage of PacketConn is used to enable control message
+// transmissions.
+//
+//	if err := p.SetControlMessage(ipv4.FlagDst, true); err != nil {
+//		// error handling
+//	}
+//
+// The application could identify whether the received packets are
+// of interest by using the control message that contains the
+// destination address of the received packet.
+//
+//	b := make([]byte, 1500)
+//	for {
+//		n, cm, src, err := p.ReadFrom(b)
+//		if err != nil {
+//			// error handling
+//		}
+//		if cm.Dst.IsMulticast() {
+//			if cm.Dst.Equal(group) {
+//				// joined group, do something
+//			} else {
+//				// unknown group, discard
+//				continue
+//			}
+//		}
+//
+// The application can also send both unicast and multicast packets.
+//
+//		p.SetTOS(0x0)
+//		p.SetTTL(16)
+//		if _, err := p.WriteTo(data, nil, src); err != nil {
+//			// error handling
+//		}
+//		dst := &net.UDPAddr{IP: group, Port: 1024}
+//		for _, ifi := range []*net.Interface{en0, en1} {
+//			if err := p.SetMulticastInterface(ifi); err != nil {
+//				// error handling
+//			}
+//			p.SetMulticastTTL(2)
+//			if _, err := p.WriteTo(data, nil, dst); err != nil {
+//				// error handling
+//			}
+//		}
+//	}
+//
+// # More multicasting
+//
+// An application that uses PacketConn or RawConn may join multiple
+// multicast groups. For example, a UDP listener with port 1024 might
+// join two different groups across over two different network
+// interfaces by using:
+//
+//	c, err := net.ListenPacket("udp4", "0.0.0.0:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c.Close()
+//	p := ipv4.NewPacketConn(c)
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: net.IPv4(224, 0, 0, 248)}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: net.IPv4(224, 0, 0, 249)}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en1, &net.UDPAddr{IP: net.IPv4(224, 0, 0, 249)}); err != nil {
+//		// error handling
+//	}
+//
+// It is possible for multiple UDP listeners that listen on the same
+// UDP port to join the same multicast group. The net package will
+// provide a socket that listens to a wildcard address with reusable
+// UDP port when an appropriate multicast address prefix is passed to
+// the net.ListenPacket or net.ListenUDP.
+//
+//	c1, err := net.ListenPacket("udp4", "224.0.0.0:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c1.Close()
+//	c2, err := net.ListenPacket("udp4", "224.0.0.0:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c2.Close()
+//	p1 := ipv4.NewPacketConn(c1)
+//	if err := p1.JoinGroup(en0, &net.UDPAddr{IP: net.IPv4(224, 0, 0, 248)}); err != nil {
+//		// error handling
+//	}
+//	p2 := ipv4.NewPacketConn(c2)
+//	if err := p2.JoinGroup(en0, &net.UDPAddr{IP: net.IPv4(224, 0, 0, 248)}); err != nil {
+//		// error handling
+//	}
+//
+// Also it is possible for the application to leave or rejoin a
+// multicast group on the network interface.
+//
+//	if err := p.LeaveGroup(en0, &net.UDPAddr{IP: net.IPv4(224, 0, 0, 248)}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: net.IPv4(224, 0, 0, 250)}); err != nil {
+//		// error handling
+//	}
+//
+// # Source-specific multicasting
+//
+// An application that uses PacketConn or RawConn on IGMPv3 supported
+// platform is able to join source-specific multicast groups.
+// The application may use JoinSourceSpecificGroup and
+// LeaveSourceSpecificGroup for the operation known as "include" mode,
+//
+//	ssmgroup := net.UDPAddr{IP: net.IPv4(232, 7, 8, 9)}
+//	ssmsource := net.UDPAddr{IP: net.IPv4(192, 168, 0, 1)}
+//	if err := p.JoinSourceSpecificGroup(en0, &ssmgroup, &ssmsource); err != nil {
+//		// error handling
+//	}
+//	if err := p.LeaveSourceSpecificGroup(en0, &ssmgroup, &ssmsource); err != nil {
+//		// error handling
+//	}
+//
+// or JoinGroup, ExcludeSourceSpecificGroup,
+// IncludeSourceSpecificGroup and LeaveGroup for the operation known
+// as "exclude" mode.
+//
+//	exclsource := net.UDPAddr{IP: net.IPv4(192, 168, 0, 254)}
+//	if err := p.JoinGroup(en0, &ssmgroup); err != nil {
+//		// error handling
+//	}
+//	if err := p.ExcludeSourceSpecificGroup(en0, &ssmgroup, &exclsource); err != nil {
+//		// error handling
+//	}
+//	if err := p.LeaveGroup(en0, &ssmgroup); err != nil {
+//		// error handling
+//	}
+//
+// Note that it depends on each platform implementation what happens
+// when an application which runs on IGMPv3 unsupported platform uses
+// JoinSourceSpecificGroup and LeaveSourceSpecificGroup.
+// In general the platform tries to fall back to conversations using
+// IGMPv1 or IGMPv2 and starts to listen to multicast traffic.
+// In the fallback case, ExcludeSourceSpecificGroup and
+// IncludeSourceSpecificGroup may return an error.
+
+===== ipv4/endpoint.go sha256:9814fb5cf031b275c5217e2c00580d7878e9bc9e575ad8e37e3eee82622e96b8 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/genericopt.go sha256:44a2c6f81205fee52633283b7b9c0934bf3ee98a04e4d6010b529599da9abcc8 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/header.go sha256:4462b93afc4068e03339686837586827a8afd586cdd1004bafd91e517ebd0013 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/helper.go sha256:0f2e94dc54027f107a17653a17c9cf737c8d8613c3ef3992bba81dbfc6507076 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/icmp.go sha256:db3029af803e04c649e6273ed814492964fc342db6718b506ab745982f94822e =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/icmp_linux.go sha256:363ccf6dc0ab946e50b81bbe8da679d29f2fa737804886918921a37df49c4581 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/packet.go sha256:68c384aebe3b98105c547f208e5e91caa6fadc80dc1e7e14b2ab55f88c0bd3fd =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/payload.go sha256:b298b744244b166329ca809167befb4fd638be24233d2647ffe654eb79a12b5f =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/payload_cmsg.go sha256:392c9823cdcc0d2e2d9595c1d85a61fcd705a9fbfc382bd5b96ba5ff6b2a362e =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== ipv4/sockopt.go sha256:9d7e3e076da1c874acada002fa2aa5c51cf823bebf3a90354aa7765a6af90b0d =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/sockopt_posix.go sha256:7c02723dff0b72f227ed8d1b0b603c673913d344ba1ba0b174f89569b04a92f1 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || windows || zos
+
+
+===== ipv4/sys_asmreq_stub.go sha256:a638e784acdff437ec065c9ab2555380960841545fd62fa97758f34c4211db06 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !aix && !darwin && !dragonfly && !freebsd && !netbsd && !openbsd && !solaris && !windows
+
+
+===== ipv4/sys_asmreqn.go sha256:0808d54ca9a7bcabfae3fdd62b00e27b770af6894339fb2a1dd0a517d1a30095 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build darwin || freebsd || linux
+
+
+===== ipv4/sys_bpf.go sha256:f1fd52f74f4766d1cf8dcd97bb1000a79a72f9e56453c8423236f685bf1b1a70 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux
+
+
+===== ipv4/sys_linux.go sha256:e60c5a5d7081de978a67d3f9ba057ec802bcd0fb8f3d9e4a87443b7197f44cf7 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv4/sys_ssmreq.go sha256:41331332317e8b2f9a4df02ddd6ce9e868acceb43e2f6b0e5bfcdd3d886158ef =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build darwin || freebsd || linux || solaris
+
+
+===== ipv6/batch.go sha256:eb6ea4edecf5391d45ccbddbe337192622587fff01301165b7f4f3c8daa1eba3 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/control.go sha256:4d9613b5ef383d69a1035a32f23d51bc476084b87bad3b7b677f5a0387fe970d =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/control_rfc3542_unix.go sha256:fd53d5c109cc06dc3bb7d9d83cc89deb1e4e01202992309927f5da88a65da911 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== ipv6/control_unix.go sha256:278390555d449bc01c3496d25dc5935fe46aa05a11c5b81f8d3e721741bec135 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== ipv6/dgramopt.go sha256:4376e995110ffc1fc8a824d414a0267495899d2722157581bc81d276c241572d =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/doc.go sha256:9f809bba900ce3cd5fea64fc8f8b3bf98f198df0333788ba2fd85502ba367790 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package ipv6 implements IP-level socket options for the Internet
+// Protocol version 6.
+//
+// The package provides IP-level socket options that allow
+// manipulation of IPv6 facilities.
+//
+// The IPv6 protocol is defined in RFC 8200.
+// Socket interface extensions are defined in RFC 3493, RFC 3542 and
+// RFC 3678.
+// MLDv1 and MLDv2 are defined in RFC 2710 and RFC 3810.
+// Source-specific multicast is defined in RFC 4607.
+//
+// On Darwin, this package requires OS X Mavericks version 10.9 or
+// above, or equivalent.
+//
+// # Unicasting
+//
+// The options for unicasting are available for net.TCPConn,
+// net.UDPConn and net.IPConn which are created as network connections
+// that use the IPv6 transport. When a single TCP connection carrying
+// a data flow of multiple packets needs to indicate the flow is
+// important, Conn is used to set the traffic class field on the IPv6
+// header for each packet.
+//
+//	ln, err := net.Listen("tcp6", "[::]:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer ln.Close()
+//	for {
+//		c, err := ln.Accept()
+//		if err != nil {
+//			// error handling
+//		}
+//		go func(c net.Conn) {
+//			defer c.Close()
+//
+// The outgoing packets will be labeled DiffServ assured forwarding
+// class 1 low drop precedence, known as AF11 packets.
+//
+//			if err := ipv6.NewConn(c).SetTrafficClass(0x28); err != nil {
+//				// error handling
+//			}
+//			if _, err := c.Write(data); err != nil {
+//				// error handling
+//			}
+//		}(c)
+//	}
+//
+// # Multicasting
+//
+// The options for multicasting are available for net.UDPConn and
+// net.IPConn which are created as network connections that use the
+// IPv6 transport. A few network facilities must be prepared before
+// you begin multicasting, at a minimum joining network interfaces and
+// multicast groups.
+//
+//	en0, err := net.InterfaceByName("en0")
+//	if err != nil {
+//		// error handling
+//	}
+//	en1, err := net.InterfaceByIndex(911)
+//	if err != nil {
+//		// error handling
+//	}
+//	group := net.ParseIP("ff02::114")
+//
+// First, an application listens to an appropriate address with an
+// appropriate service port.
+//
+//	c, err := net.ListenPacket("udp6", "[::]:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c.Close()
+//
+// Second, the application joins multicast groups, starts listening to
+// the groups on the specified network interfaces. Note that the
+// service port for transport layer protocol does not matter with this
+// operation as joining groups affects only network and link layer
+// protocols, such as IPv6 and Ethernet.
+//
+//	p := ipv6.NewPacketConn(c)
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: group}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en1, &net.UDPAddr{IP: group}); err != nil {
+//		// error handling
+//	}
+//
+// The application might set per packet control message transmissions
+// between the protocol stack within the kernel. When the application
+// needs a destination address on an incoming packet,
+// SetControlMessage of PacketConn is used to enable control message
+// transmissions.
+//
+//	if err := p.SetControlMessage(ipv6.FlagDst, true); err != nil {
+//		// error handling
+//	}
+//
+// The application could identify whether the received packets are
+// of interest by using the control message that contains the
+// destination address of the received packet.
+//
+//	b := make([]byte, 1500)
+//	for {
+//		n, rcm, src, err := p.ReadFrom(b)
+//		if err != nil {
+//			// error handling
+//		}
+//		if rcm.Dst.IsMulticast() {
+//			if rcm.Dst.Equal(group) {
+//				// joined group, do something
+//			} else {
+//				// unknown group, discard
+//				continue
+//			}
+//		}
+//
+// The application can also send both unicast and multicast packets.
+//
+//		p.SetTrafficClass(0x0)
+//		p.SetHopLimit(16)
+//		if _, err := p.WriteTo(data[:n], nil, src); err != nil {
+//			// error handling
+//		}
+//		dst := &net.UDPAddr{IP: group, Port: 1024}
+//		wcm := ipv6.ControlMessage{TrafficClass: 0xe0, HopLimit: 1}
+//		for _, ifi := range []*net.Interface{en0, en1} {
+//			wcm.IfIndex = ifi.Index
+//			if _, err := p.WriteTo(data[:n], &wcm, dst); err != nil {
+//				// error handling
+//			}
+//		}
+//	}
+//
+// # More multicasting
+//
+// An application that uses PacketConn may join multiple multicast
+// groups. For example, a UDP listener with port 1024 might join two
+// different groups across over two different network interfaces by
+// using:
+//
+//	c, err := net.ListenPacket("udp6", "[::]:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c.Close()
+//	p := ipv6.NewPacketConn(c)
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: net.ParseIP("ff02::1:114")}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: net.ParseIP("ff02::2:114")}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en1, &net.UDPAddr{IP: net.ParseIP("ff02::2:114")}); err != nil {
+//		// error handling
+//	}
+//
+// It is possible for multiple UDP listeners that listen on the same
+// UDP port to join the same multicast group. The net package will
+// provide a socket that listens to a wildcard address with reusable
+// UDP port when an appropriate multicast address prefix is passed to
+// the net.ListenPacket or net.ListenUDP.
+//
+//	c1, err := net.ListenPacket("udp6", "[ff02::]:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c1.Close()
+//	c2, err := net.ListenPacket("udp6", "[ff02::]:1024")
+//	if err != nil {
+//		// error handling
+//	}
+//	defer c2.Close()
+//	p1 := ipv6.NewPacketConn(c1)
+//	if err := p1.JoinGroup(en0, &net.UDPAddr{IP: net.ParseIP("ff02::114")}); err != nil {
+//		// error handling
+//	}
+//	p2 := ipv6.NewPacketConn(c2)
+//	if err := p2.JoinGroup(en0, &net.UDPAddr{IP: net.ParseIP("ff02::114")}); err != nil {
+//		// error handling
+//	}
+//
+// Also it is possible for the application to leave or rejoin a
+// multicast group on the network interface.
+//
+//	if err := p.LeaveGroup(en0, &net.UDPAddr{IP: net.ParseIP("ff02::114")}); err != nil {
+//		// error handling
+//	}
+//	if err := p.JoinGroup(en0, &net.UDPAddr{IP: net.ParseIP("ff01::114")}); err != nil {
+//		// error handling
+//	}
+//
+// # Source-specific multicasting
+//
+// An application that uses PacketConn on MLDv2 supported platform is
+// able to join source-specific multicast groups.
+// The application may use JoinSourceSpecificGroup and
+// LeaveSourceSpecificGroup for the operation known as "include" mode,
+//
+//	ssmgroup := net.UDPAddr{IP: net.ParseIP("ff32::8000:9")}
+//	ssmsource := net.UDPAddr{IP: net.ParseIP("fe80::cafe")}
+//	if err := p.JoinSourceSpecificGroup(en0, &ssmgroup, &ssmsource); err != nil {
+//		// error handling
+//	}
+//	if err := p.LeaveSourceSpecificGroup(en0, &ssmgroup, &ssmsource); err != nil {
+//		// error handling
+//	}
+//
+// or JoinGroup, ExcludeSourceSpecificGroup,
+// IncludeSourceSpecificGroup and LeaveGroup for the operation known
+// as "exclude" mode.
+//
+//	exclsource := net.UDPAddr{IP: net.ParseIP("fe80::dead")}
+//	if err := p.JoinGroup(en0, &ssmgroup); err != nil {
+//		// error handling
+//	}
+//	if err := p.ExcludeSourceSpecificGroup(en0, &ssmgroup, &exclsource); err != nil {
+//		// error handling
+//	}
+//	if err := p.LeaveGroup(en0, &ssmgroup); err != nil {
+//		// error handling
+//	}
+//
+// Note that it depends on each platform implementation what happens
+// when an application which runs on MLDv2 unsupported platform uses
+// JoinSourceSpecificGroup and LeaveSourceSpecificGroup.
+// In general the platform tries to fall back to conversations using
+// MLDv1 and starts to listen to multicast traffic.
+// In the fallback case, ExcludeSourceSpecificGroup and
+// IncludeSourceSpecificGroup may return an error.
+
+===== ipv6/endpoint.go sha256:6b3630bef0c3d6b362caada5d3fac107f1fe17ef646d9da8f1c0cbee644ce460 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/genericopt.go sha256:0c5f090c3751036900ddceb691b5879aed9333566e6e1795d8a1102594507621 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/header.go sha256:eee16403f53c1a754a5f639a3573a7a77f52734260a9da7d13abb20b06e63531 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/helper.go sha256:40bfe95e6073d1b315ffa63443e86b5870e752d2fb4ce2e1aa416024625cc142 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/icmp.go sha256:367c4c2a2b517541f5524a095775080100f7f25b2d5e98e0ddcfd90f0d0dcb48 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/icmp_linux.go sha256:a9600cf2611cc05210d8157060c8a581dd85f5456820122bee7d24840e652c11 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/payload.go sha256:4265ce995671408a21a95f44a012bbdfe183dfc5a7be8162e230a2642988ce59 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/payload_cmsg.go sha256:7a04a8226447e38b70b29ffecc45ca016a79a0bade6c95b2a0fd0806c4e47b82 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== ipv6/sockopt.go sha256:9e465219ae2e139adaef4e7cd727598866183fdcd543094bc2dcb72705375310 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/sockopt_posix.go sha256:681178a28174c95057e9a4f0f1358c1b89baceb474c83e00c66d2d65a2c6ffb3 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || windows || zos
+
+
+===== ipv6/sys_asmreq.go sha256:a2e7997f80410ef543a88de3cbe47c54d59589c7956b2b0be3ebfd332cc9d090 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || windows
+
+
+===== ipv6/sys_bpf.go sha256:5b5f90786502d22bd8adf6ee603b5ba12b75990979634e2732f8fd8e48cca915 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux
+
+
+===== ipv6/sys_linux.go sha256:d648191784930a23be3800d904273ed0f3f5068e0d34bcf5b098d858392f529a =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== ipv6/sys_ssmreq.go sha256:8a213ed1a6c44d5acc7eb5958127a0e9cd33ee43e8583316709612301b023486 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || freebsd || linux || solaris || zos
+
+
+===== trace/events.go sha256:b0ab4685a199b6246ff459b7c7ac0e1d47dfa6983d72efc11b2948c9f99cd674 =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== trace/histogram.go sha256:9c92047038baeb79b1486aa5636b581f8c18746670f38bffb4061c1616a19a11 =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== trace/trace.go sha256:be54020d8d18797b9a9d727b68483495106bbe211b528db42dae6636b71d1fc7 =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+/*
+Package trace implements tracing of requests and long-lived objects.
+It exports HTTP interfaces on /debug/requests and /debug/events.
+
+A trace.Trace provides tracing for short-lived objects, usually requests.
+A request handler might be implemented like this:
+
+	func fooHandler(w http.ResponseWriter, req *http.Request) {
+		tr := trace.New("mypkg.Foo", req.URL.Path)
+		defer tr.Finish()
+		...
+		tr.LazyPrintf("some event %q happened", str)
+		...
+		if err := somethingImportant(); err != nil {
+			tr.LazyPrintf("somethingImportant failed: %v", err)
+			tr.SetError()
+		}
+	}
+
+The /debug/requests HTTP endpoint organizes the traces by family,
+errors, and duration.  It also provides histogram of request duration
+for each family.
+
+A trace.EventLog provides tracing for long-lived objects, such as RPC
+connections.
+
+	// A Fetcher fetches URL paths for a single domain.
+	type Fetcher struct {
+		domain string
+		events trace.EventLog
+	}
+
+	func NewFetcher(domain string) *Fetcher {
+		return &Fetcher{
+			domain,
+			trace.NewEventLog("mypkg.Fetcher", domain),
+		}
+	}
+
+	func (f *Fetcher) Fetch(path string) (string, error) {
+		resp, err := http.Get("http://" + f.domain + "/" + path)
+		if err != nil {
+			f.events.Errorf("Get(%q) = %v", path, err)
+			return "", err
+		}
+		f.events.Printf("Get(%q) = %s", path, resp.Status)
+		...
+	}
+
+	func (f *Fetcher) Close() error {
+		f.events.Finish()
+		return nil
+	}
+
+The /debug/events HTTP endpoint organizes the event logs by family and
+by time since the last error.  The expanded view displays recent log
+entries and the log's call stack.
+*/
+

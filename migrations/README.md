@@ -4,7 +4,7 @@ This directory owns forward changes to the service's PostgreSQL `judge` schema. 
 
 ## Current state
 
-The repository supplies **migration level 1** in `000001_judge_v02_baseline.up.sql`. It implements the judge-owned V0.2 tables and the [published clarifications](../docs/contracts/v0.2/clarifications.md), including source/content/evidence identities, immutable history and deferred task/result/outbox checks. This file ceiling does not declare any production database migrated.
+The repository supplies **migration level 5**. The original `000001_judge_v02_baseline.up.sql` implements the judge-owned V0.2 tables and the [published clarifications](../docs/contracts/v0.2/clarifications.md). Subsequent forward files add atomic case history, private-object lifecycle, audited callback redelivery and private incomplete-import attempt evidence. This file ceiling does not declare any production database migrated.
 
 The [golang-migrate](https://github.com/golang-migrate/migrate) engine and pgx v5 driver are pinned in [go.mod](../go.mod) and [go.sum](../go.sum). The project-owned `judge-migrate` wrapper embeds reviewed SQL, provides only `up` and read-only `status`, and verifies an immutable checksum ledger under the native advisory lock. [Executable commands and recovery](../docs/development/migrations.md) describe its transaction/dirty-state behavior. [Role provisioning](../docs/development/database-provisioning.md) remains a separate operator step.
 

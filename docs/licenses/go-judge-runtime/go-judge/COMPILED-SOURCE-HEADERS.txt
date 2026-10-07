@@ -1,0 +1,6 @@
+===== cmd/go-judge/startrack_processguard_linux.go sha256:d6c67d0e9b6373536b794c1681905de83de46c599d599a3eddde3c9e3703ba9e =====
+//go:build linux
+
+// SPDX-License-Identifier: Apache-2.0
+// Code Startrack addition: execve resets the launcher's dumpability setting.
+

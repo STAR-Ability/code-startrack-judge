@@ -4,7 +4,7 @@ The supplied V0.2 API/database/integration contracts remain unchanged. This regi
 
 GitHub resolution tracker: [#2](https://github.com/STAR-Ability/code-startrack-judge/issues/2).
 
-Status updated 2026-10-08 after the owner authorized full V0.2 implementation and explicitly delegated engineering questions. Q-001 supplied-document recovery is resolved. Q-003's final human ADMIN approval policy is owner-approved. Q-002/Q-004/Q-005/Q-006/Q-007 have explicit engineering decisions; implementation, independent review and consumer acceptance are tracked separately. Q-008 requires its runtime owner specification and qualification evidence before affected execution is enabled. No Backend sign-off or real Linux qualification is asserted by this register. IDs remain stable.
+Status updated 2026-10-08 after the owner authorized full V0.2 implementation and explicitly delegated engineering questions. Q-001 supplied-document recovery is resolved. Q-003's final human ADMIN approval policy is owner-approved. Q-002/Q-004/Q-005/Q-006/Q-007/Q-008 have explicit engineering decisions and owned implementations; independent acceptance, final Linux qualification and consumer compatibility remain separate gates. No Backend sign-off or real Linux qualification is asserted by this register. IDs remain stable.
 
 ## Q-001 — Missing whole-system architecture contract
 
@@ -78,11 +78,13 @@ Status updated 2026-10-08 after the owner authorized full V0.2 implementation an
 
 ## Q-008 — Bottom-level transport and binding reconciliation
 
+**Engineering decision and implementation:** the owned finite role adapter preserves the pinned demo's compile/test/checker flow through the runtime's private REST interface at `127.0.0.1:5050`. The API uses a separate authenticated private scheduler socket; only the judger holds the low-level runtime credential. The concrete adapter and supervisor are implemented. See the [owner evidence gates](v0.2/clarifications.md#q-007-and-q-008-implementation-owner-evidence-gates), [REST mapping](../upstream/rest-transport.md), [runtime adapter](../development/runtime-adapter.md), [patch provenance](../upstream/patches.md), and Issues [#15](https://github.com/STAR-Ability/code-startrack-judge/issues/15), [#20](https://github.com/STAR-Ability/code-startrack-judge/issues/20), [#21](https://github.com/STAR-Ability/code-startrack-judge/issues/21). Portable tests do not establish final-image Linux qualification.
+
 **Evidence:** API §8 requires supervised reuse of the demo's gRPC judge flow and states the bottom-level runtime listens only on `127.0.0.1:5050`. At the exact pins, [demo judger/main.go](https://github.com/criyle/go-judge-demo/blob/ed6cc756082ee9f7d792238185dc3e6a47c84b52/judger/main.go) creates a gRPC ExecutorClient with default `localhost:5051`; [runtime config](https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/cmd/go-judge/config/config.go) defines separate HTTP `5050` and optional gRPC `5051`; [runtime main.go](https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/cmd/go-judge/main.go) initializes HTTP plus optional gRPC listeners. These source facts were read during Phase 0; an unchanged demo cannot simply use its gRPC client against the default HTTP `5050` listener.
 
 **Question:** agree a contract-conforming transport/binding configuration or an explicit reviewed transport adapter/clarification. Evaluate the pinned runtime's actual supported listener configuration. Do not add an extra listener, expose a raw submit API, or claim the unchanged upstream processes are already interoperable by assumption. Any required upstream patch needs provenance and review.
 
-**Gate:** before supervising/wiring real runtime processes or claiming the single-container profile works. Owner: judge/runtime, deployment and security owners; project contract owner approves any change to the binding constraint.
+**Gate:** before enabling qualified execution or claiming the final single-container profile satisfies its isolation, listener, credential, cancellation and verdict requirements. Owner: judge/runtime, deployment and security owners; project contract owner approves any change to the binding constraint.
 
 ## Separate owner/platform decisions
 

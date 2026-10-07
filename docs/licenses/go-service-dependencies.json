@@ -1,10 +1,16 @@
 {
   "schemaVersion": 1,
-  "scope": "Owned native Go service and migration command dependency inventory. This is not the complete runtime container SBOM: go-judge, problemtools, compiler and operating-system payloads remain separate.",
+  "scope": "Owned native Go service, administrative commands, controlled judger and runtime supervisor dependency inventory. This is not the complete runtime container SBOM: go-judge, problemtools, compiler and operating-system payloads remain separate.",
   "inventoryDate": "2026-10-08",
   "entrypoints": [
     "./cmd/judge-service",
-    "./cmd/judge-migrate"
+    "./cmd/judge-migrate",
+    "./cmd/judge-admin",
+    "./cmd/judge-outbox",
+    "./cmd/startrack-judger",
+    "./cmd/startrack-runtime-init",
+    "./cmd/startrack-runtime-matrix",
+    "./cmd/startrack-supervisor"
   ],
   "goToolchain": {
     "version": "1.26.8",
@@ -124,7 +130,7 @@
       ],
       "upstreamNoticeFiles": [],
       "direct": true,
-      "linkScope": "OWNED_PACKAGE_TESTS_ONLY",
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
       "importedPackages": [
         "github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
       ]
@@ -323,6 +329,49 @@
       ]
     },
     {
+      "modulePath": "go.yaml.in/yaml/v3",
+      "version": "v3.0.5",
+      "moduleSum": "h1:N6y/pJk8buWs9NY5ERU2HSMfm+IuD/OtfdAnq6kESPw=",
+      "goModSum": "h1:HVTZu1O7/Vkt2N+BFy8Zza+lnLsABggaTM2ZpNIGuKg=",
+      "source": {
+        "repositoryUrl": "https://github.com/yaml/go-yaml",
+        "revision": "e16c7af9361b241fa02d91582fb59ce4954d8afc",
+        "reference": "v3.0.5"
+      },
+      "license": {
+        "spdxExpression": "MIT AND Apache-2.0",
+        "classificationEvidence": "Pinned LICENSE assigns MIT to libyaml-derived files and Apache-2.0 to remaining files; both portions are imported. Retain complete LICENSE and upstream NOTICE verbatim.",
+        "copyrightNotices": [
+          "Copyright (c) 2006-2010 Kirill Simonov",
+          "Copyright (c) 2006-2011 Kirill Simonov",
+          "Copyright (c) 2011-2019 Canonical Ltd",
+          "Copyright 2011-2016 Canonical Ltd."
+        ]
+      },
+      "licenseEvidence": [
+        {
+          "upstreamPath": "LICENSE",
+          "localPath": "docs/licenses/go-service/go.yaml.in_yaml_v3/LICENSE",
+          "sha256": "d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b",
+          "sourceUrl": "https://github.com/yaml/go-yaml/blob/e16c7af9361b241fa02d91582fb59ce4954d8afc/LICENSE"
+        },
+        {
+          "upstreamPath": "NOTICE",
+          "localPath": "docs/licenses/go-service/go.yaml.in_yaml_v3/NOTICE",
+          "sha256": "f6c2dd3a67b576eafb89b80200b8b1627230bf3821a0c14cb99a22ac19107d00",
+          "sourceUrl": "https://github.com/yaml/go-yaml/blob/e16c7af9361b241fa02d91582fb59ce4954d8afc/NOTICE"
+        }
+      ],
+      "upstreamNoticeFiles": [
+        "NOTICE"
+      ],
+      "direct": true,
+      "linkScope": "NATIVE_COMMAND_RUNTIME",
+      "importedPackages": [
+        "go.yaml.in/yaml/v3"
+      ]
+    },
+    {
       "modulePath": "golang.org/x/sync",
       "version": "v0.21.0",
       "moduleSum": "h1:HLII4xRRTtCRkxYp4HNFF0Js/Og6q2i++KXbg0gHCwM=",
@@ -414,8 +463,26 @@
       "targets": [
         {
           "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 233,
+          "dependencyPackageCount": 267,
           "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-migrate",
+          "dependencyPackageCount": 224,
+          "modulePaths": [
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
             "github.com/jackc/pgpassfile",
             "github.com/jackc/pgservicefile",
             "github.com/jackc/pgx/v5",
@@ -425,9 +492,10 @@
           ]
         },
         {
-          "entrypoint": "./cmd/judge-migrate",
-          "dependencyPackageCount": 223,
+          "entrypoint": "./cmd/judge-admin",
+          "dependencyPackageCount": 228,
           "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
             "github.com/jackc/pgerrcode",
             "github.com/jackc/pgpassfile",
@@ -435,6 +503,57 @@
             "github.com/jackc/pgx/v5",
             "github.com/jackc/puddle/v2",
             "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-outbox",
+          "dependencyPackageCount": 249,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-judger",
+          "dependencyPackageCount": 211,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-init",
+          "dependencyPackageCount": 212,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-matrix",
+          "dependencyPackageCount": 210,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-supervisor",
+          "dependencyPackageCount": 212,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
             "golang.org/x/text"
           ]
         }
@@ -448,46 +567,16 @@
       "targets": [
         {
           "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 232,
+          "dependencyPackageCount": 266,
           "modulePaths": [
-            "github.com/jackc/pgpassfile",
-            "github.com/jackc/pgservicefile",
-            "github.com/jackc/pgx/v5",
-            "github.com/jackc/puddle/v2",
-            "golang.org/x/sync",
-            "golang.org/x/text"
-          ]
-        },
-        {
-          "entrypoint": "./cmd/judge-migrate",
-          "dependencyPackageCount": 222,
-          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
             "github.com/jackc/pgerrcode",
             "github.com/jackc/pgpassfile",
             "github.com/jackc/pgservicefile",
             "github.com/jackc/pgx/v5",
             "github.com/jackc/puddle/v2",
-            "golang.org/x/sync",
-            "golang.org/x/text"
-          ]
-        }
-      ]
-    },
-    {
-      "goos": "darwin",
-      "goarch": "amd64",
-      "cgoEnabled": false,
-      "goExperiment": "",
-      "targets": [
-        {
-          "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 233,
-          "modulePaths": [
-            "github.com/jackc/pgpassfile",
-            "github.com/jackc/pgservicefile",
-            "github.com/jackc/pgx/v5",
-            "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
             "golang.org/x/sync",
             "golang.org/x/text"
           ]
@@ -505,6 +594,168 @@
             "golang.org/x/sync",
             "golang.org/x/text"
           ]
+        },
+        {
+          "entrypoint": "./cmd/judge-admin",
+          "dependencyPackageCount": 227,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-outbox",
+          "dependencyPackageCount": 248,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-judger",
+          "dependencyPackageCount": 210,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-init",
+          "dependencyPackageCount": 211,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-matrix",
+          "dependencyPackageCount": 209,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-supervisor",
+          "dependencyPackageCount": 211,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        }
+      ]
+    },
+    {
+      "goos": "darwin",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "goExperiment": "",
+      "targets": [
+        {
+          "entrypoint": "./cmd/judge-service",
+          "dependencyPackageCount": 267,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-migrate",
+          "dependencyPackageCount": 224,
+          "modulePaths": [
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-admin",
+          "dependencyPackageCount": 228,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-outbox",
+          "dependencyPackageCount": 249,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-judger",
+          "dependencyPackageCount": 211,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-init",
+          "dependencyPackageCount": 60,
+          "modulePaths": []
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-matrix",
+          "dependencyPackageCount": 210,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-supervisor",
+          "dependencyPackageCount": 89,
+          "modulePaths": []
         }
       ]
     },
@@ -516,19 +767,23 @@
       "targets": [
         {
           "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 232,
+          "dependencyPackageCount": 266,
           "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
             "github.com/jackc/pgpassfile",
             "github.com/jackc/pgservicefile",
             "github.com/jackc/pgx/v5",
             "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
             "golang.org/x/sync",
             "golang.org/x/text"
           ]
         },
         {
           "entrypoint": "./cmd/judge-migrate",
-          "dependencyPackageCount": 222,
+          "dependencyPackageCount": 223,
           "modulePaths": [
             "github.com/golang-migrate/migrate/v4",
             "github.com/jackc/pgerrcode",
@@ -539,13 +794,69 @@
             "golang.org/x/sync",
             "golang.org/x/text"
           ]
+        },
+        {
+          "entrypoint": "./cmd/judge-admin",
+          "dependencyPackageCount": 227,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/judge-outbox",
+          "dependencyPackageCount": 248,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-judger",
+          "dependencyPackageCount": 210,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-init",
+          "dependencyPackageCount": 60,
+          "modulePaths": []
+        },
+        {
+          "entrypoint": "./cmd/startrack-runtime-matrix",
+          "dependencyPackageCount": 209,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/text"
+          ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-supervisor",
+          "dependencyPackageCount": 89,
+          "modulePaths": []
         }
       ]
     }
   ],
-  "testOnlyModules": [
-    "github.com/cyberphone/json-canonicalization"
-  ],
+  "testOnlyModules": [],
   "excludedModuleGraph": [
     {
       "modulePath": "cel.dev/expr",
@@ -1573,7 +1884,7 @@
     "licenseCopiesVerifiedAgainstImmutableOrigin": 22,
     "method": "Bytes copied from Go checksum-verified module cache or pinned Go SDK and compared with raw files at immutable Git commit URLs."
   },
-  "goModSha256": "f7dc5c29690e02379db9b6ce98cb725c4197143dfc7e2a47cc7d350fa772087e",
-  "goSumSha256": "0c45cf05dbf7a7c8e84450d775b4db0a299bb084ece71cc1ea4cff48cb093f75",
+  "goModSha256": "30b59dc0c049d2f40b01e698a8401fbb663693c9d9fefc22a43b07859ac44e93",
+  "goSumSha256": "cfee869aaf8e87a7ff5ef6bfcbde9501fbca7a800c2ce3c173b9cec1c29890cc",
   "toolchainLockSha256": "c255097c26a6efe62e203da8fb1986716ee43aea2b6f49fb983ff5bb541f50a1"
 }

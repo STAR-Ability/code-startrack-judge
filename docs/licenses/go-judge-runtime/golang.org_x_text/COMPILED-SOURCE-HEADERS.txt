@@ -1,0 +1,320 @@
+===== internal/language/compact.go sha256:2d121c703729c5fbd5f3f13fd568af142ca8fde0f01a07e1874df22dbaadde98 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/language/compact/compact.go sha256:e154aa511d328fd47a9c9fc1115d9c92be2d385e885ae65c5e348ec1d5844ead =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package compact defines a compact representation of language tags.
+//
+// Common language tags (at least all for which locale information is defined
+// in CLDR) are assigned a unique index. Each Tag is associated with such an
+// ID for selecting language-related resources (such as translations) as well
+// as one for selecting regional defaults (currency, number formatting, etc.)
+//
+// It may want to export this functionality at some point, but at this point
+// this is only available for use within x/text.
+
+===== internal/language/compact/language.go sha256:1d49845ec8c93b000391718e3127c0979c054186570805fce27f7fe167ad2c5d =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:generate go run gen.go gen_index.go -output tables.go
+//go:generate go run gen_parents.go
+
+
+===== internal/language/compact/tags.go sha256:e6f98b11ee9c2d5d4d51a5d810d4ea2eff0872a8d11b962979744899e020e12c =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/language/compose.go sha256:7657b95eac8448d5d2273c048d316dde3ac0e49ac058487a69b2b990ebc7f8ef =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/language/coverage.go sha256:8c8238012deb1b3c42820c755343db1bc326dc5cbddfcc24f97abbb7e0c6cee1 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/language/language.go sha256:19a0ccf7635fd3dbad3766d953996df5d1c24a367e44c49200ab6ec3023fc871 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:generate go run gen.go gen_common.go -output tables.go
+
+
+===== internal/language/lookup.go sha256:8f0ac8780f89d5c2b29b98fd599269b445d7bb612a7948c9e97d425424b5ea38 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/language/match.go sha256:711e9c548516929762f0636a69788ba6eed6ed10bfb47634f3b5d5a1f26a1547 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/language/parse.go sha256:0c884b51bb83d3633a51f16e90c7dbaf45c301a449e366df591eda11a3000972 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/language/tags.go sha256:21041c1c1982b12db6f523a4feb58746dac3e2c71e8dcf9f76ac5807cd809099 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/tag/tag.go sha256:97a27a6bfdd26d872e07d051fc27e622e1cd764943350e8bfa9cf0e2e13cc474 =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package tag contains functionality handling tags and related data.
+
+===== language/coverage.go sha256:d12716948854471a3536a04dc48736b0db0318ea6df61db236bc4ee0fe725375 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== language/doc.go sha256:4b97559b103832f3c5f22e80f2df0dd7394a469d945f79afad1654eb179fa63b =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package language implements BCP 47 language tags and related functionality.
+//
+// The most important function of package language is to match a list of
+// user-preferred languages to a list of supported languages.
+// It alleviates the developer of dealing with the complexity of this process
+// and provides the user with the best experience
+// (see https://blog.golang.org/matchlang).
+//
+// # Matching preferred against supported languages
+//
+// A Matcher for an application that supports English, Australian English,
+// Danish, and standard Mandarin can be created as follows:
+//
+//	var matcher = language.NewMatcher([]language.Tag{
+//	    language.English,   // The first language is used as fallback.
+//	    language.MustParse("en-AU"),
+//	    language.Danish,
+//	    language.Chinese,
+//	})
+//
+// This list of supported languages is typically implied by the languages for
+// which there exists translations of the user interface.
+//
+// User-preferred languages usually come as a comma-separated list of BCP 47
+// language tags.
+// The MatchString finds best matches for such strings:
+//
+//	handler(w http.ResponseWriter, r *http.Request) {
+//	    lang, _ := r.Cookie("lang")
+//	    accept := r.Header.Get("Accept-Language")
+//	    tag, _ := language.MatchStrings(matcher, lang.String(), accept)
+//
+//	    // tag should now be used for the initialization of any
+//	    // locale-specific service.
+//	}
+//
+// The Matcher's Match method can be used to match Tags directly.
+//
+// Matchers are aware of the intricacies of equivalence between languages, such
+// as deprecated subtags, legacy tags, macro languages, mutual
+// intelligibility between scripts and languages, and transparently passing
+// BCP 47 user configuration.
+// For instance, it will know that a reader of Bokmål Danish can read Norwegian
+// and will know that Cantonese ("yue") is a good match for "zh-HK".
+//
+// # Using match results
+//
+// To guarantee a consistent user experience to the user it is important to
+// use the same language tag for the selection of any locale-specific services.
+// For example, it is utterly confusing to substitute spelled-out numbers
+// or dates in one language in text of another language.
+// More subtly confusing is using the wrong sorting order or casing
+// algorithm for a certain language.
+//
+// All the packages in x/text that provide locale-specific services
+// (e.g. collate, cases) should be initialized with the tag that was
+// obtained at the start of an interaction with the user.
+//
+// Note that Tag that is returned by Match and MatchString may differ from any
+// of the supported languages, as it may contain carried over settings from
+// the user tags.
+// This may be inconvenient when your application has some additional
+// locale-specific data for your supported languages.
+// Match and MatchString both return the index of the matched supported tag
+// to simplify associating such data with the matched tag.
+//
+// # Canonicalization
+//
+// If one uses the Matcher to compare languages one does not need to
+// worry about canonicalization.
+//
+// The meaning of a Tag varies per application. The language package
+// therefore delays canonicalization and preserves information as much
+// as possible. The Matcher, however, will always take into account that
+// two different tags may represent the same language.
+//
+// By default, only legacy and deprecated tags are converted into their
+// canonical equivalent. All other information is preserved. This approach makes
+// the confidence scores more accurate and allows matchers to distinguish
+// between variants that are otherwise lost.
+//
+// As a consequence, two tags that should be treated as identical according to
+// BCP 47 or CLDR, like "en-Latn" and "en", will be represented differently. The
+// Matcher handles such distinctions, though, and is aware of the
+// equivalence relations. The CanonType type can be used to alter the
+// canonicalization form.
+//
+// # References
+//
+// BCP 47 - Tags for Identifying Languages http://tools.ietf.org/html/bcp47
+
+===== language/language.go sha256:3f2032f0367d83fb14772384d47119d27c2c427b277aa0a02913db59abe32bb0 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:generate go run gen.go -output tables.go
+
+
+===== language/match.go sha256:b8a6b973391cba46899d079173cf0b1d3064f28bb79a11c3fdc65c089cbe23d3 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== language/parse.go sha256:3552f8fba45f310216182d167ba1da8e0c02212ad1896eeb66b194dd546b7bc2 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== language/tags.go sha256:247c5ce419821c135a2751029c078cc6e1472c9896dd581d67a277449e54d968 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== secure/bidirule/bidirule.go sha256:714b5baaa1ec84a50e03504a7100d54d37e6ea7551d57d28265576c57de94ba9 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package bidirule implements the Bidi Rule defined by RFC 5893.
+//
+// This package is under development. The API may change without notice and
+// without preserving backward compatibility.
+
+===== transform/transform.go sha256:7716301e210f42b764ec78f4adffb05075f1d5103446a40b8a38043f5a7abd88 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package transform provides reader and writer wrappers that transform the
+// bytes passing through as well as various transformations. Example
+// transformations provided by other packages include normalization and
+// conversion between character sets.
+
+===== unicode/bidi/bidi.go sha256:b1e9360e9a026006f56914a5716b18780346418bb0b64bce23a4ff92d8147b13 =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:generate go run gen.go gen_trieval.go gen_ranges.go
+
+// Package bidi contains functionality for bidirectional text support.
+//
+// See https://www.unicode.org/reports/tr9.
+//
+// NOTE: UNDER CONSTRUCTION. This API may change in backwards incompatible ways
+// and without notice.
+
+===== unicode/bidi/bracket.go sha256:5caa24f9c4e04a54d18875468f976b4b7c09c8700e88286f2fd96828f134107e =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/bidi/core.go sha256:1d375d88eeae31f2496e081df73c0004b5c4b4a800ec6f4aea989d18fee8ec92 =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/bidi/prop.go sha256:f6391b2f69a1ae2a0ac1f0599a90b260ec350a19f73ad5d6572660100b5950bc =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/norm/composition.go sha256:3d1be52960f2693926472819b747646e7d2371d2bb5f53097cf9d46c913052df =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/norm/forminfo.go sha256:844dadc7a0dc991a4b87a195699476a90655292d302abe2d2f7ddff5968f74bc =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/norm/input.go sha256:965b431790bb139543d71a9c497920ef7d9a15af417456a2bbd0cdb629330e8d =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/norm/iter.go sha256:4d580123776d78ff862131bd8c99fa5758f3cb70530619edc80ed4ee173cd83a =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/norm/normalize.go sha256:9e4fdc543d3b7aabf046ead80f2ef60746f579a7a4691c3c7d6bf69f4c4fa713 =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Note: the file data_test.go that is generated should not be checked in.
+//go:generate go run maketables.go triegen.go
+//go:generate go test -tags test
+
+// Package norm contains types and functions for normalizing Unicode strings.
+
+===== unicode/norm/readwriter.go sha256:d600d1f6cff2536dbb49a0f6bb8c06f6fc05f2754dad2dc05f1d44f9e8e48a35 =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/norm/transform.go sha256:6f8014595643e2acae76d47ed6abe8ace969a0c9070dbfa5a89c86bebcec812d =====
+// Copyright 2013 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unicode/norm/trie.go sha256:d87793d558251ee8824954f0b7bc5564803e4c9d59a8c4eebb4c3c5cfbd19492 =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+

@@ -1,0 +1,9 @@
+===== pkg/forkexec/vfork/asm_linux_amd64.s sha256:0e79b6c1d3c9efc47ac2901542560addd0b293bd654e20755caa6d8e72e87eb9 =====
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+#include "textflag.h"
+
+// func RawVforkSyscall(trap, a1, a2, a3 uintptr) (r1, err uintptr)
+

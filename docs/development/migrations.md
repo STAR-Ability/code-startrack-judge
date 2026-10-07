@@ -9,7 +9,7 @@ Build with the locked Go toolchain and module checksums:
 ```sh
 make toolchain build
 build/judge-migrate status
-build/judge-migrate up -ceiling 1
+build/judge-migrate up -ceiling 5
 build/judge-migrate status
 make check
 ```
@@ -55,4 +55,4 @@ Without `JUDGE_TEST_ADMIN_DSN_FILE` or `JUDGE_TEST_ADMIN_DATABASE_URL`, database
 
 On failure, stop rollout. Preserve native dirty state, checksum rows and private diagnostics. An explicit transaction failure rolls back its schema and checksum row, while dirty tracking persists. A crash between SQL commitment and clean marking may already have committed both. Inspect both states before a database-owner-reviewed repair. The ordinary executable cannot clear dirty state or force a version. Never change old SQL bytes, reset a shared database, run down migrations or blindly replay a dirty file.
 
-Application rollback is permitted only while the previous binary supports the expanded schema. Otherwise follow the reviewed incident recovery plan; a backup restore must reconcile accepted tasks, results and outbox events after the restore point, together with private artifact retention.
+Application rollback is permitted only while the previous binary supports the expanded schema. Otherwise follow the reviewed incident recovery plan; a backup restore must reconcile accepted tasks, results and outbox events after the restore point, together with private artifact retention. The finite [backup and restore rehearsal](db-recovery.md) exercises the native runner, restored immutable facts and coordinated private-object bytes on disposable databases; shared-environment recovery still requires its own reviewed restore point and reconciliation.

@@ -32,6 +32,8 @@ jobs:
         run: make contract-test-setup
       - name: Validate repository foundation
         run: make check
+      - name: Verify retained corresponding-source signatures on Linux
+        run: python3 scripts/validation-sources.py verify-signatures
       - name: Parse workflow, issue forms, and Compose YAML
         run: ruby -rpsych -e 'ARGV.each { |path| Psych.parse_file(path) }' .github/workflows/*.yml .github/ISSUE_TEMPLATE/*.yml compose.yaml
       - name: Validate portable Compose configuration
@@ -44,7 +46,7 @@ jobs:
   postgres:
     name: PostgreSQL contracts
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:17.10-bookworm@sha256:9b18b78397054fce88a9552e9d5a3ad5bb7fd258c5b3cc1c5028e46373d6ea8f
@@ -69,5 +71,11 @@ jobs:
           persist-credentials: false
       - name: Install verified Go SDK
         run: make toolchain
-      - name: Exercise actual PostgreSQL migrations and invariants
-        run: .local/toolchains/go1.26.8/go/bin/go test -mod=readonly -race -count=1 -v ./internal/persistence/migrate
+      - name: Exercise actual PostgreSQL service contracts and recovery
+        run: .local/toolchains/go1.26.8/go/bin/go test -mod=readonly -race -count=1 ./...
+      - name: Qualify exact operator grants and private SQL logging
+        env:
+          POSTGRES_REFERENCE: postgres:17.10-bookworm@sha256:9b18b78397054fce88a9552e9d5a3ad5bb7fd258c5b3cc1c5028e46373d6ea8f
+        run: |
+          postgres_image_id=$(docker image inspect "$POSTGRES_REFERENCE" --format '{{.Id}}')
+          python3 scripts/test-license-review-grants.py --context default --image "$postgres_image_id"

@@ -1,0 +1,244 @@
+===== doc.go sha256:c0c2e0ff14101a1e92424644ea7aeca567c310934945661b083b41813b51cc41 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+/*
+Package middleware
+
+`middleware` is a collection of gRPC middleware packages: interceptors, helpers and tools.
+
+# Middleware
+
+gRPC is a fantastic RPC middleware, which sees a lot of adoption in the Golang world. However, the
+upstream gRPC codebase is relatively bare bones.
+
+This package, and most of its child packages provides commonly needed middleware for gRPC:
+client-side interceptors for retires, server-side interceptors for input validation and auth,
+functions for chaining said interceptors, metadata convenience methods and more.
+
+# Chaining
+
+Simple way of turning a multiple interceptors into a single interceptor. Here's an example for
+server chaining:
+
+	myServer := grpc.NewServer(
+	    grpc.ChainStreamInterceptor(loggingStream, monitoringStream, authStream),
+	    grpc.ChainUnaryInterceptor(loggingUnary, monitoringUnary, authUnary),
+	)
+
+These interceptors will be executed from left to right: logging, monitoring and auth.
+
+Here's an example for client side chaining:
+
+	clientConn, err = grpc.Dial(
+	    address,
+	        grpc.WithChainUnaryInterceptor(monitoringClientUnary, retryUnary),
+	        grpc.WithChainStreamInterceptor(monitoringClientStream, retryStream),
+	)
+	client = testpb.NewTestServiceClient(clientConn)
+	resp, err := client.PingEmpty(s.ctx, &myservice.Request{Msg: "hello"})
+
+These interceptors will be executed from left to right: monitoring and then retry logic.
+
+The retry interceptor will call every interceptor that follows it whenever when a retry happens.
+
+# Writing Your Own
+
+Implementing your own interceptor is pretty trivial: there are interfaces for that. But the interesting
+bit exposing common data to handlers (and other middleware), similarly to HTTP Middleware design.
+For example, you may want to pass the identity of the caller from the auth interceptor all the way
+to the handling function.
+
+For example, a client side interceptor example for auth looks like:
+
+	func FakeAuthUnaryInterceptor(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+	   newCtx := context.WithValue(ctx, "user_id", "john@example.com")
+	   return handler(newCtx, req)
+	}
+
+Unfortunately, it's not as easy for streaming RPCs. These have the `context.Context` embedded within
+the `grpc.ServerStream` object. To pass values through context, a wrapper (`WrappedServerStream`) is
+needed. For example:
+
+	func FakeAuthStreamingInterceptor(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	   newStream := middleware.WrapServerStream(stream)
+	   newStream.WrappedContext = context.WithValue(ctx, "user_id", "john@example.com")
+	   return handler(srv, newStream)
+	}
+*/
+
+===== interceptors/auth/auth.go sha256:4d2de4491eac0868f46ff516aa00eacca8d53b440d11349078eb52d313a6fb5e =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== interceptors/auth/doc.go sha256:a45ad333d3fe97e12441495ea8af6755e3a10c5d0917a26fe8aebde5733e9018 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+/*
+Package auth is a middleware that authenticates incoming gRPC requests.
+
+`auth` a generic server-side auth middleware for gRPC.
+
+# Server Side Auth Middleware
+
+It allows for easy assertion of `:authorization` headers in gRPC calls, be it HTTP Basic auth, or
+OAuth2 Bearer tokens.
+
+The middleware takes a user-customizable `AuthFunc`, which can be customized to verify and extract
+auth information from the request. The extracted information can be put in the `context.Context` of
+handlers downstream for retrieval.
+
+It also allows for per-service implementation overrides of `AuthFunc`. See `ServiceAuthFuncOverride`.
+
+Please see examples for simple examples of use.
+*/
+
+===== interceptors/auth/metadata.go sha256:5e6e0f336622472bb88473076f57113166f0373e7ea26a35c0a5c5d6709b9155 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== interceptors/callmeta.go sha256:0a6874c0807d1cca0f86d394ef5e48ebd67f795382b21fcd8906b3473755b4b3 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== interceptors/client.go sha256:8879a99a46fba0b7326d4b445866698adfae08e2b83ce6eff52660320c2d62eb =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+// Go gRPC Middleware monitoring interceptors for client-side gRPC.
+
+
+===== interceptors/doc.go sha256:8a4aaf5c3acd855d2faaddd373feb7d82f6a26ecb395cf8ffc936be52eaa31b3 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+//
+/*
+interceptor is an internal package used by higher level middlewares. It allows injecting custom code in various
+places of the gRPC lifecycle.
+
+This particular package is intended for use by other middleware, metric, logging or otherwise.
+This allows code to be shared between different implementations.
+*/
+
+===== interceptors/logging/doc.go sha256:994b5144b6b6a76b341464d167e6b708b552953777cf1e23ac2d5b413d23a3ef =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+/*
+Package logging is a "parent" package for gRPC logging middlewares.
+
+The gRPC logging middleware populates request-scoped data to `logging.Fields` that relate to the current gRPC call
+(e.g. service and method names). You can extract/inject data in the propagated context using `logging.ExtractFields` and `logging.InjectFields`.
+
+Once the gRPC logging middleware has added the gRPC specific Fields to the ctx they will then be written with the log lines.
+
+All logging middleware will emit a final log statement. It is based on the error returned by the handler function,
+the gRPC status code, an error (if any) and it emits at a level controlled via `WithLevels`. You can control this behavior
+using `WithDecider`.
+
+# This parent package
+
+This particular package is intended for use by other middleware, logging or otherwise. It contains interfaces that other
+logging middlewares *could* share. This allows code to be shared between different implementations.
+
+# Field names
+
+All field names of loggers follow the OpenTracing semantics definitions, with `grpc.` prefix if needed:
+https://github.com/opentracing/specification/blob/master/semantic_conventions.md
+
+Implementations:
+
+* providers/kit
+* providers/logr
+* providers/logrus
+* providers/phuslog
+* providers/slog
+* providers/zap
+* providers/zerolog
+*/
+
+===== interceptors/logging/interceptors.go sha256:83bc9ec4960606965d4c905fceeb8099645658f40a7ca6ebcb656bde3a6b11ef =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== interceptors/logging/logging.go sha256:f175cde3d1831783f57286b9bf6ee87cf123baec594ebbb82db25685f0a79430 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== interceptors/logging/options.go sha256:3ce97f854f759e9a3486a9a6f4586cc00c3eb94f76b59448cd18415151065e02 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== interceptors/logging/slog.go sha256:74025374debffbee43835b8899b72539c33413f18ec7f13c17398a79b1551d10 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+// Copyright 2022 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+//
+// Copied from https://cs.opensource.google/go/x/exp/+/10a50721:slog/level.go
+
+
+===== interceptors/recovery/doc.go sha256:6cd46ccded05c4064e3d692a39e4870e7e8f5b2e9feaeb039a2bf64087e9b8df =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+// Copyright 2017 David Ackroyd. All Rights Reserved.
+// See LICENSE for licensing terms.
+
+/*
+Package recovery is a middleware that recovers from panics and logs the panic message.
+
+`recovery` are interceptors that recover from gRPC handler panics.
+
+# Server Side Recovery Middleware
+
+By default a panic will be converted into a gRPC error with `code.Internal`.
+
+Handling can be customised by providing an alternate recovery function.
+
+Please see examples for simple examples of use.
+*/
+
+===== interceptors/recovery/interceptors.go sha256:46c7e8b0a425a27b216a0e2016373c6fda3c3bc25caf8c53774d5342501307c0 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+// Copyright 2017 David Ackroyd. All Rights Reserved.
+// See LICENSE for licensing terms.
+
+
+===== interceptors/recovery/options.go sha256:828153e8e72cd54e09846859d445350381f363857a26b862ea6879ef6af26f11 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+// Copyright 2017 David Ackroyd. All Rights Reserved.
+// See LICENSE for licensing terms.
+
+
+===== interceptors/reporter.go sha256:5bf8280bbb23d9d8e5361951ae727c59d519e1af88cd7cf0bb93ee873b55acbe =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== interceptors/server.go sha256:e8fccef9f7f04cf717295bed06ee617b2ec8baca79f6c1c0ad4aabc3e97ffd81 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+// Go gRPC Middleware monitoring interceptors for server-side gRPC.
+
+
+===== wrappers.go sha256:aa51ec5b01e87363427d197536463ad4688d6dcdc74c838dc2e25697f3e27498 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+

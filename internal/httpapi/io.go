@@ -62,6 +62,10 @@ func ErrorCode(err error) string {
 	if errors.As(err, &validation) {
 		return validation.Code
 	}
+	var coded interface{ PublicCode() string }
+	if errors.As(err, &coded) {
+		return coded.PublicCode()
+	}
 	return "INTERNAL_ERROR"
 }
 

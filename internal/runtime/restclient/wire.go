@@ -68,21 +68,8 @@ func encodeRequest(r Request) ([]byte, error) {
 
 type wireFileError struct {
 	Name    string        `json:"name"`
-	Type    fileErrorType `json:"type"`
+	Type    FileErrorType `json:"type"`
 	Message string        `json:"message,omitempty"`
-}
-
-// Pinned envexec.FileErrorType marshals string enums, never their integer values.
-type fileErrorType string
-
-func (t fileErrorType) valid() bool {
-	switch t {
-	case "CopyInOpenFile", "CopyInCreateDir", "CopyInCreateFile", "CopyInCopyContent",
-		"CopyOutOpen", "CopyOutNotRegularFile", "CopyOutSizeExceeded", "CopyOutCreateFile",
-		"CopyOutCopyContent", "CollectSizeExceeded", "Symlink":
-		return true
-	}
-	return false
 }
 
 type wireResult struct {
@@ -139,16 +126,18 @@ func projectResults(w []wireResult, req Request, limits Limits) ([]Result, error
 				}
 			}
 		}
+		fileErrorTypes := make([]FileErrorType, 0, len(value.FileError))
 		for _, failure := range value.FileError {
 			if !failure.Type.valid() {
 				return nil, &Error{Kind: ProtocolError}
 			}
+			fileErrorTypes = append(fileErrorTypes, failure.Type)
 		}
 		totalFiles += len(ids)
 		if totalFiles > limits.Files {
 			return nil, &Error{Kind: BoundsError}
 		}
-		results[i] = Result{Status: *value.Status, ExitStatus: *value.ExitStatus, CPUTimeNS: *value.Time, WallTimeNS: *value.RunTime, MemoryBytes: *value.Memory, ProcessPeak: value.ProcPeak, CachedFiles: ids, HasError: value.Error != "", FileErrorCount: len(value.FileError)}
+		results[i] = Result{Status: *value.Status, ExitStatus: *value.ExitStatus, CPUTimeNS: *value.Time, WallTimeNS: *value.RunTime, MemoryBytes: *value.Memory, ProcessPeak: value.ProcPeak, CachedFiles: ids, HasError: value.Error != "", FileErrorCount: len(value.FileError), FileErrorTypes: fileErrorTypes}
 	}
 	return results, nil
 }

@@ -1,0 +1,12 @@
+===== sse-decoder.go sha256:0100660fc0aabfc7cb91868e5b4ec3ec3cdfe6d4d6effac3eb7398396caabfb2 =====
+// Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== sse-encoder.go sha256:cbdaa4f88bf074d749a95741a46b1a04bb800ad4020f0e9c8154340aa6b7dd46 =====
+// Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+

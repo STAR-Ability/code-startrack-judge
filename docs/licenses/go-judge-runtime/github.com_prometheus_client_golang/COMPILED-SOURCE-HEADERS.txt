@@ -1,0 +1,830 @@
+===== internal/github.com/golang/gddo/httputil/header/header.go sha256:ff77138953712a7f79c83f4d943234cce71165bb77c41c3bfb83d51d5c08fe86 =====
+// Copyright 2013 The Go Authors. All rights reserved.
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd.
+
+// Package header provides functions for parsing HTTP headers.
+
+===== internal/github.com/golang/gddo/httputil/negotiate.go sha256:3c6e48fb0ad00cf41175540aca5af11bc188b7b5677e41425d7d11e281f87f6b =====
+// Copyright 2013 The Go Authors. All rights reserved.
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd.
+
+
+===== prometheus/build_info_collector.go sha256:ee4dcc3036980d3ae6c1dca475312ebd4fc2d1b5950d79ea96594324fdaf8c55 =====
+// Copyright 2021 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/collector.go sha256:07f54d03f1f6f463d8dce8132bc0de79eb137553e88bb890c7ab75b1ff04c568 =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/collectorfunc.go sha256:7faf3ca10f6e7bde0167099a6c0808330b2f5126b69711b6f4703f31d793879d =====
+// Copyright 2025 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/counter.go sha256:12ac81be9b2f88285d2fd13632797777bb4e30870c9bc4a4850764daa731e5b0 =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/desc.go sha256:3d2b6bd3cf92aba0bb9d616bdc2d2a4d0bc5a1fe04e4d027f538c38387dd2191 =====
+// Copyright 2016 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/doc.go sha256:6e120e8402699d5f622c2b548ce23fba0b4b7d11eb95c15319ac83533a93e03f =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package prometheus is the core instrumentation package. It provides metrics
+// primitives to instrument code for monitoring. It also offers a registry for
+// metrics. Sub-packages allow to expose the registered metrics via HTTP
+// (package promhttp) or push them to a Pushgateway (package push). There is
+// also a sub-package promauto, which provides metrics constructors with
+// automatic registration.
+//
+// All exported functions and methods are safe to be used concurrently unless
+// specified otherwise.
+//
+// # A Basic Example
+//
+// As a starting point, a very basic usage example:
+//
+//	package main
+//
+//	import (
+//		"log"
+//		"net/http"
+//
+//		"github.com/prometheus/client_golang/prometheus"
+//		"github.com/prometheus/client_golang/prometheus/promhttp"
+//	)
+//
+//	type metrics struct {
+//		cpuTemp  prometheus.Gauge
+//		hdFailures *prometheus.CounterVec
+//	}
+//
+//	func NewMetrics(reg prometheus.Registerer) *metrics {
+//		m := &metrics{
+//			cpuTemp: prometheus.NewGauge(prometheus.GaugeOpts{
+//				Name: "cpu_temperature_celsius",
+//				Help: "Current temperature of the CPU.",
+//			}),
+//			hdFailures: prometheus.NewCounterVec(
+//				prometheus.CounterOpts{
+//					Name: "hd_errors_total",
+//					Help: "Number of hard-disk errors.",
+//				},
+//				[]string{"device"},
+//			),
+//		}
+//		reg.MustRegister(m.cpuTemp)
+//		reg.MustRegister(m.hdFailures)
+//		return m
+//	}
+//
+//	func main() {
+//		// Create a non-global registry.
+//		reg := prometheus.NewRegistry()
+//
+//		// Create new metrics and register them using the custom registry.
+//		m := NewMetrics(reg)
+//		// Set values for the new created metrics.
+//		m.cpuTemp.Set(65.3)
+//		m.hdFailures.With(prometheus.Labels{"device":"/dev/sda"}).Inc()
+//
+//		// Expose metrics and custom registry via an HTTP server
+//		// using the HandleFor function. "/metrics" is the usual endpoint for that.
+//		http.Handle("/metrics", promhttp.HandlerFor(reg, promhttp.HandlerOpts{Registry: reg}))
+//		log.Fatal(http.ListenAndServe(":8080", nil))
+//	}
+//
+// This is a complete program that exports two metrics, a Gauge and a Counter,
+// the latter with a label attached to turn it into a (one-dimensional) vector.
+// It register the metrics using a custom registry and exposes them via an HTTP server
+// on the /metrics endpoint.
+//
+// # Metrics
+//
+// The number of exported identifiers in this package might appear a bit
+// overwhelming. However, in addition to the basic plumbing shown in the example
+// above, you only need to understand the different metric types and their
+// vector versions for basic usage. Furthermore, if you are not concerned with
+// fine-grained control of when and how to register metrics with the registry,
+// have a look at the promauto package, which will effectively allow you to
+// ignore registration altogether in simple cases.
+//
+// Above, you have already touched the Counter and the Gauge. There are two more
+// advanced metric types: the Summary and Histogram. A more thorough description
+// of those four metric types can be found in the Prometheus docs:
+// https://prometheus.io/docs/concepts/metric_types/
+//
+// In addition to the fundamental metric types Gauge, Counter, Summary, and
+// Histogram, a very important part of the Prometheus data model is the
+// partitioning of samples along dimensions called labels, which results in
+// metric vectors. The fundamental types are GaugeVec, CounterVec, SummaryVec,
+// and HistogramVec.
+//
+// While only the fundamental metric types implement the Metric interface, both
+// the metrics and their vector versions implement the Collector interface. A
+// Collector manages the collection of a number of Metrics, but for convenience,
+// a Metric can also “collect itself”. Note that Gauge, Counter, Summary, and
+// Histogram are interfaces themselves while GaugeVec, CounterVec, SummaryVec,
+// and HistogramVec are not.
+//
+// To create instances of Metrics and their vector versions, you need a suitable
+// …Opts struct, i.e. GaugeOpts, CounterOpts, SummaryOpts, or HistogramOpts.
+//
+// # Custom Collectors and constant Metrics
+//
+// While you could create your own implementations of Metric, most likely you
+// will only ever implement the Collector interface on your own. At a first
+// glance, a custom Collector seems handy to bundle Metrics for common
+// registration (with the prime example of the different metric vectors above,
+// which bundle all the metrics of the same name but with different labels).
+//
+// There is a more involved use case, too: If you already have metrics
+// available, created outside of the Prometheus context, you don't need the
+// interface of the various Metric types. You essentially want to mirror the
+// existing numbers into Prometheus Metrics during collection. An own
+// implementation of the Collector interface is perfect for that. You can create
+// Metric instances “on the fly” using NewConstMetric, NewConstHistogram, and
+// NewConstSummary (and their respective Must… versions). NewConstMetric is used
+// for all metric types with just a float64 as their value: Counter, Gauge, and
+// a special “type” called Untyped. Use the latter if you are not sure if the
+// mirrored metric is a Counter or a Gauge. Creation of the Metric instance
+// happens in the Collect method. The Describe method has to return separate
+// Desc instances, representative of the “throw-away” metrics to be created
+// later.  NewDesc comes in handy to create those Desc instances. Alternatively,
+// you could return no Desc at all, which will mark the Collector “unchecked”.
+// No checks are performed at registration time, but metric consistency will
+// still be ensured at scrape time, i.e. any inconsistencies will lead to scrape
+// errors. Thus, with unchecked Collectors, the responsibility to not collect
+// metrics that lead to inconsistencies in the total scrape result lies with the
+// implementer of the Collector. While this is not a desirable state, it is
+// sometimes necessary. The typical use case is a situation where the exact
+// metrics to be returned by a Collector cannot be predicted at registration
+// time, but the implementer has sufficient knowledge of the whole system to
+// guarantee metric consistency.
+//
+// The Collector example illustrates the use case. You can also look at the
+// source code of the processCollector (mirroring process metrics), the
+// goCollector (mirroring Go metrics), or the expvarCollector (mirroring expvar
+// metrics) as examples that are used in this package itself.
+//
+// If you just need to call a function to get a single float value to collect as
+// a metric, GaugeFunc, CounterFunc, or UntypedFunc might be interesting
+// shortcuts.
+//
+// # Advanced Uses of the Registry
+//
+// While MustRegister is the by far most common way of registering a Collector,
+// sometimes you might want to handle the errors the registration might cause.
+// As suggested by the name, MustRegister panics if an error occurs. With the
+// Register function, the error is returned and can be handled.
+//
+// An error is returned if the registered Collector is incompatible or
+// inconsistent with already registered metrics. The registry aims for
+// consistency of the collected metrics according to the Prometheus data model.
+// Inconsistencies are ideally detected at registration time, not at collect
+// time. The former will usually be detected at start-up time of a program,
+// while the latter will only happen at scrape time, possibly not even on the
+// first scrape if the inconsistency only becomes relevant later. That is the
+// main reason why a Collector and a Metric have to describe themselves to the
+// registry.
+//
+// So far, everything we did operated on the so-called default registry, as it
+// can be found in the global DefaultRegisterer variable. With NewRegistry, you
+// can create a custom registry, or you can even implement the Registerer or
+// Gatherer interfaces yourself. The methods Register and Unregister work in the
+// same way on a custom registry as the global functions Register and Unregister
+// on the default registry.
+//
+// There are a number of uses for custom registries: You can use registries with
+// special properties, see NewPedanticRegistry. You can avoid global state, as
+// it is imposed by the DefaultRegisterer. You can use multiple registries at
+// the same time to expose different metrics in different ways.  You can use
+// separate registries for testing purposes.
+//
+// Also note that the DefaultRegisterer comes registered with a Collector for Go
+// runtime metrics (via NewGoCollector) and a Collector for process metrics (via
+// NewProcessCollector). With a custom registry, you are in control and decide
+// yourself about the Collectors to register.
+//
+// # HTTP Exposition
+//
+// The Registry implements the Gatherer interface. The caller of the Gather
+// method can then expose the gathered metrics in some way. Usually, the metrics
+// are served via HTTP on the /metrics endpoint. That's happening in the example
+// above. The tools to expose metrics via HTTP are in the promhttp sub-package.
+//
+// # Pushing to the Pushgateway
+//
+// Function for pushing to the Pushgateway can be found in the push sub-package.
+//
+// # Graphite Bridge
+//
+// Functions and examples to push metrics from a Gatherer to Graphite can be
+// found in the graphite sub-package.
+//
+// # Other Means of Exposition
+//
+// More ways of exposing metrics can easily be added by following the approaches
+// of the existing implementations.
+
+===== prometheus/expvar_collector.go sha256:d08be21cc9dac7d84aa8d7303b10907bec37962f44fb5832610996a7b6526d2b =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/fnv.go sha256:e1021823eb58059432669ef5485e5125219b69259f21effe69aa09349649799a =====
+// Copyright 2018 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/gauge.go sha256:8717471abc5a6e60c503b0d94b29374ff0a7d8549975c33706b5f98e7418e18f =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/get_pid.go sha256:f4ed88436b9a3eb8bc85e2ea85841f42a6f2a7d2f84eac204ffb9d1d9f196fb7 =====
+// Copyright 2015 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build !js || wasm
+// +build !js wasm
+
+
+===== prometheus/go_collector.go sha256:4b0bff8a04e231305b91d50f0a470219cad9044799562b63c73548d0dbc9b8e7 =====
+// Copyright 2018 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/go_collector_latest.go sha256:540999d2a29a008322e3ce1e8a2821414805b17cc30d0323176441e06a6d4a92 =====
+// Copyright 2021 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build go1.17
+// +build go1.17
+
+
+===== prometheus/histogram.go sha256:5e0995c71a696125bb7822771c6c1c2309f32d1967de3a37c9a006211a622e20 =====
+// Copyright 2015 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/internal/almost_equal.go sha256:e22e24dab3b51d50a9f036ad4ee2154bba4e4a5cee61553535423c0d9c340f2a =====
+// Copyright (c) 2015 Björn Rabenstein
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//
+// The code in this package is copy/paste to avoid a dependency. Hence this file
+// carries the copyright of the original repo.
+// https://github.com/beorn7/floats
+
+===== prometheus/internal/difflib.go sha256:d95048bd456cb5ebcde88925b6f5ef8a232db7ecabe3db62af74df8a7d208d78 =====
+// Copyright 2022 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// It provides tools to compare sequences of strings and generate textual diffs.
+//
+// Maintaining `GetUnifiedDiffString` here because original repository
+// (https://github.com/pmezard/go-difflib) is no longer maintained.
+
+===== prometheus/internal/go_collector_options.go sha256:d6bc8c3bfc8f4f3f431f79af3f10b3a90d738a06f922baa5499ba4c36626927b =====
+// Copyright 2021 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/internal/go_runtime_metrics.go sha256:29e0952e516d80621dc7eb1d2ead87c4d42493f179ba58becd2a3f5e267a3274 =====
+// Copyright 2021 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build go1.17
+// +build go1.17
+
+
+===== prometheus/internal/metric.go sha256:766e738efe61db2d2f84cacaad0b348c57e40606ad184de950125a5237796a28 =====
+// Copyright 2018 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/labels.go sha256:270e8811fb26b19f0d50f29b8ec1b54069209748eefbb026f316047401e9b28f =====
+// Copyright 2018 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/metric.go sha256:8ec532af011eab2f940c292285b45fe837c6e2757ec8adc8b477cd268d4afa99 =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/num_threads.go sha256:0da811d17c6bdb7f74c2cdac0251102b46141799c7dd83c76bf9634487f330e0 =====
+// Copyright 2018 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build !js || wasm
+// +build !js wasm
+
+
+===== prometheus/observer.go sha256:2a5ba8ed590dd168fe4a495d973cefaae068603decd9ecfc04b58ed82f8211f0 =====
+// Copyright 2017 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/process_collector.go sha256:e98f3af3c9a72b91d4671573cb368af3095992a87f7f63637eea0c3cb4f49688 =====
+// Copyright 2015 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/process_collector_procfsenabled.go sha256:42c2e0ac3731038874899c449cb391ef3100969dcb1a199d6b99bd3d28aaad90 =====
+// Copyright 2019 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build !windows && !js && !wasip1 && !darwin
+// +build !windows,!js,!wasip1,!darwin
+
+
+===== prometheus/promhttp/delegator.go sha256:7199c59bf505dd9045d52628313c921966985be2f04ebe5d1243151f0f0c0729 =====
+// Copyright 2017 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/promhttp/http.go sha256:1119ba9e4a583361c0a4ac849378e1c3816ff0cbcdc10e580fa19a011f48cc8c =====
+// Copyright 2016 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package promhttp provides tooling around HTTP servers and clients.
+//
+// First, the package allows the creation of http.Handler instances to expose
+// Prometheus metrics via HTTP. promhttp.Handler acts on the
+// prometheus.DefaultGatherer. With HandlerFor, you can create a handler for a
+// custom registry or anything that implements the Gatherer interface. It also
+// allows the creation of handlers that act differently on errors or allow to
+// log errors.
+//
+// Second, the package provides tooling to instrument instances of http.Handler
+// via middleware. Middleware wrappers follow the naming scheme
+// InstrumentHandlerX, where X describes the intended use of the middleware.
+// See each function's doc comment for specific details.
+//
+// Finally, the package allows for an http.RoundTripper to be instrumented via
+// middleware. Middleware wrappers follow the naming scheme
+// InstrumentRoundTripperX, where X describes the intended use of the
+// middleware. See each function's doc comment for specific details.
+
+===== prometheus/promhttp/instrument_client.go sha256:6f361d8b6302e9ecaa5170389bcff51db846b3adf4e490096b46211f26bba604 =====
+// Copyright 2017 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/promhttp/instrument_server.go sha256:4bb7c8e93a8b60ae1b3a10b15ac51a7ca5c9e36f4f1805d543b8bfe37a426e11 =====
+// Copyright 2017 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/promhttp/internal/compression.go sha256:cc6573045eaee00e22061f56655be419e597456139dc1f21cc0f057fa76e4b9d =====
+// Copyright 2025 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/promhttp/option.go sha256:eb3d0946c59e0bde1377f6ab27b6c65fb322babe9a1b25cc93a3d250b2058ed6 =====
+// Copyright 2022 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/registry.go sha256:0c7f73bc06f34e09c680c291f63dddfac775a0b43cce87d85eb82a251e459e68 =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/summary.go sha256:46d390f01e1fd889a65d396182c6fdd5ff458cc73238818bd070a57ae372ce73 =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/timer.go sha256:0f31b4f2c23c5c58296f134b1dbc3a3f6db19b225a2abefd50f4b22ea431294e =====
+// Copyright 2016 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/untyped.go sha256:c5e028a25970462302a68d21b747fdd7505f50c4ddd2450192dbe55f9d12b9cf =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/value.go sha256:ad12774dc6e7795be1286731e70ebf2fced462db3c376e9942c645ae2898fda5 =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/vec.go sha256:593b6102c829bdebc4afc93d3504c784796b91f8fb614a1edb90e5c16d87118b =====
+// Copyright 2014 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/vnext.go sha256:86e0dfb70687bb650cca5f8eda0295a744383a5812bdf24b4107b96ac9211df7 =====
+// Copyright 2022 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
+===== prometheus/wrap.go sha256:19f24ba306c3b25b39f87dc0acb461ca64f9c3ce63f128805b4a9517fbd787be =====
+// Copyright 2018 The Prometheus Authors
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+

@@ -1,0 +1,81 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: *
+Copyright: Copyright (C) 2005 Frank Küster <frank@debian.org>
+License: GPL-2+
+
+Files: debian/*
+Copyright: Copyright (C) 2004-2005 Frank Küster <frank@debian.org>
+           Copyright (C) 2009-2021 Norbert Preining <preining@logic.at>
+           Copyright (C) 2018-2022 Hilmar Preusse <hille42@web.de>
+License: GPL-2+
+
+Files: debian/rules
+Copyright: Copyright (C) 2004-2005 Frank Küster <frank@debian.org>
+           Copyright (C) 1999-2002 Davide Salvetti <salve@debian.org>
+License: GPL-2+
+
+Files: scripts/update-texmf-config scripts/update-texmf-config.8
+Copyright: Copyright (C) 2009-2015 Norbert Preining <preining@logic.at>
+License: GPL-2+
+
+Files: scripts/update-tl-stacked-conffile* scripts/postinst-tex scripts/postrm-tex
+Copyright: Copyright (C) 2012-2015 Norbert Preining <preining@logic.at>
+License: GPL-2+
+
+Files: scripts/update-texmf
+Copyright: Copyright (C) 2002-2003 Atsuhito Kohda <kohda@debian.org>
+           Copyright (C) 2004 Frank Küster <frank@debian.org>
+License: GPL-2+
+
+Files: scripts/update-texmf.8
+Copyright: Copyright (C) 2002-2003 Atsuhito Kohda <kohda@debian.org>
+           Copyright (C) 2004 Hilmar Preusse <hille42@web.de>
+License: GPL-2+
+
+Files: scripts/dh_installtex
+Copyright: Copyright (C) 2006-2007 Frank Küster <frank@debian.org>
+           Copyright (C) 2006-2007 Florent Rougon <f.rougon@free.fr>
+           Copyright (C) 2006-2017 Norbert Preining <preining@logic.at>
+License: GPL-2+
+
+Files: scripts/update-language
+Copyright: Copyright (C) 2015 Norbert Preining <preining@logic.at>
+License: GPL-2+
+
+Files: scripts/tex.pm
+Copyright: Copyright (C) 2009 Jan Hauke Rahm <info@jhr-online.de>
+License: GPL-2+
+
+Files: conf/texmf.d/*
+Copyright: Copyright (C) 1995-2005 Thomas Esser <te@dbs.uni-hannover.de>
+License: PD
+
+License: GPL-2+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+ .
+ On Debian systems, the complete text of the GNU General Public
+ License version 2 can be found in `/usr/share/common-licenses/GPL-2'.
+
+License: PD
+ Public domain software.
+ .
+ To the extent that any copyright protections may be considered to be held by
+ the authors of this software in some jurisdiction outside the United States,
+ the authors hereby waive those copyright protections and dedicate the
+ software to the public domain.  Thus, this license may be considered
+ equivalent to Creative Commons 0: ”No Rights Reserved”.
+ .
+ Note that, according to Gnu.org, public domain is compatible with GPL.

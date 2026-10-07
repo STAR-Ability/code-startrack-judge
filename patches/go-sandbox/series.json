@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "component": "go-sandbox",
+  "module": "github.com/criyle/go-sandbox",
+  "repository": "https://github.com/criyle/go-sandbox.git",
+  "baseCommit": "99ea73b939bda24c55256cb7dc57be636634a056",
+  "baseVersion": "v0.14.0",
+  "patches": [
+    {
+      "path": "patches/go-sandbox/0001-readonly-bind-remount-flags.patch",
+      "sha256": "5d59498f4896f0f3ee79b9c191eac1a754f12706fe618090908f1fdde29a35c4",
+      "reason": "Remove only propagation-operation flags from the read-only bind remount after a successful initial private recursive bind; preserve MS_BIND, MS_RDONLY and inherited nosuid/nodev/noexec/time lock flags. AppArmor rejects the redundant propagation/remount combination. Remount failure still aborts sandbox creation.",
+      "licenseImpact": "Modified go-sandbox source remains MIT. Original license is retained byte-identically; source carries a prominent Code Startrack modification comment. No upstream isolation implementation is replaced.",
+      "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Recheck initial mount and namespace propagation flags, inherited statfs lock flags and remount failure behavior; qualify read-only write denial on every configured bind including nested mounts under the reviewed Linux AppArmor/capability profile.",
+      "files": [
+        {
+          "path": "pkg/mount/mount_linux.go",
+          "baseSha256": "1f19091bed984cffbb8fa2785f66df6a16155707dd0bfde4263733dc449c1c50",
+          "patchedSha256": "ba0065276c3a8e2efdc9d61a3daca82cc52c6ebdc78a3bd2dd916772876ee831",
+          "mode": "100644"
+        }
+      ]
+    },
+    {
+      "path": "patches/go-sandbox/0002-namespace-init-securebits-capability.patch",
+      "sha256": "43d4ce5270d573e8ced05515effec3c2285dfc8a3ad08206ffedcaeb48a19036",
+      "reason": "Retain CAP_SETPCAP across exec only for the trusted nested namespace init so upstream keep_capability can set securebits under inherited no_new_privs. Actual prefork init had full namespace bounding capabilities but only the eight outer permitted/effective capabilities and lacked SETPCAP; its securebits transition returned EPERM. The outer capability set and AppArmor profile are unchanged, and upstream child DropCaps remains mandatory.",
+      "licenseImpact": "Modified go-sandbox source remains MIT with its original license retained byte-identically and a prominent Code Startrack modification comment. The reviewed upstream isolation, no_new_privs, securebits locking and child capability removal remain in place.",
+      "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Inspect startContainer, exec capability propagation, keep_capability securebits and DropCaps; qualify actual trusted-init execution, zero effective/permitted/inheritable/ambient child capabilities, measured namespace-scoped bounding set, locked securebits47 and no_new_privs1, actual capability-regain/mount/pivot_root/user-and-network-namespace denials, and credential isolation under the exact released Linux profile.",
+      "files": [
+        {
+          "path": "container/environment_linux.go",
+          "baseSha256": "cfbdaac989df68f1b7f9f80a4f25d626a41086b4762e300c6513ff4a13fb3f0a",
+          "patchedSha256": "868927206d53177f8058a438fa83b0560ea9c79e96059d36d995e776b3dc6905",
+          "mode": "100644"
+        }
+      ]
+    },
+    {
+      "path": "patches/go-sandbox/0003-complete-capability-v3-buffer.patch",
+      "sha256": "6805b0ae30b6169c9e4a37e5a713717b3f5ea2a4dfc262db851414a8366fef75",
+      "reason": "Supply the two zeroed CapUserData words required by Linux capability ABI v3 and pass element zero in each of the three existing CAPSET calls. The pinned single 12-byte structure let the kernel read the required second word from adjacent globals, potentially failing capability removal with EPERM. This repairs the existing intended zero-drop semantics without changing securebits, bounding-set, credential, namespace or seccomp policy.",
+      "licenseImpact": "Modified go-sandbox source remains MIT; original license stays byte-identical and a prominent Code Startrack comment identifies the ABI correction. Mature upstream isolation and failure propagation remain in place.",
+      "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Verify the Linux capability header version, full kernel data size, all CAPSET call sites and zero-array bytes in the actual Linux ELF; rerun child capability, securebits, no_new_privs, capability-regain denial, compiler/reference/validator and full sandbox verdict/security qualification.",
+      "files": [
+        {
+          "path": "pkg/forkexec/consts_linux.go",
+          "baseSha256": "4d1389694817d36d808cf9f2d4c0b28ede8df3ed216d56616011d9cb9585062e",
+          "patchedSha256": "da02b8496b4a9a7bf21354d533e322a09386a368f0e624c3c7179abaf8273474",
+          "mode": "100644"
+        },
+        {
+          "path": "pkg/forkexec/fork_child_linux.go",
+          "baseSha256": "141c5411b9eb35e916d5669b7b9e4e997eab14759230cc31dce09e9a7d1367ee",
+          "patchedSha256": "29a8117e7489358daa8ffbd8257dd025bfaef9bf2d5de300de567afad330a262",
+          "mode": "100644"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1587 @@
+===== encoding/protodelim/protodelim.go sha256:d65223057c2b0a1de6cf99e74c466f2fa8bcd9495e3b5bb49a96e4175559ed3b =====
+// Copyright 2022 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protodelim marshals and unmarshals varint size-delimited messages.
+
+===== encoding/protojson/decode.go sha256:240f38a45c0b0b9000be8e0862b1d8d720cf6ed245ba77cb95cbe641fa4dfc2c =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== encoding/protojson/doc.go sha256:b286de630dedcb17f1d2369f7faf598fa73ab40aa284ea27171cdb164889e847 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protojson marshals and unmarshals protocol buffer messages as JSON
+// format. It follows the guide at
+// https://protobuf.dev/programming-guides/proto3#json.
+//
+// This package produces a different output than the standard [encoding/json]
+// package, which does not operate correctly on protocol buffer messages.
+
+===== encoding/protojson/encode.go sha256:76d996dd40a3cf689b49d8c787ee857388277e7a3bd45b4bceec93dc8fabdee1 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== encoding/protojson/well_known_types.go sha256:811976bfadc6497cd00b6cb5d1fd6ec6a94d3f39118b177f7b6ee0894f497636 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== encoding/prototext/decode.go sha256:6838aa95ca535e4bb7c331459b899ce75a75b0299a64579b6ec8524dbe3515f1 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== encoding/prototext/doc.go sha256:48657fec4cff435f30956a1dc6c1b639550ed5fffe1633f1c976645c67d199e7 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package prototext marshals and unmarshals protocol buffer messages as the
+// textproto format.
+
+===== encoding/prototext/encode.go sha256:a139182ec75da9342d6871316af06633c24d0f75317b92ebdf792f41753a6a91 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== encoding/protowire/wire.go sha256:109e891e95fb059a3622e2ad97bb06f6829da7d4ac7fc13c36deb508d6f9ef40 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protowire parses and formats the raw wire encoding.
+// See https://protobuf.dev/programming-guides/encoding.
+//
+// For marshaling and unmarshaling entire protobuf messages,
+// use the [google.golang.org/protobuf/proto] package instead.
+
+===== internal/descfmt/stringer.go sha256:d54f3a4bb048f1e62b4d49274f313417f48451c796c309542aa9b26180a1be90 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package descfmt provides functionality to format descriptors.
+
+===== internal/descopts/options.go sha256:0787d3db599ef201cc7e16598912030580be7023cde1da4bdf52c60eda3d2309 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package descopts contains the nil pointers to concrete descriptor options.
+//
+// This package exists as a form of reverse dependency injection so that certain
+// packages (e.g., internal/filedesc and internal/filetype can avoid a direct
+// dependency on the descriptor proto package).
+
+===== internal/detrand/rand.go sha256:c01386e38186772e042196f4b03ce25eed8993ea8ffb8c012f43a2286b7752a5 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package detrand provides deterministically random functionality.
+//
+// The pseudo-randomness of these functions is seeded by the program binary
+// itself and guarantees that the output does not change within a program,
+// while ensuring that the output is unstable across different builds.
+
+===== internal/editiondefaults/defaults.go sha256:d7314e9ee082d2e56e608ace22c4d3866b9e4e5ed23849996e610dca15e8173f =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package editiondefaults contains the binary representation of the editions
+// defaults.
+
+===== internal/editionssupport/editions.go sha256:20670bc43df88ec92346e604d2319857f91505789344f60c9783bf624ef88f16 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package editionssupport defines constants for editions that are supported.
+
+===== internal/encoding/defval/default.go sha256:2ec7a1ef4aa6710853d0f7003310f6808ea804adc0c495021814ca7541cdbb80 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package defval marshals and unmarshals textual forms of default values.
+//
+// This package handles both the form historically used in Go struct field tags
+// and also the form used by google.protobuf.FieldDescriptorProto.default_value
+// since they differ in superficial ways.
+
+===== internal/encoding/json/decode.go sha256:149097bfd4ae2cd52f8f8d5b36c850c3972124670c75aaabfaa32edb29512aa4 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/json/decode_number.go sha256:ae8d84879231dbbe42065f7d3852357046382ea3e290c8262fb475559638f2e0 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/json/decode_string.go sha256:99540744259eb12d78fc7431c506dcba4c4148eed66c21037b7a860a940bb6cd =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/json/decode_token.go sha256:1b60ca4b6380800bf748d2dfbf8c7b0dff8f52c8f223d3fe02c4879b2072f6b7 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/json/encode.go sha256:ce3d1d9568fa93f2e0b383453198bf6e0c75ef4ccf0e84141622413d6ccb693a =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/messageset/messageset.go sha256:4a54d8cd4c4c0236d9ceb8200580c9e5d13e5157162d0e2654b8de83707b64bb =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package messageset encodes and decodes the obsolete MessageSet wire format.
+
+===== internal/encoding/tag/tag.go sha256:5cbf357c44751276c273ee8e4d46851acc7a55579b742b9cbadaf29e142077de =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package tag marshals and unmarshals the legacy struct tags as generated
+// by historical versions of protoc-gen-go.
+
+===== internal/encoding/text/decode.go sha256:59d2e1a887cbe3fd657c68a65984fd3255cfb43de1dde6e529161f6959ac74f6 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/text/decode_number.go sha256:1bb6f72d94ed0866666810bb23664286ba28916092e11df9679bdb0c32ad98cd =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/text/decode_string.go sha256:5974107818845d7d94c39cd275985dfbcd55b9eba4d731e182715f985370e7ba =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/text/decode_token.go sha256:b51ba5d349f6c36f99544020733af26dbcb476bd73548cd943c14286fae2c475 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/encoding/text/doc.go sha256:1ca496689a8d7d06862f6b9dab7982d1e751da4c6e97ae59b747890b7a5c541d =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package text implements the text format for protocol buffers.
+// This package has no semantic understanding for protocol buffers and is only
+// a parser and composer for the format.
+//
+// There is no formal specification for the protobuf text format, as such the
+// C++ implementation (see google::protobuf::TextFormat) is the reference
+// implementation of the text format.
+//
+// This package is neither a superset nor a subset of the C++ implementation.
+// This implementation permits a more liberal grammar in some cases to be
+// backwards compatible with the historical Go implementation.
+// Future parsings unique to Go should not be added.
+// Some grammars allowed by the C++ implementation are deliberately
+// not implemented here because they are considered a bug by the protobuf team
+// and should not be replicated.
+//
+// The Go implementation should implement a sufficient amount of the C++
+// grammar such that the default text serialization by C++ can be parsed by Go.
+// However, just because the C++ parser accepts some input does not mean that
+// the Go implementation should as well.
+//
+// The text format is almost a superset of JSON except:
+//   - message keys are not quoted strings, but identifiers
+//   - the top-level value must be a message without the delimiters
+
+===== internal/encoding/text/encode.go sha256:1a906e4182f13d2120f3af53aa2277cc131449937f545b5bd5e7e340c7bcf606 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/errors/errors.go sha256:da78e47d269681fea7a751c5f4e1874abc9cce354011be7f5f06a4d4656f3632 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package errors implements functions to manipulate errors.
+
+===== internal/filedesc/build.go sha256:52bef727d5e493d495dc5ceca4eb21801e006bcf46db23367296b64058e12037 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package filedesc provides functionality for constructing descriptors.
+//
+// The types in this package implement interfaces in the protoreflect package
+// related to protobuf descripriptors.
+
+===== internal/filedesc/desc.go sha256:418bf5762126ff47c5e03ccde0e6062cef63c0148b56f7197f4a19ddb5bc64ca =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/filedesc/desc_init.go sha256:7a1d253f0b69cf6ae0c2c86d88dd943202228a47e16dd850a9c8b1e7ad66c9a5 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/filedesc/desc_lazy.go sha256:8c326a5637883aa7a44f96be79b34c6000780bf55449b52cbf74b421d57e0f2b =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/filedesc/desc_list.go sha256:78598da1e3c79f00189bba62c274d0d6febd4a2c972b269bbc0451c1218d5310 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/filedesc/desc_list_gen.go sha256:5157ced1a76ed9eb6dcf4360263b3959d383c2b62c14a0fc2d06a1979d0067d9 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== internal/filedesc/editions.go sha256:8ab88e19e94758aac48d1dca44b028185cc39bd51efbaae8a1add20a895d62d2 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/filedesc/placeholder.go sha256:f3fa4a70a986c68e07b5a7e6571428f481f0d8c3832e2fa1ccc58064709dcc98 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/filedesc/presence.go sha256:b11c16b5e983af652329b2765a49a6e2a9abcd68b3489716e0e86a641ecb5fa7 =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/filetype/build.go sha256:e22ba313e842bd9e8274b5f9dfdec5896bc9712830f1df75809bb8a0f3d06a34 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package filetype provides functionality for wrapping descriptors
+// with Go type information.
+
+===== internal/flags/flags.go sha256:36bec6da6332d7dc34aeb7b81a5b77c5b1aa71be761bbfd5d341f519a9de921c =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package flags provides a set of flags controlled by build tags.
+
+===== internal/flags/proto_legacy_disable.go sha256:c083481c9b7266f6b7c78dd1be24147428f6e5677b58c479d742586bd9f2eebc =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !protolegacy
+// +build !protolegacy
+
+
+===== internal/genid/any_gen.go sha256:e52abb175ed291da379fe73582a640b13d08ae426b51f6e40a82fc07ef4494f2 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/api_gen.go sha256:9b02e61ea3e584147063ee7fd3ffecd946e96e2238da6c838e5262912cce3dfa =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/descriptor_gen.go sha256:caa818838cb2eba6e9278dabdbe2a1af31f24155904b6b2e5634abbead928ace =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/doc.go sha256:25acd9d2f70b5384f769932a362d5f28d20a71c86720978401b43452e6fdfc0e =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package genid contains constants for declarations in descriptor.proto
+// and the well-known types.
+
+===== internal/genid/duration_gen.go sha256:223477c7c21d3aba70b6afaad202499d35dd28d97bb3096649d398ec09ffbd20 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/empty_gen.go sha256:1bb2b55b36ca99633efc148681988dbd738bfc6d09b88c92bed6392a4a16e80c =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/field_mask_gen.go sha256:97ac7e90145a527f1b53e26868cb2257af5ca000103dcf20ff6374693512d5de =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/go_features_gen.go sha256:e13a8023f516a885854ebae3f417ecf2bc55da9bbb2385b38fcf8b91010b6cc6 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/goname.go sha256:78d5d5dc16c62d8990f1dfaef2d744aff13cdae8aa3f03595813b374ae9743d5 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/genid/map_entry.go sha256:539c26c0b3ab5e42ccc3235ea14f3b82ccf1be638e2e1a6602cfc2e133a57201 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/genid/name.go sha256:760bff2881021b34c6ed15d0f7d405bec7790bcfc9d5456731fa31053f324a2b =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/genid/source_context_gen.go sha256:e0aac89c39dea4892ba50ea5316728a8c582ba9a1434406c5aa047c0e90bcdd0 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/struct_gen.go sha256:df9f6562b19e5c60ac1e6006365a7ddd0c7fcca2101dd1da909413c0cd0ef6dc =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/timestamp_gen.go sha256:5652b719e792955d360f4b5c8f8889923976b55f86e13dd233edf366fdd71e2a =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/type_gen.go sha256:13bda96c10ef3bdbfcd81a1e895fdf3bb9d071714eade6a86ef4a1d09b1505bf =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/genid/wrappers.go sha256:a68cd5fd631dcac3ac053c78cdecefd24f909aae9920da54e801e0a496af89dd =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/genid/wrappers_gen.go sha256:eaa8ad201d3ef370a565fea90ae9f5bef6efec40c7fa58a53e7efe635731e887 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== internal/impl/api_export.go sha256:688c3577d3439d9b5aef2e5c42a875b8074117b7c2f506b4f74a6c3484ddb218 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/api_export_opaque.go sha256:5e39739bc8ac6d099feb6783d3e3645ceb5ba0aa6926b4b75d826068c4e30dff =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/bitmap.go sha256:8843d650754650a7cfa627c0b0d5a63465a95afbad87daffd7d5877735ba4da4 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build !race
+
+
+===== internal/impl/checkinit.go sha256:6d1b9b5da1fad3d8cc5efc939e90672dc1690df3fa3f296e140685d78d7167eb =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_extension.go sha256:4bbee1d9036b26a17b1b3279c56c59b7d5ac16b65098ed65011ee3aba4de3ae9 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_field.go sha256:d794d96c2d98db80f7230cebdd8f5b118d6ecd31e08ac445689b239dd110f65a =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_field_opaque.go sha256:30d7554836f43a6cc90cc7651b247221b3252f71885dfc4f51d75dba9f548a23 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_gen.go sha256:4eed98966d930db1855cadf0972d255cd89733e29815ef4d3904e3fe0e473a25 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== internal/impl/codec_map.go sha256:85f1d364d793344cf724b7204110f79c77d9a75e1b2d3e8ced3a7a0a42f7aa9a =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_message.go sha256:0533a067562e6181ed035fb9bff3741f264bd9a671408df06e3d059b8d61d49a =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_message_opaque.go sha256:bd5ba6036a439a920d66bc8db90e396a9458dc078ccbbf93a77bc85f224edf6a =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_messageset.go sha256:f0d06fd5031c23940ee5b4ad63a7158d8e883c0c0dde56e0f0049be69dcdb3b7 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_tables.go sha256:8d4cdbd1367e0c089ecada4431bdb0b2f3198aa3907c25887131650adf78d29b =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/codec_unsafe.go sha256:ac4d881c0b561071e810302fb075c5de804e947f33cf4e0901f8876590e84c29 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/convert.go sha256:2e5bca1cb7e7dee3b21f2d9344b54c748f75a17d2ce9214ded04e05db0f3e81b =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/convert_list.go sha256:2eb7936a7cad5faaa93c0da719652c06cd2edd1a9c5876641ff3f2f580588c86 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/convert_map.go sha256:dc384760b90c4300f8a3e5377840b7dd42bd3596c9849887021a1bf75a000b73 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/decode.go sha256:12b24500e3708913ecba846287a84f413e36ca496bfb713b931102e0041621d3 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/encode.go sha256:bec7e80f5cda21616d92312215d4d0c4b11ce891ccc2e4d16447259dbacc9739 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/enum.go sha256:0501ee078196bb8916290dcf2eb4d02f1e3f9354f7ef034e4be0695a4e13c9b5 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/equal.go sha256:a8c25efd138002017fcd3c43c7c0d60e7558d45daa6e89a303d9bb18ca7917de =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/extension.go sha256:4642ab519bca05f2d4512d3a80b45ba3b09f1ccb6547faefb71d0f1d75e121ed =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/lazy.go sha256:90757f90f660fa9437dde49fe6255b9cb53ac58460db607053b0a550802cd54c =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/legacy_enum.go sha256:32b4b7fb059c4f8189cb3e6e8d4b5a68f35380a3efae93499f595f5074fa6471 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/legacy_export.go sha256:e338223a953cb22d87c0621d7e6c373d4a39853c98db4999711ea412b2d94d3f =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/legacy_extension.go sha256:2b07af9c4eaf0b7ad439b6f1937f65d2d33bb9f1691486e6d4d73b45331a2118 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/legacy_file.go sha256:d94f1e0dd461f2be37fc6c44bf40f794114ed6d52112afe640a298541c66e9da =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/legacy_message.go sha256:a7f558df997f1e7b5c29210281de1f9a6b03c1afbf6b0ce18fc27dc366b5c9ac =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/merge.go sha256:5406a959d280825d0156c8e2e2857bd4e943a1aa0476a44717339ecb8d580628 =====
+// Copyright 2020 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/merge_gen.go sha256:8eddd46272d1cf5e7de3e55f1c92646ad0fc1e2be9d5929633aa5b0813b5780e =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== internal/impl/message.go sha256:6613d5b02b1c4f29f719d4bf6765e6c70015b63a1536679a2939b49823caa1ac =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/message_opaque.go sha256:45eaa82559904f82f42e4447caae72014bdc338f20a6ff60854f46319c755cee =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/message_opaque_gen.go sha256:ccb4dea1ba262a75ac315fe29781579d8cc69fc94c48b9f2b955ac5e3eb50309 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== internal/impl/message_reflect.go sha256:3250ea5ca291396cca8c7496aec863db78033f2a57fef8f4b2d2f357f5f2180b =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/message_reflect_field.go sha256:249b98128b4a88b48c7693465be56af448f5ff62e2a0b1def1ded23cf06e1e37 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/message_reflect_field_gen.go sha256:b502db57feef273931b0508b8d863ee4ca6a1576ac2a2d66cf740d14a1a56e75 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== internal/impl/message_reflect_gen.go sha256:4478a28ca4a028b25618ed03c5cca1a2c15dd7f55c64799683ca661de8d0d901 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== internal/impl/pointer_unsafe.go sha256:e83e0d25bcc8eb9a11ea27e2f8f433cc5b2e5ff5e44d3d54bc7940e50f966133 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/pointer_unsafe_opaque.go sha256:fef041f0f7b3266405bdffc9fefbfce2be413787e8640c75a941e8056595646a =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/presence.go sha256:96bc1410475292a56be02d2910921879c8b3a6ecdf147bd85ca60f6650f29bcb =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/impl/validate.go sha256:70628f96f7c80a36f944234dad217660d74efe59f1cf299f4430a2145d5ac548 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/order/order.go sha256:07529bca11498b579b4d02849560f7fb52ee6cc8cbfcfb82ede169728d8ee4a1 =====
+// Copyright 2020 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/order/range.go sha256:aa723c00dd54eb6f95a35322f93e01e3eb247fffe9af2c1ccb4e846ad5a63b40 =====
+// Copyright 2020 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package order provides ordered access to messages and maps.
+
+===== internal/pragma/pragma.go sha256:d3babf1e4b0b32f721a0dd3e6c3e31fc573d550fd9a1d51e543f40482b0fc6f5 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package pragma provides types that can be embedded into a struct to
+// statically enforce or prevent certain language properties.
+
+===== internal/protolazy/bufferreader.go sha256:581604e454f0b0f6bd6e1ba4c31fdb3aa540c72d9259169e4f9e16b1dc4e5f5f =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Helper code for parsing a protocol buffer
+
+
+===== internal/protolazy/lazy.go sha256:fc6ae71902e09b41ae7208fa1e78d0f7be31b8199470d55c5b6078fbe28cc469 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protolazy contains internal data structures for lazy message decoding.
+
+===== internal/protolazy/pointer_unsafe.go sha256:28ffb8eee996ef2bd1c8cf98884531694a45e053793d886549cdc8fa629064c8 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/set/ints.go sha256:5876c26b3c816d4f662b737731e89d3a44317c798c6c5400526c32387292e16d =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package set provides simple set data structures for uint64s.
+
+===== internal/strs/strings.go sha256:97aaee23976801265248c5462662e5061a2af09956c4d6b12990e16b5acf0c8d =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package strs provides string manipulation functionality specific to protobuf.
+
+===== internal/strs/strings_unsafe.go sha256:35b1b1589491aa6c09707f4442bafded55e95c4972a14c64affa248b7bb57709 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== internal/version/version.go sha256:1f7c8c097f20bc3f9eb689c37f63151b813ff1f7bf60db296f3a2bf1d77fcaf7 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package version records versioning information about this module.
+
+===== proto/checkinit.go sha256:f95547595ee464a0d2f2bfae729afb61c91c5ed3bc64f089949b4b1555a71b9b =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/decode.go sha256:5259b0da78b384fcce573d774277f13e83a1f06b7fd212dd5f6fc617b3941917 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/decode_gen.go sha256:d8581139cb95720ebe63a1a5654dd1d5927543c2b1ad1ef37ed37ac41e7f8056 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== proto/doc.go sha256:3df50c4bae0b7ba05913716e06bff9b1c90f17b2543c6e20a20702d2d62add5d =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package proto provides functions operating on protocol buffer messages.
+//
+// For documentation on protocol buffers in general, see:
+// https://protobuf.dev.
+//
+// For a tutorial on using protocol buffers with Go, see:
+// https://protobuf.dev/getting-started/gotutorial.
+//
+// For a guide to generated Go protocol buffer code, see:
+// https://protobuf.dev/reference/go/go-generated.
+//
+// # Binary serialization
+//
+// This package contains functions to convert to and from the wire format,
+// an efficient binary serialization of protocol buffers.
+//
+//   - [Size] reports the size of a message in the wire format.
+//
+//   - [Marshal] converts a message to the wire format.
+//     The [MarshalOptions] type provides more control over wire marshaling.
+//
+//   - [Unmarshal] converts a message from the wire format.
+//     The [UnmarshalOptions] type provides more control over wire unmarshaling.
+//
+// # Basic message operations
+//
+//   - [Clone] makes a deep copy of a message.
+//
+//   - [Merge] merges the content of a message into another.
+//
+//   - [Equal] compares two messages. For more control over comparisons
+//     and detailed reporting of differences, see package
+//     [google.golang.org/protobuf/testing/protocmp].
+//
+//   - [Reset] clears the content of a message.
+//
+//   - [CheckInitialized] reports whether all required fields in a message are set.
+//
+// # Optional scalar constructors
+//
+// The API for some generated messages represents optional scalar fields
+// as pointers to a value. For example, an optional string field has the
+// Go type *string.
+//
+//   - [Bool], [Int32], [Int64], [Uint32], [Uint64], [Float32], [Float64], and [String]
+//     take a value and return a pointer to a new instance of it,
+//     to simplify construction of optional field values.
+//
+// Generated enum types usually have an Enum method which performs the
+// same operation.
+//
+// Optional scalar fields are only supported in proto2.
+//
+// # Extension accessors
+//
+//   - [HasExtension], [GetExtension], [SetExtension], and [ClearExtension]
+//     access extension field values in a protocol buffer message.
+//
+// Extension fields are only supported in proto2.
+//
+// # Related packages
+//
+//   - Package [google.golang.org/protobuf/encoding/protojson] converts messages to
+//     and from JSON.
+//
+//   - Package [google.golang.org/protobuf/encoding/prototext] converts messages to
+//     and from the text format.
+//
+//   - Package [google.golang.org/protobuf/reflect/protoreflect] provides a
+//     reflection interface for protocol buffer data types.
+//
+//   - Package [google.golang.org/protobuf/testing/protocmp] provides features
+//     to compare protocol buffer messages with the [github.com/google/go-cmp/cmp]
+//     package.
+//
+//   - Package [google.golang.org/protobuf/types/dynamicpb] provides a dynamic
+//     message type, suitable for working with messages where the protocol buffer
+//     type is only known at runtime.
+//
+// This module contains additional packages for more specialized use cases.
+// Consult the individual package documentation for details.
+
+===== proto/encode.go sha256:e9a13c44a81991067d003f235234fa8a859ab1f78ff0430212861f5027d5a434 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/encode_gen.go sha256:8a5d8bc917c21a19c1c5ef4b58f747880cfe1321de1294662d0ee2c903c7dc9e =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== proto/equal.go sha256:d0aa54ea8ad15305c5c8117f86e7c79fbc3e87eb7c62290823b920bb8f902e88 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/extension.go sha256:4e8b480347db15bee7878d629f22b20782b9a7a3b5f627ffe1fc5ec9f927234a =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/merge.go sha256:f5c50384cb64947ee71b6e77633c4c88f277575b36121bd7c8ee9f38fb6a16b7 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/messageset.go sha256:539fb7c4cc85c07a8265ba7b1c85f28ae0292f74ee3ffbdb4a259eb4d1b37273 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/proto.go sha256:8a87120799a6f0ed42a9096cd997d93baeaf143db660daa5b9b8c6e0665d95ec =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/proto_methods.go sha256:4a5be7ac829abca1043c568c33af31cfac723c2fe688dbff34a605954e5ce141 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// The protoreflect build tag disables use of fast-path methods.
+//go:build !protoreflect
+// +build !protoreflect
+
+
+===== proto/reset.go sha256:45097aa639f3c64a5533572cb1968d3870c985b3e0b021ce5c0c3b4934768604 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/size.go sha256:1be720967c0c319c4eb4b438ae37968c74863c6da42caf45ca5b241261ba1c0e =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/size_gen.go sha256:e8def0182318c353c022c973eec36615c121078ac405b059c7f02fad71c86b8d =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-types. DO NOT EDIT.
+
+
+===== proto/wrapperopaque.go sha256:1ca00fab0bcfe001f2082a8bafaf2a8133eeff03cc8d93a6e2f4cb7857a741be =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== proto/wrappers.go sha256:7068ed0c35932f990aa75bf00d30f6a2d2a3c2c89ebd14ac07aec523013fafb4 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== protoadapt/convert.go sha256:090a3004e742ab79a549844c8ff3adbe2188ca8318c45357cd02b7a6827a40d6 =====
+// Copyright 2023 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protoadapt bridges the original and new proto APIs.
+
+===== reflect/protodesc/desc.go sha256:4b99aa38f5e586e289bdc03d6f91317ada3fecf5da68f305164a68c31e9dbe84 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protodesc provides functionality for converting
+// FileDescriptorProto messages to/from [protoreflect.FileDescriptor] values.
+//
+// The google.protobuf.FileDescriptorProto is a protobuf message that describes
+// the type information for a .proto file in a form that is easily serializable.
+// The [protoreflect.FileDescriptor] is a more structured representation of
+// the FileDescriptorProto message where references and remote dependencies
+// can be directly followed.
+
+===== reflect/protodesc/desc_init.go sha256:25aa984d55dee45da7cab428ca463226c4cfe50a11912f594d55c7f6fd70469c =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protodesc/desc_resolve.go sha256:586a2f40086367f12b4418c111aede392ab717cef2edb03581293e150c3c7191 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protodesc/desc_validate.go sha256:9f5dbbcc44e6cf1eb5ffd9cc7a862f6ccb9c1ea9aad7de547050813aed24e600 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protodesc/editions.go sha256:1a690fc5c08405e761c945ea360479efaba7aa7eec2a945926ea2ed46682cb09 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protodesc/proto.go sha256:0492049539b49f37b43f86895d2df5de395df3560edbcb3ea71fda64d9c53253 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoreflect/methods.go sha256:d2b015d684ff7405dcf44a766e54c27ffc7c9f440949d7776385a39d5f10aa8c =====
+// Copyright 2020 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoreflect/proto.go sha256:87783d5e1fedf825ec7ff63c36494e97011e221c466fc81affaacac618fdb907 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protoreflect provides interfaces to dynamically manipulate messages.
+//
+// This package includes type descriptors which describe the structure of types
+// defined in proto source files and value interfaces which provide the
+// ability to examine and manipulate the contents of messages.
+//
+// # Protocol Buffer Descriptors
+//
+// Protobuf descriptors (e.g., [EnumDescriptor] or [MessageDescriptor])
+// are immutable objects that represent protobuf type information.
+// They are wrappers around the messages declared in descriptor.proto.
+// Protobuf descriptors alone lack any information regarding Go types.
+//
+// Enums and messages generated by this module implement [Enum] and [ProtoMessage],
+// where the Descriptor and ProtoReflect.Descriptor accessors respectively
+// return the protobuf descriptor for the values.
+//
+// The protobuf descriptor interfaces are not meant to be implemented by
+// user code since they might need to be extended in the future to support
+// additions to the protobuf language.
+// The [google.golang.org/protobuf/reflect/protodesc] package converts between
+// google.protobuf.DescriptorProto messages and protobuf descriptors.
+//
+// # Go Type Descriptors
+//
+// A type descriptor (e.g., [EnumType] or [MessageType]) is a constructor for
+// a concrete Go type that represents the associated protobuf descriptor.
+// There is commonly a one-to-one relationship between protobuf descriptors and
+// Go type descriptors, but it can potentially be a one-to-many relationship.
+//
+// Enums and messages generated by this module implement [Enum] and [ProtoMessage],
+// where the Type and ProtoReflect.Type accessors respectively
+// return the protobuf descriptor for the values.
+//
+// The [google.golang.org/protobuf/types/dynamicpb] package can be used to
+// create Go type descriptors from protobuf descriptors.
+//
+// # Value Interfaces
+//
+// The [Enum] and [Message] interfaces provide a reflective view over an
+// enum or message instance. For enums, it provides the ability to retrieve
+// the enum value number for any concrete enum type. For messages, it provides
+// the ability to access or manipulate fields of the message.
+//
+// To convert a [google.golang.org/protobuf/proto.Message] to a [protoreflect.Message], use the
+// former's ProtoReflect method. Since the ProtoReflect method is new to the
+// v2 message interface, it may not be present on older message implementations.
+// The [github.com/golang/protobuf/proto.MessageReflect] function can be used
+// to obtain a reflective view on older messages.
+//
+// # Relationships
+//
+// The following diagrams demonstrate the relationships between
+// various types declared in this package.
+//
+//	                       ┌───────────────────────────────────┐
+//	                       V                                   │
+//	   ┌────────────── New(n) ─────────────┐                   │
+//	   │                                   │                   │
+//	   │      ┌──── Descriptor() ──┐       │  ┌── Number() ──┐ │
+//	   │      │                    V       V  │              V │
+//	╔════════════╗  ╔════════════════╗  ╔════════╗  ╔════════════╗
+//	║  EnumType  ║  ║ EnumDescriptor ║  ║  Enum  ║  ║ EnumNumber ║
+//	╚════════════╝  ╚════════════════╝  ╚════════╝  ╚════════════╝
+//	      Λ           Λ                   │ │
+//	      │           └─── Descriptor() ──┘ │
+//	      │                                 │
+//	      └────────────────── Type() ───────┘
+//
+// • An [EnumType] describes a concrete Go enum type.
+// It has an EnumDescriptor and can construct an Enum instance.
+//
+// • An [EnumDescriptor] describes an abstract protobuf enum type.
+//
+// • An [Enum] is a concrete enum instance. Generated enums implement Enum.
+//
+//	  ┌──────────────── New() ─────────────────┐
+//	  │                                        │
+//	  │         ┌─── Descriptor() ─────┐       │   ┌── Interface() ───┐
+//	  │         │                      V       V   │                  V
+//	╔═════════════╗  ╔═══════════════════╗  ╔═════════╗  ╔══════════════╗
+//	║ MessageType ║  ║ MessageDescriptor ║  ║ Message ║  ║ ProtoMessage ║
+//	╚═════════════╝  ╚═══════════════════╝  ╚═════════╝  ╚══════════════╝
+//	       Λ           Λ                      │ │  Λ                  │
+//	       │           └──── Descriptor() ────┘ │  └─ ProtoReflect() ─┘
+//	       │                                    │
+//	       └─────────────────── Type() ─────────┘
+//
+// • A [MessageType] describes a concrete Go message type.
+// It has a [MessageDescriptor] and can construct a [Message] instance.
+// Just as how Go's [reflect.Type] is a reflective description of a Go type,
+// a [MessageType] is a reflective description of a Go type for a protobuf message.
+//
+// • A [MessageDescriptor] describes an abstract protobuf message type.
+// It has no understanding of Go types. In order to construct a [MessageType]
+// from just a [MessageDescriptor], you can consider looking up the message type
+// in the global registry using the FindMessageByName method on
+// [google.golang.org/protobuf/reflect/protoregistry.GlobalTypes]
+// or constructing a dynamic [MessageType] using
+// [google.golang.org/protobuf/types/dynamicpb.NewMessageType].
+//
+// • A [Message] is a reflective view over a concrete message instance.
+// Generated messages implement [ProtoMessage], which can convert to a [Message].
+// Just as how Go's [reflect.Value] is a reflective view over a Go value,
+// a [Message] is a reflective view over a concrete protobuf message instance.
+// Using Go reflection as an analogy, the [ProtoMessage.ProtoReflect] method is similar to
+// calling [reflect.ValueOf], and the [Message.Interface] method is similar to
+// calling [reflect.Value.Interface].
+//
+//	      ┌── TypeDescriptor() ──┐    ┌───── Descriptor() ─────┐
+//	      │                      V    │                        V
+//	╔═══════════════╗  ╔═════════════════════════╗  ╔═════════════════════╗
+//	║ ExtensionType ║  ║ ExtensionTypeDescriptor ║  ║ ExtensionDescriptor ║
+//	╚═══════════════╝  ╚═════════════════════════╝  ╚═════════════════════╝
+//	      Λ                      │   │ Λ                      │ Λ
+//	      └─────── Type() ───────┘   │ └─── may implement ────┘ │
+//	                                 │                          │
+//	                                 └────── implements ────────┘
+//
+// • An [ExtensionType] describes a concrete Go implementation of an extension.
+// It has an [ExtensionTypeDescriptor] and can convert to/from
+// an abstract [Value] and a Go value.
+//
+// • An [ExtensionTypeDescriptor] is an [ExtensionDescriptor]
+// which also has an [ExtensionType].
+//
+// • An [ExtensionDescriptor] describes an abstract protobuf extension field and
+// may not always be an [ExtensionTypeDescriptor].
+
+===== reflect/protoreflect/source.go sha256:645962b399787a757fea01ad489c353d11cbe796df1231a89b9dd6fe53c79830 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoreflect/source_gen.go sha256:a3e4aa29534e9ff9307a73738225c88764e9477271bbf8acac0e6fbf38f4822f =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Code generated by generate-protos. DO NOT EDIT.
+
+
+===== reflect/protoreflect/type.go sha256:1f0cab06a41ac3b25fa02512b0dbe94acb62ad9b121bd8739d9f4615d3ae8691 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoreflect/value.go sha256:78cb6818d7abba4028bc152bf273c9369c50a0f82c5faa248e1f7a5fa31da385 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoreflect/value_equal.go sha256:a5b85845963e9968ecca24ffc5d0b8550bce6967587aaab44a4c797c0845ee55 =====
+// Copyright 2022 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoreflect/value_union.go sha256:efa2f612fa2bbaac079d7c6b1718fa50ce915488c6d8fd2adde883bb3d47b7ed =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoreflect/value_unsafe.go sha256:fd19f2ed3fc1c3c70a1d2074c2867e2ae47947c583645172496c0257f1e72c2f =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== reflect/protoregistry/registry.go sha256:75699e3c2cc3650473c04819954673e7382a101f6f7cbc11a30f8bec6fabba0e =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protoregistry provides data structures to register and lookup
+// protobuf descriptor types.
+//
+// The [Files] registry contains file descriptors and provides the ability
+// to iterate over the files or lookup a specific descriptor within the files.
+// [Files] only contains protobuf descriptors and has no understanding of Go
+// type information that may be associated with each descriptor.
+//
+// The [Types] registry contains descriptor types for which there is a known
+// Go type associated with that descriptor. It provides the ability to iterate
+// over the registered types or lookup a type by name.
+
+===== runtime/protoiface/legacy.go sha256:9d79e425272f9fa102c269f4cb7f8cbe405d0f2a9af075e150235df30b3bd617 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== runtime/protoiface/methods.go sha256:44f3bdcd93d290e8fb6b39cbac5c397371dded349632e211e8b1f36a5b53674d =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protoiface contains types referenced or implemented by messages.
+//
+// WARNING: This package should only be imported by message implementations.
+// The functionality found in this package should be accessed through
+// higher-level abstractions provided by the proto package.
+
+===== runtime/protoimpl/impl.go sha256:b47b677332e32d41f1c3a71dabfe8c73945d62823f81d39f1045d1091f38f858 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package protoimpl contains the default implementation for messages
+// generated by protoc-gen-go.
+//
+// WARNING: This package should only ever be imported by generated messages.
+// The compatibility agreement covers nothing except for functionality needed
+// to keep existing generated messages operational. Breakages that occur due
+// to unauthorized usages of this package are not the author's responsibility.
+
+===== runtime/protoimpl/version.go sha256:d447c5756d628bc1b411a46df732be052b6ad7ee4582aa357ab7776db759df4a =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== types/descriptorpb/descriptor.pb.go sha256:2ed9fc25e31903630d3562007d78b416165598e4df4115d332cade90001932a2 =====
+// Protocol Buffers - Google's data interchange format
+// Copyright 2008 Google LLC.  All rights reserved.
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+// Author: kenton@google.com (Kenton Varda)
+//  Based on original Protocol Buffers design by
+//  Sanjay Ghemawat, Jeff Dean, and others.
+//
+// The messages in this file describe the definitions found in .proto files.
+// A valid .proto file can be translated directly to a FileDescriptorProto
+// without any other information (e.g. without reading its imports).
+
+// Code generated by protoc-gen-go. DO NOT EDIT.
+// source: google/protobuf/descriptor.proto
+
+
+===== types/gofeaturespb/go_features.pb.go sha256:84271b4826dbd776b61185d62fc9ed9ee3ec73f7efa157262a27d80200a7043f =====
+// Protocol Buffers - Google's data interchange format
+// Copyright 2023 Google Inc.  All rights reserved.
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
+// Code generated by protoc-gen-go. DO NOT EDIT.
+// source: google/protobuf/go_features.proto
+
+
+===== types/known/anypb/any.pb.go sha256:0e45ec8af43084d6dd09d4a300d10d3a51a2790535721585f6531cafae922200 =====
+// Protocol Buffers - Google's data interchange format
+// Copyright 2008 Google Inc.  All rights reserved.
+// https://developers.google.com/protocol-buffers/
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+// Code generated by protoc-gen-go. DO NOT EDIT.
+// source: google/protobuf/any.proto
+
+// Package anypb contains generated types for google/protobuf/any.proto.
+//
+// The Any message is a dynamic representation of any other message value.
+// It is functionally a tuple of the full name of the remote message type and
+// the serialized bytes of the remote message value.
+//
+// # Constructing an Any
+//
+// An Any message containing another message value is constructed using New:
+//
+//	any, err := anypb.New(m)
+//	if err != nil {
+//		... // handle error
+//	}
+//	... // make use of any
+//
+// # Unmarshaling an Any
+//
+// With a populated Any message, the underlying message can be serialized into
+// a remote concrete message value in a few ways.
+//
+// If the exact concrete type is known, then a new (or pre-existing) instance
+// of that message can be passed to the UnmarshalTo method:
+//
+//	m := new(foopb.MyMessage)
+//	if err := any.UnmarshalTo(m); err != nil {
+//		... // handle error
+//	}
+//	... // make use of m
+//
+// If the exact concrete type is not known, then the UnmarshalNew method can be
+// used to unmarshal the contents into a new instance of the remote message type:
+//
+//	m, err := any.UnmarshalNew()
+//	if err != nil {
+//		... // handle error
+//	}
+//	... // make use of m
+//
+// UnmarshalNew uses the global type registry to resolve the message type and
+// construct a new instance of that message to unmarshal into. In order for a
+// message type to appear in the global registry, the Go type representing that
+// protobuf message type must be linked into the Go binary. For messages
+// generated by protoc-gen-go, this is achieved through an import of the
+// generated Go package representing a .proto file.
+//
+// A common pattern with UnmarshalNew is to use a type switch with the resulting
+// proto.Message value:
+//
+//	switch m := m.(type) {
+//	case *foopb.MyMessage:
+//		... // make use of m as a *foopb.MyMessage
+//	case *barpb.OtherMessage:
+//		... // make use of m as a *barpb.OtherMessage
+//	case *bazpb.SomeMessage:
+//		... // make use of m as a *bazpb.SomeMessage
+//	}
+//
+// This pattern ensures that the generated packages containing the message types
+// listed in the case clauses are linked into the Go binary and therefore also
+// registered in the global registry.
+//
+// # Type checking an Any
+//
+// In order to type check whether an Any message represents some other message,
+// then use the MessageIs method:
+//
+//	if any.MessageIs((*foopb.MyMessage)(nil)) {
+//		... // make use of any, knowing that it contains a foopb.MyMessage
+//	}
+//
+// The MessageIs method can also be used with an allocated instance of the target
+// message type if the intention is to unmarshal into it if the type matches:
+//
+//	m := new(foopb.MyMessage)
+//	if any.MessageIs(m) {
+//		if err := any.UnmarshalTo(m); err != nil {
+//			... // handle error
+//		}
+//		... // make use of m
+//	}
+
+===== types/known/durationpb/duration.pb.go sha256:c40e56dc8f8643a1a9fcaff45563c11d50f679ea41f37dfb9942c9be31ee0f4b =====
+// Protocol Buffers - Google's data interchange format
+// Copyright 2008 Google Inc.  All rights reserved.
+// https://developers.google.com/protocol-buffers/
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+// Code generated by protoc-gen-go. DO NOT EDIT.
+// source: google/protobuf/duration.proto
+
+// Package durationpb contains generated types for google/protobuf/duration.proto.
+//
+// The Duration message represents a signed span of time.
+//
+// # Conversion to a Go Duration
+//
+// The AsDuration method can be used to convert a Duration message to a
+// standard Go time.Duration value:
+//
+//	d := dur.AsDuration()
+//	... // make use of d as a time.Duration
+//
+// Converting to a time.Duration is a common operation so that the extensive
+// set of time-based operations provided by the time package can be leveraged.
+// See https://golang.org/pkg/time for more information.
+//
+// The AsDuration method performs the conversion on a best-effort basis.
+// Durations with denormal values (e.g., nanoseconds beyond -99999999 and
+// +99999999, inclusive; or seconds and nanoseconds with opposite signs)
+// are normalized during the conversion to a time.Duration. To manually check for
+// invalid Duration per the documented limitations in duration.proto,
+// additionally call the CheckValid method:
+//
+//	if err := dur.CheckValid(); err != nil {
+//		... // handle error
+//	}
+//
+// Note that the documented limitations in duration.proto does not protect a
+// Duration from overflowing the representable range of a time.Duration in Go.
+// The AsDuration method uses saturation arithmetic such that an overflow clamps
+// the resulting value to the closest representable value (e.g., math.MaxInt64
+// for positive overflow and math.MinInt64 for negative overflow).
+//
+// # Conversion from a Go Duration
+//
+// The durationpb.New function can be used to construct a Duration message
+// from a standard Go time.Duration value:
+//
+//	dur := durationpb.New(d)
+//	... // make use of d as a *durationpb.Duration
+
+===== types/known/emptypb/empty.pb.go sha256:523470ac41c42c9b0ec23d395031c96985fa19be0deddbca80d9d35a773d4799 =====
+// Protocol Buffers - Google's data interchange format
+// Copyright 2008 Google Inc.  All rights reserved.
+// https://developers.google.com/protocol-buffers/
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+// Code generated by protoc-gen-go. DO NOT EDIT.
+// source: google/protobuf/empty.proto
+
+
+===== types/known/timestamppb/timestamp.pb.go sha256:7a3dd04fd975b5e834ebbb4966a824b99707b8549ba1b40b363102967ae1054a =====
+// Protocol Buffers - Google's data interchange format
+// Copyright 2008 Google Inc.  All rights reserved.
+// https://developers.google.com/protocol-buffers/
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+// Code generated by protoc-gen-go. DO NOT EDIT.
+// source: google/protobuf/timestamp.proto
+
+// Package timestamppb contains generated types for google/protobuf/timestamp.proto.
+//
+// The Timestamp message represents a timestamp,
+// an instant in time since the Unix epoch (January 1st, 1970).
+//
+// # Conversion to a Go Time
+//
+// The AsTime method can be used to convert a Timestamp message to a
+// standard Go time.Time value in UTC:
+//
+//	t := ts.AsTime()
+//	... // make use of t as a time.Time
+//
+// Converting to a time.Time is a common operation so that the extensive
+// set of time-based operations provided by the time package can be leveraged.
+// See https://golang.org/pkg/time for more information.
+//
+// The AsTime method performs the conversion on a best-effort basis. Timestamps
+// with denormal values (e.g., nanoseconds beyond 0 and 99999999, inclusive)
+// are normalized during the conversion to a time.Time. To manually check for
+// invalid Timestamps per the documented limitations in timestamp.proto,
+// additionally call the CheckValid method:
+//
+//	if err := ts.CheckValid(); err != nil {
+//		... // handle error
+//	}
+//
+// # Conversion from a Go Time
+//
+// The timestamppb.New function can be used to construct a Timestamp message
+// from a standard Go time.Time value:
+//
+//	ts := timestamppb.New(t)
+//	... // make use of ts as a *timestamppb.Timestamp
+//
+// In order to construct a Timestamp representing the current time, use Now:
+//
+//	ts := timestamppb.Now()
+//	... // make use of ts as a *timestamppb.Timestamp
+
