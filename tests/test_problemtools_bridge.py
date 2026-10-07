@@ -2,6 +2,8 @@
 """Portable inert protocol tests; no imported program or statement is executed."""
 
 import copy
+import builtins
+from contextlib import contextmanager
 import hashlib
 import importlib.util
 import io
@@ -12,7 +14,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -38,6 +40,47 @@ class MockChannel:
     def call(self, operation, **fields):
         self.calls.append((operation, fields))
         return self.reply
+
+
+class InertConfigSection:
+    """Match pinned PlasTeX's mapping API without importing its logging hooks."""
+    def __init__(self, **values):
+        self.options = {name: SimpleNamespace(value=value, metadata=object()) for name, value in values.items()}
+
+    def __getitem__(self, name):
+        return self.options[name].value
+
+    def __setitem__(self, name, value):
+        self.options[name].value = value
+
+
+@contextmanager
+def inert_html_imports(renderer, convert):
+    """Provide inert modules and observe the delayed upstream import sequence."""
+    problemtools = ModuleType("problemtools")
+    problemtools.__path__ = []
+    tex2html = ModuleType("problemtools.tex2html")
+    tex2html.convert = convert
+    problemtools.tex2html = tex2html
+    renderers = ModuleType("problemtools.ProblemPlasTeX")
+    renderers.ProblemRenderer = renderer
+    plastex = ModuleType("plasTeX")
+    plastex.__path__ = []
+    plastex.Logging = ModuleType("plasTeX.Logging")
+    plastex.TeX = ModuleType("plasTeX.TeX")
+    modules = {"problemtools": problemtools, "problemtools.tex2html": tex2html,
+               "problemtools.ProblemPlasTeX": renderers, "plasTeX": plastex,
+               "plasTeX.Logging": plastex.Logging, "plasTeX.TeX": plastex.TeX}
+    imported = []
+    original_import = builtins.__import__
+
+    def observe(name, *args, **kwargs):
+        if name in ("plasTeX.Logging", "plasTeX.TeX", "problemtools.ProblemPlasTeX"):
+            imported.append(name)
+        return original_import(name, *args, **kwargs)
+
+    with patch.dict(sys.modules, modules), patch.object(builtins, "__import__", observe):
+        yield SimpleNamespace(tex2html=tex2html, imported=imported)
 
 
 class BridgeTests(unittest.TestCase):
@@ -247,6 +290,101 @@ for action in (lambda: os.system('should-not-execute'), lambda: os.fork(), lambd
                 bridge.subprocess.Popen("lualatex main.tex", shell=True)
         self.assertEqual(launched, [["lualatex", "-no-shell-escape", "--interaction=nonstopmode", "--draftmode", "main.tex"],
                                     ["tidy", "-utf8", "-i", "-q", "-m", "index.html"]])
+
+    def html_document(self, enabled=False, imager="none"):
+        images = InertConfigSection(**{"enabled": enabled, "imager": imager,
+                                     "vector-imager": "pdf2svg dvisvgm", "base-url": "images",
+                                     "filenames": "img-$num(4)"})
+        return SimpleNamespace(config={"images": images, "general": {"copy-theme-extras": False},
+                                       "files": {"filename": "index.html"}},
+                               userdata={"mathjax": {"configuration": "inert preserved math configuration"}})
+
+    def test_html_image_hook_is_lazy_and_sets_only_fixed_vector_mode_before_original_render(self):
+        document = self.html_document()
+        images = document.config["images"]
+        vector_option = images.options["vector-imager"]
+        metadata = vector_option.metadata
+        other_images = {name: option.value for name, option in images.options.items() if name != "vector-imager"}
+        other_config = copy.deepcopy({name: value for name, value in document.config.items() if name != "images"})
+        math = copy.deepcopy(document.userdata)
+        custom_copier = object()
+        render_calls, convert_calls = [], []
+        result = object()
+
+        class Renderer:
+            def render(instance, doc, *args, **kwargs):
+                render_calls.append((instance, doc, args, kwargs))
+                self.assertEqual(doc.config["images"]["vector-imager"], "none")
+                # The pinned original renderer installs its custom image copier.
+                instance.imager = custom_copier
+                return result
+
+        renderer = Renderer()
+        original_render = Renderer.render
+
+        def convert(*args, **kwargs):
+            convert_calls.append((args, kwargs))
+            return renderer.render(document, "render-argument", preserve=True)
+
+        with inert_html_imports(Renderer, convert) as modules:
+            bridge.statement_html_configuration()
+            self.assertEqual(modules.imported, [])
+            self.assertIs(Renderer.render, original_render)
+            self.assertIs(modules.tex2html.convert("convert-argument", preserve="value"), result)
+            self.assertEqual(modules.imported, ["plasTeX.Logging", "plasTeX.TeX", "problemtools.ProblemPlasTeX"])
+            self.assertIs(Renderer.render, original_render)
+        self.assertEqual(convert_calls, [(("convert-argument",), {"preserve": "value"})])
+        self.assertEqual(render_calls, [(renderer, document, ("render-argument",), {"preserve": True})])
+        self.assertIs(renderer.imager, custom_copier)
+        self.assertIs(document.config["images"], images)
+        self.assertIs(images.options["vector-imager"], vector_option)
+        self.assertIs(vector_option.metadata, metadata)
+        self.assertEqual(other_images, {name: option.value for name, option in images.options.items() if name != "vector-imager"})
+        self.assertEqual(other_config, {name: value for name, value in document.config.items() if name != "images"})
+        self.assertEqual(document.userdata, math)
+
+    def test_html_image_hook_rejects_upstream_profile_drift_and_restores_renderer(self):
+        for enabled, imager in ((True, "none"), (0, "none"), (None, "none"), (False, "auto"), (False, "pdflatex")):
+            with self.subTest(enabled=enabled, imager=imager):
+                document = self.html_document(enabled, imager)
+                called = []
+
+                class Renderer:
+                    def render(instance, doc):
+                        called.append(doc)
+
+                original_render = Renderer.render
+                with inert_html_imports(Renderer, lambda: Renderer().render(document)) as modules:
+                    bridge.statement_html_configuration()
+                    with self.assertRaisesRegex(bridge.BridgeAbort, "STATEMENT_IMAGE_PROFILE_INVALID"):
+                        modules.tex2html.convert()
+                    self.assertIs(Renderer.render, original_render)
+                self.assertEqual(called, [])
+                self.assertEqual(document.config["images"]["vector-imager"], "pdf2svg dvisvgm")
+
+    def test_html_image_hook_restores_renderer_after_original_conversion_and_render_failures(self):
+        for failure in ("convert", "render"):
+            with self.subTest(failure=failure):
+                document = self.html_document()
+                error = RuntimeError("inert original failure")
+
+                class Renderer:
+                    def render(instance, doc):
+                        self.assertEqual(doc.config["images"]["vector-imager"], "none")
+                        raise error
+
+                def convert():
+                    if failure == "convert":
+                        raise error
+                    return Renderer().render(document)
+
+                original_render = Renderer.render
+                with inert_html_imports(Renderer, convert) as modules:
+                    bridge.statement_html_configuration()
+                    with self.assertRaises(RuntimeError) as observed:
+                        modules.tex2html.convert()
+                    self.assertIs(observed.exception, error)
+                    self.assertIs(Renderer.render, original_render)
 
     def statement_tar(self, extra=None):
         value = io.BytesIO()

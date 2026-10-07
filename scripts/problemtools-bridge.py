@@ -521,6 +521,32 @@ def statement_processes():
     subprocess.Popen = launch
 
 
+def statement_html_configuration():
+    """Keep the pinned converter's disabled image generation consistent."""
+    from problemtools import tex2html
+    convert = tex2html.convert
+
+    def configured(*args, **kwargs):
+        # Preserve tex2html's delayed imports: PlasTeX.Logging changes logging.
+        import plasTeX.Logging
+        import plasTeX.TeX
+        from problemtools.ProblemPlasTeX import ProblemRenderer
+        render = ProblemRenderer.render
+
+        def fixed_images(renderer, document, *args, **kwargs):
+            images = document.config["images"]
+            if images["enabled"] is not False or images["imager"] != "none":
+                raise BridgeAbort("STATEMENT_IMAGE_PROFILE_INVALID")
+            images["vector-imager"] = "none"
+            return render(renderer, document, *args, **kwargs)
+        ProblemRenderer.render = fixed_images
+        try:
+            return convert(*args, **kwargs)
+        finally:
+            ProblemRenderer.render = render
+    tex2html.convert = configured
+
+
 class ChunkReader:
     """Bounded sequential reads across the parent's fixed tar transport chunks."""
     def __init__(self, streams):
@@ -823,6 +849,7 @@ def statement_child(kind, qualify=False):
                 else:
                     options = problem2html.get_parser().parse_args([str(root)])
                     options.language, options.quiet, options.destdir = "en", True, "/w/html"
+                    statement_html_configuration()
                     problem2html.convert(options, diag, file)
                     ok = diag.errors == 0
                 if qualify and ok:
