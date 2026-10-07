@@ -1,0 +1,34 @@
+name: Foundation
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: foundation-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundation:
+    name: Portable foundation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # v4.3.1; verified against actions/checkout's GitHub tag ref.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: Test the foundation validator
+        run: python3 scripts/check-foundation.py --self-test
+      - name: Validate repository foundation
+        run: make check
+      - name: Parse workflow, issue forms, and Compose YAML
+        run: ruby -rpsych -e 'ARGV.each { |path| Psych.parse_file(path) }' .github/workflows/*.yml .github/ISSUE_TEMPLATE/*.yml compose.yaml
+      - name: Validate portable Compose configuration
+        run: docker compose --env-file .env.example --file compose.yaml config --quiet

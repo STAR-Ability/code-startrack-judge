@@ -1,0 +1,39 @@
+Code Startrack Judge & Problem Service
+Third-party attribution foundation; no project license is selected by this file.
+
+go-judge and go-judge-demo: Copyright (c) 2019 Yang Gao (MIT).
+go-sandbox: Copyright (c) 2019 criyle (MIT).
+oj-lab/problem-packages: Copyright (c) 2024 oj-lab (root MIT declaration;
+individual problem content requires separate licensing evidence).
+problemtools: Copyright (c) Kattis and all respective contributors (MIT).
+VIVA: upstream Debian metadata declares Copyright 2010-2018 David van Brackle
+(MIT); nested third-party binaries require additional review before distribution.
+
+The following text is retained verbatim from go-judge seccomp/NOTICE at
+e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8:
+
+This directory contains a vendored snapshot of Moby's default seccomp profile.
+
+Source:
+https://github.com/moby/profiles/blob/main/seccomp/default.json
+
+License:
+Apache License 2.0
+https://github.com/moby/profiles/blob/main/LICENSE
+
+The generated go-judge profile is derived from this snapshot by
+cmd/seccomp-convert and includes go-judge-specific architecture handling and
+additional syscall restrictions.
+
+The following text is retained verbatim from elastic/go-seccomp-bpf NOTICE.txt
+at 9375c0f7fb340aa2e8715cc30cc0247be18971c9:
+
+Elastic go-seccomp-bpf
+Copyright 2022 Elasticsearch B.V.
+
+This product includes software developed at
+Elasticsearch, B.V. (https://www.elastic.co/).
+
+Original license texts and notice files are retained in docs/licenses/.
+See THIRD_PARTY_NOTICES.md and upstream.lock.json for provenance and scope.
+This notice does not declare a complete production distribution inventory.

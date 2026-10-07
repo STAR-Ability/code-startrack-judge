@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible non-sensitive defect.
+labels: ["type:bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For vulnerabilities, use the private security reporting link instead of a public Issue.
+        Do not attach secrets, submitted source code, hidden tests, or raw sandbox logs.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Expected and actual behavior
+      description: Include the affected API, contract version, or repository command.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction and sanitized evidence
+      description: Provide minimal steps and safe diagnostic codes or request IDs.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit/tag, OS, contract and migration level, image digest, relevant pinned dependency versions.
+    validations:
+      required: true

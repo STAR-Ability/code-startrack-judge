@@ -1,0 +1,30 @@
+name: Engineering task
+description: Scope implementation, infrastructure, documentation, or contract work.
+labels: ["type:feature"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Problem and intended outcome
+      description: State ownership and boundaries; cite the active contract sections and relevant ADRs.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope and dependencies
+      description: List interfaces affected, prerequisite Issues, and work explicitly deferred.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance and verification
+      description: Provide measurable completion criteria, required tests, and documentation updates.
+    validations:
+      required: true
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility, security, and migration impact
+      description: Describe changes to consumers, historical data, upstream pins, or deployment privileges. Record unresolved contract questions.

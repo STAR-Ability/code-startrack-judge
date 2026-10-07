@@ -1,0 +1,23 @@
+# Portable infrastructure only. No service/sandbox has been implemented in Phase 0.
+name: ${COMPOSE_PROJECT_NAME:-startrack-judge-dev}
+services:
+  postgres:
+    # Multi-platform registry index resolved from the explicit 17.10-bookworm tag.
+    image: postgres:17.10-bookworm@sha256:9b18b78397054fce88a9552e9d5a3ad5bb7fd258c5b3cc1c5028e46373d6ea8f
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Run make bootstrap first}
+      POSTGRES_DB: ${POSTGRES_DB:?Run make bootstrap first}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run make bootstrap first}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-15432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    restart: "no"
+volumes:
+  postgres_data:

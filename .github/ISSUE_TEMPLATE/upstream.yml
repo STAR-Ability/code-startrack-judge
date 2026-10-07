@@ -1,0 +1,25 @@
+name: Upstream upgrade
+description: Propose a reviewed dependency upgrade with provenance and compatibility evidence.
+labels: ["type:upstream"]
+body:
+  - type: textarea
+    id: source
+    attributes:
+      label: Component, current pin, and proposed immutable pin
+      description: Link release notes and compare/diff evidence. Explain why the upgrade is needed.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: License, security, and compatibility review
+      description: Include upstream patches, package format or result changes, toolchain and historical reproduction impact.
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation and rollout
+      description: List adapter regressions, Linux sandbox verification where relevant, affected consumers, matrix updates, and failure recovery.
+    validations:
+      required: true
