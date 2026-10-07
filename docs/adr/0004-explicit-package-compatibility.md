@@ -21,6 +21,8 @@ An explicit adapter lets future maintainers distinguish a registered source-form
 
 The adapter needs a typed manifest and reviewed bounded defaults before importer/runtime parallel work; see [Q-007](../contracts/open-questions.md#q-007--shared-manifest-and-conversion-profile). License-review intake and rejected-source retention need [Q-003](../contracts/open-questions.md#q-003--license-evidence-intake-and-review-workflow). Errors cannot be removed or downgraded to claim success. Format/execution adapter upgrades create new artifacts/versions; new validation-tool runs retain prior evidence.
 
+The 2026-10-08 owner-authorized [Q-009 implementation profile](../contracts/open-questions.md#q-009--complete-problem-detail-servability) also requires the complete public detail to fit the existing owned HTTP encoder. Archive safety does not imply detail servability. [The servability policy](../development/problem-detail-servability.md) retains oversized approved packages as unsupported before validation and prevents new unservable versions/publication without truncating content or rewriting historical facts. It does not introduce a published contract-wide detail cap; larger transport/profile support requires reviewed evolution and Backend consumer acceptance.
+
 ## Alternatives
 
 Silently rewriting originals, using naive trimmed string equality, or skipping technical failures are forbidden by the contract. The incompletely supported `2023-07-draft` format is not a production shortcut.

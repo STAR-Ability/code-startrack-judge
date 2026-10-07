@@ -463,7 +463,7 @@
       "targets": [
         {
           "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 267,
+          "dependencyPackageCount": 268,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -493,7 +493,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 230,
+          "dependencyPackageCount": 231,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -568,7 +568,7 @@
       "targets": [
         {
           "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 266,
+          "dependencyPackageCount": 267,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -598,7 +598,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 229,
+          "dependencyPackageCount": 230,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -673,7 +673,7 @@
       "targets": [
         {
           "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 267,
+          "dependencyPackageCount": 268,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -703,7 +703,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 230,
+          "dependencyPackageCount": 231,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -770,7 +770,7 @@
       "targets": [
         {
           "entrypoint": "./cmd/judge-service",
-          "dependencyPackageCount": 266,
+          "dependencyPackageCount": 267,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",
@@ -800,7 +800,7 @@
         },
         {
           "entrypoint": "./cmd/judge-admin",
-          "dependencyPackageCount": 229,
+          "dependencyPackageCount": 230,
           "modulePaths": [
             "github.com/cyberphone/json-canonicalization",
             "github.com/golang-migrate/migrate/v4",

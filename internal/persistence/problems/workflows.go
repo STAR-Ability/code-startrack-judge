@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/STAR-Ability/code-startrack-judge/internal/contract"
+	"github.com/STAR-Ability/code-startrack-judge/internal/responsebudget"
 )
 
 // WorkflowError is deliberately bounded; driver messages and private facts
@@ -154,8 +155,17 @@ func (tx *Tx) PublishVersion(id contract.ID, versionID contract.UUID) (contract.
 	if err := tx.CheckEligibility(id, versionID); err != nil {
 		return contract.PlatformProblemDetail{}, err
 	}
+	// Existing immutable versions may predate the servability guard. Reject
+	// before publication facts or the catalog advance, including no-op replay.
+	detail, err := tx.PublicDetail(id, &versionID, false)
+	if err != nil {
+		return contract.PlatformProblemDetail{}, err
+	}
+	if !responsebudget.ProblemDetailFits(detail) {
+		return contract.PlatformProblemDetail{}, workflowError("PACKAGE_UNSUPPORTED")
+	}
 	if status == contract.ProblemPublished && current != nil && strings.EqualFold(string(*current), string(versionID)) {
-		return tx.PublicDetail(id, &versionID, false)
+		return detail, nil
 	}
 	// All writers lock the problem before the singleton catalog row. Public
 	// timestamps advance even if the clock has sub-microsecond resolution.

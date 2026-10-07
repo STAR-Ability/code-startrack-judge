@@ -165,6 +165,19 @@ func (p *ImportPipeline) Prepare(ctx context.Context, lease Lease, item PendingI
 	if prepared.licenseID == "" {
 		return prepared.reject("LICENSE_REVIEW", "PACKAGE_LICENSE_MISSING")
 	}
+	var publicLicense contract.License
+	var spdx sql.NullString
+	if err := p.options.DB.QueryRowContext(ctx, `SELECT spdx_id,notice,source_url FROM judge.license_evidence WHERE id=$1`, string(prepared.licenseID)).Scan(&spdx, &publicLicense.Notice, &publicLicense.SourceURL); err != nil {
+		return nil, ErrUnavailable
+	}
+	if spdx.Valid {
+		publicLicense.SPDXID = &spdx.String
+	}
+	// Archives and exact human approval remain retained, but an unsupported
+	// public projection never starts validation or creates a problem/version.
+	if !problemstore.VersionDetailFits(prepared.versionSpec(), publicLicense) {
+		return prepared.reject("UNSUPPORTED", "PACKAGE_UNSUPPORTED")
+	}
 	for _, file := range candidate.NormalizedFiles {
 		stage, err := p.stage(ctx, file.Data)
 		if err != nil {

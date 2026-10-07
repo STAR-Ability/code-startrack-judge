@@ -211,6 +211,9 @@ func (s *Service) Metadata(ctx context.Context, id contract.ID, req contract.Met
 			spec.RatingBasis = &basis
 		}
 		version, err := tx.CreateVersion(spec)
+		if errors.Is(err, persistence.ErrDetailTooLarge) {
+			return nil, &Error{Code: "INVALID_ARGUMENT"}
+		}
 		if err != nil {
 			return nil, err
 		}

@@ -340,12 +340,14 @@ func (tx *Tx) CreateVersion(spec VersionSpec) (Version, error) {
 			return Version{}, err
 		}
 	}
-	var belongs bool
-	if err := tx.db.QueryRowContext(tx.ctx, `SELECT EXISTS(SELECT 1 FROM judge.package_artifacts WHERE id=$1 AND problem_id=$2)`, string(spec.PackageArtifactID), string(spec.ProblemID)).Scan(&belongs); err != nil {
-		return Version{}, dbError(err)
+	if err := validateVersionSpec(spec); err != nil {
+		return Version{}, err
 	}
-	if !belongs {
-		return Version{}, ErrIntegrity
+	// Check before INSERT/latest-pointer writes and before allocating the full
+	// metadata JSON. Deterministic workflow failures may otherwise be frozen
+	// in a transaction that commits earlier business writes.
+	if err := tx.checkVersionDetail(spec); err != nil {
+		return Version{}, err
 	}
 	metadataHash, err := MetadataHash(spec)
 	if err != nil {

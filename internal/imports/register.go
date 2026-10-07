@@ -123,16 +123,23 @@ func (c *stagedCandidate) applyValidated(ctx context.Context, sqlTx *sql.Tx) (It
 		return ItemResult{}, ErrUnavailable
 	}
 	if errors.Is(err, sql.ErrNoRows) {
-		checker, _ := json.Marshal(m.Checker)
-		samples := make([]contract.Sample, 0, len(c.candidate.Samples))
-		for _, sample := range c.candidate.Samples {
-			samples = append(samples, contract.Sample{Input: sample.Input, Output: sample.Output})
-		}
-		version, err := tx.CreateVersion(problemstore.VersionSpec{ProblemID: problem.ID, PackageArtifactID: artifact.ID, Title: m.Title, StatementFormat: "MARKDOWN", StatementContent: c.candidate.StatementContent, StatementInput: c.candidate.StatementInput, StatementOutput: c.candidate.StatementOutput, Samples: samples, Tags: []string{}, DifficultyScale: contract.DifficultyUnrated, TimeLimitMs: m.Limits.TimeLimitMS, WallLimitMs: m.Limits.WallLimitMS, MemoryLimitBytes: m.Limits.MemoryLimitBytes, OutputLimitBytes: m.Limits.OutputLimitBytes, LanguageIDs: m.LanguageIDs, JudgeMode: m.JudgeMode, CheckerConfig: checker})
+		spec := c.versionSpec()
+		spec.ProblemID, spec.PackageArtifactID = problem.ID, artifact.ID
+		version, err := tx.CreateVersion(spec)
 		if err != nil {
 			return ItemResult{}, err
 		}
 		versionID = version.ID
 	}
 	return ItemResult{Item: contract.ImportItem{PackagePath: c.item.PackagePath, Status: "VALIDATED", ProblemID: &problem.ID, ProblemVersionID: &versionID, LicenseStatus: "VERIFIED", ValidationStatus: "PASSED", Errors: contract.Array[contract.TaskError]{}}}, nil
+}
+
+func (c *stagedCandidate) versionSpec() problemstore.VersionSpec {
+	m := c.candidate.Manifest
+	checker, _ := json.Marshal(m.Checker)
+	samples := make([]contract.Sample, 0, len(c.candidate.Samples))
+	for _, sample := range c.candidate.Samples {
+		samples = append(samples, contract.Sample{Input: sample.Input, Output: sample.Output})
+	}
+	return problemstore.VersionSpec{Title: m.Title, StatementFormat: "MARKDOWN", StatementContent: c.candidate.StatementContent, StatementInput: c.candidate.StatementInput, StatementOutput: c.candidate.StatementOutput, Samples: samples, Tags: []string{}, DifficultyScale: contract.DifficultyUnrated, TimeLimitMs: m.Limits.TimeLimitMS, WallLimitMs: m.Limits.WallLimitMS, MemoryLimitBytes: m.Limits.MemoryLimitBytes, OutputLimitBytes: m.Limits.OutputLimitBytes, LanguageIDs: m.LanguageIDs, JudgeMode: m.JudgeMode, CheckerConfig: checker}
 }

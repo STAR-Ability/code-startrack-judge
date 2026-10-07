@@ -86,6 +86,16 @@ Status updated 2026-10-08 after the owner authorized full V0.2 implementation an
 
 **Gate:** before enabling qualified execution or claiming the final single-container profile satisfies its isolation, listener, credential, cancellation and verdict requirements. Owner: judge/runtime, deployment and security owners; project contract owner approves any change to the binding constraint.
 
+## Q-009 — Complete problem detail servability
+
+**Owner-authorized engineering decision (2026-10-08):** under the owner's explicit delegation of engineering resolutions, the Judge implementation profile admits only versions whose complete `ApiResponse<PlatformProblemDetail>` fits the existing owned HTTP encoder's 32 MiB ceiling. This is an implementation eligibility policy, not a claim that the published API imposed a global problem-detail cap. [Policy, guard points and regression evidence](../development/problem-detail-servability.md). Recorded under [#2](https://github.com/STAR-Ability/code-startrack-judge/issues/2); actual Backend acceptance remains [#23](https://github.com/STAR-Ability/code-startrack-judge/issues/23).
+
+**Evidence and distinction:** API §5's explicit 32 MiB wording concerns task results/callbacks; §3 requires complete Markdown and samples. The package protocol's 64 MiB per-file and 512 MiB aggregate safety limits permit a valid archive whose complete public detail exceeds the current HTTP encoder. The observed defect created a validated DRAFT with 32 MiB sample input plus 32 MiB answer, then its ordinary detail response failed with HTTP 500. Supplied historical/current contract copies and immutable package/version facts remain unchanged.
+
+**Implementation boundary:** after retaining original/normalized archives and resolving the exact human license approval, import preparation retains an oversized approved candidate as `REJECTED` / `UNSUPPORTED` / `PACKAGE_UNSUPPORTED` before execution or registration. A shared complete escaped-JSON counter protects `CreateVersion` before writes and publication before catalog/current/first-publication changes, including no-op publication. Metadata overflow maps to the endpoint's existing 400 `INVALID_ARGUMENT`; publication uses its existing 422 `PACKAGE_UNSUPPORTED`. Complete content is never truncated. Failed operations retain structured request history without partial business writes.
+
+**Gate and historical limitation:** encoder differential tests, actual PostgreSQL/HTTP regressions, independent review, final repository checks, and full-size capacity qualification are separate evidence. Existing immutable oversized details remain subject to the current encoder ceiling; no historical rows are rewritten. A larger transport/profile requires reviewed evolution and consumer evidence before release. This decision does not supply Backend sign-off or Linux execution qualification. Owner: Judge implementation lead under delegated project-owner authority; Backend integration owner retains consumer acceptance.
+
 ## Separate owner/platform decisions
 
 These do not reinterpret the V0.2 contract but must be recorded before the corresponding release gate:
