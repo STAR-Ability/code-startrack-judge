@@ -1,0 +1,23 @@
+{
+  "contractVersion": "0.2.0",
+  "apiGeneration": "/internal/v2",
+  "status": "implementation-baseline",
+  "files": [
+    {
+      "source": "判题题库api文档.md",
+      "path": "docs/contracts/v0.2/api.md",
+      "sha256": "ecfe5b27158b14b0ef47824e176c1a4bcfcb0597d6ab6e17a2ae31855ead515d"
+    },
+    {
+      "source": "判题题库数据库文档.md",
+      "path": "docs/contracts/v0.2/database.md",
+      "sha256": "ad395c6219a46284267afddd4efcea155803d1543729e3d311d9be632e1eef8f"
+    }
+  ],
+  "upstreamComponents": [
+    "go-judge-demo",
+    "go-judge",
+    "problem-packages",
+    "problemtools"
+  ]
+}
