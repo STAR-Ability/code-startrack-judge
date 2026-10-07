@@ -48,7 +48,9 @@ func runMatureMatrix(ctx context.Context, adapter *judgeruntime.Adapter, blobs *
 		name, validator, accepted, failedPart string
 	}{
 		{"ALL_PARTS", inputValidatorProgram, sumProgram, ""},
-		{"VALIDATOR_EXIT_ZERO", "int main(){return 0;}\n", sumProgram, "VALIDATORS"},
+		// At the pinned revision, check_testdata reports non-42 testcase exits
+		// through its data diagnostic; validator sanity accepts non-42 junk exits.
+		{"VALIDATOR_EXIT_ZERO", "int main(){return 0;}\n", sumProgram, "TEST_DATA"},
 		{"ACCEPTED_REFERENCE_WRONG", inputValidatorProgram, printProgram("6"), "REFERENCES"},
 	}
 	var positive packages.Manifest
@@ -74,18 +76,21 @@ func runMatureMatrix(ctx context.Context, adapter *judgeruntime.Adapter, blobs *
 				ev.FailureCode = failure.Code
 			}
 		}
-		allPassed, failedExpected := len(out.Parts) == 5, false
+		allPassed, failedExpected, otherPartsPassed := len(out.Parts) == 5, false, true
 		for _, part := range out.Parts {
 			allPassed = allPassed && part.Passed && !part.NotRun && part.Errors == 0
-			if part.Part == fixture.failedPart && !part.Passed && part.Errors > 0 {
+			if part.Part == fixture.failedPart && !part.Passed && !part.NotRun && part.Errors > 0 {
 				failedExpected = true
+			}
+			if part.Part != fixture.failedPart {
+				otherPartsPassed = otherPartsPassed && part.Passed && !part.NotRun && part.Errors == 0
 			}
 		}
 		ev.Passed = runErr == nil && logErr == nil && out.Completed && len(out.Parts) == 5
 		if fixture.failedPart == "" {
 			ev.Passed = ev.Passed && allPassed && out.Errors == 0
 		} else {
-			ev.Passed = ev.Passed && !allPassed && failedExpected && out.Errors > 0 && len(out.RawLog) > 0
+			ev.Passed = ev.Passed && !allPassed && failedExpected && otherPartsPassed && out.Errors > 0 && len(out.RawLog) > 0
 		}
 		report.Mature = append(report.Mature, ev)
 		if !ev.Passed {
