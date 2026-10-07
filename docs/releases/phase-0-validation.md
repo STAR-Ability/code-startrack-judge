@@ -1,6 +1,6 @@
 # Phase 0 foundation validation
 
-Date: 2026-10-07. Target: V0.2 (`0.2.0`); production release: none recorded. This record covers repository engineering foundation only. It is not judge acceptance, a sandbox certificate, or a production release. Final GitHub delivery/CI evidence is appended after push.
+Date: 2026-10-07. Target: V0.2 (`0.2.0`); production release: none recorded. This record covers repository engineering foundation only. It is not judge acceptance, a sandbox certificate, or a production release. GitHub delivery/CI evidence is recorded below; the final documentation commit is discoverable from the delivery Issue and branch history.
 
 ## Delivered foundation
 
@@ -62,4 +62,14 @@ GitHub inventory readback confirmed [milestone 1](https://github.com/STAR-Abilit
 
 Recommended first implementation Issue: [#5 / P01](https://github.com/STAR-Ability/code-startrack-judge/issues/5). Build configuration/strict shared HTTP fixtures first, then schema #6; problem/license/adapter and runtime/template/image tracks run in parallel. Primitive Linux qualification #21 precedes real package verification #10. Atomic task/result/outbox core #18 precedes admission #16 and scheduler #17. Complete callback delivery #19, mock acceptance #22, real-backend coordination #23, and final-image/four-service acceptance #24. Unresolved contract gates block their affected decisions only.
 
-GitHub delivery/CI evidence remains pending until the final reviewed push; no final release PR is created.
+## GitHub delivery evidence
+
+- Content-free `main` baseline: `3ea253ae4d9c21ae0b94a705aaa4e40b5ae1af95`; it contains no initialization files. The initial remote was empty and had no branches, PRs, Issues, workflows, tags or releases. Existing main ruleset was inspected and preserved with reviewed merge-flow/check changes.
+- Contract preservation commit on `dev`: `c62b482e98c2227e2ea1a9666136d8a5fe15baf5`.
+- Engineering foundation commit on `dev`: `6b6038565866d0b19d15037f51a559e204b88ad1`.
+- [Foundation run 37641210294](https://github.com/STAR-Ability/code-startrack-judge/actions/runs/37641210294) completed **successfully** for that exact foundation commit. GitHub returned check name `Portable foundation`, Actions app ID `15368`, and all actual validator/YAML/Compose steps passed on Ubuntu 24.04.
+- Main ruleset readback confirmed PR-only normal changes, resolved conversations, merge commits, deletion/force-push protection, actual required `Portable foundation` check, and administrator emergency bypass. Strict up-to-date status policy is disabled. `dev` is present, unprotected and has no applicable rules.
+- Fresh remote `dev` clone at the exact foundation SHA passed `make bootstrap`, `make check`, `make migration-status` and historical symlink/content checks; generated local settings were ignored and the clone remained clean.
+- Private vulnerability reporting, secret scanning and secret-scanning push protection were read back as enabled. No code credentials were added; ignored local `.env`, relay settings/scripts and caches were preserved.
+- The final documentation commit records these observations and is pushed only to `dev`. [Foundation Issue #1](https://github.com/STAR-Ability/code-startrack-judge/issues/1) records its exact final SHA and final CI run after verification, avoiding a self-referential commit hash in this document. Consult that delivery record for the final tip.
+- No final `dev → main` PR, release tag, service image or deployment was created. Business/migration/runtime implementation stops here and begins only under the next instruction.

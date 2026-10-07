@@ -6,7 +6,7 @@ The active [main release protection ruleset](https://github.com/STAR-Ability/cod
 
 Release PRs `dev → main` use **merge commits**. Squashing this long-lived integration branch would lose its shared ancestry and complicate subsequent releases. Repository squash merging remains available for future feature PRs; the main ruleset permits only merge commits. Automatic branch deletion is disabled to protect `dev`. Do not introduce linear-history requirements that contradict this flow.
 
-No restrictions are applied to `dev` beyond team validation expectations. As the team grows, add `feature/* → PR → dev` and consider actual review/CI requirements after their check names and reliability are observed.
+The real GitHub check **`Portable foundation`** (GitHub Actions app ID `15368`) is now required on `main`, after its actual [successful run](https://github.com/STAR-Ability/code-startrack-judge/actions/runs/37641210294). The name was read from the check-run API. Strict up-to-date enforcement is disabled for the small-team flow; release PR validation and exact merged-commit validation still apply. No restrictions are applied to `dev` beyond team validation expectations. As the team grows, add `feature/* → PR → dev` and consider actual review/CI requirements after their check names and reliability are observed.
 
 ## CI and GitHub configuration
 
