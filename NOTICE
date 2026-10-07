@@ -1,5 +1,7 @@
 Code Startrack Judge & Problem Service
-Third-party attribution foundation; no project license is selected by this file.
+Copyright 2026 Code Startrack contributors.
+Code Startrack-owned source is licensed under Apache License 2.0.
+Third-party materials retain their own terms and attribution below.
 
 go-judge and go-judge-demo: Copyright (c) 2019 Yang Gao (MIT).
 go-sandbox: Copyright (c) 2019 criyle (MIT).

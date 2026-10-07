@@ -18,4 +18,4 @@ Moby's original seccomp snapshot revision is not specified by the go-judge NOTIC
 
 Before image redistribution, resolve the [known dependency gates](docs/upstream/dependencies.md), including nested VIVA artifacts, actual resolved Go/Python/OS dependencies and the artifact SBOM. Do not assign a guessed SPDX identifier to unknown nested terms. Imported problem statements, images, tests, answers, reference solutions and validators require independent, retained package evidence; root MIT is not automatic publication approval.
 
-Code Startrack's own project-license choice remains [an owner decision](docs/licenses/project-license-decision.md).
+Code Startrack-owned source uses [Apache-2.0](LICENSE), following the [owner decision](docs/licenses/project-license-decision.md). This does not relicense any component or imported problem content listed here.

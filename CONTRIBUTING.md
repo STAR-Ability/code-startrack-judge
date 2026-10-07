@@ -22,6 +22,8 @@ PRs state the resulting behavior, Issue link, relevant contract/ADR, checks and 
 
 ## Data, dependencies and docs
 
+Contributions to Code Startrack-owned source are submitted under [Apache-2.0](LICENSE), unless explicitly identified as third-party material with its own license and provenance. Retain third-party copyright, permission and NOTICE records. Imported problem content requires its separate ADMIN rights approval.
+
 - Reserve migration numbers with the database owner; add forward-only `.up.sql` files. Never rewrite shared/deployed migrations. Include fresh application and upgrade validation, lock/backfill/compatibility analysis and recovery instructions. See [database policy](docs/development/database.md).
 - Dependency changes require an Issue, exact pin/diff, license/security review and relevant compatibility regression evidence. Update the lock, notices and [compatibility matrix](docs/upstream/compatibility-matrix.md); follow the [upgrade policy](docs/upstream/upgrade-policy.md). Preserve patch provenance. Do not automatically chase new versions.
 - Document durable architecture decisions in ADRs and update executable development/deployment guidance. Released contracts and immutable artifact facts are historical records; changes require the appropriate new contract/evidence/version.

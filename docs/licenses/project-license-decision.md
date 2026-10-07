@@ -1,6 +1,6 @@
 # Owner decision: Code Startrack project license
 
-**Status: owner decision required. No project LICENSE has been added.** Owner tracker: [#3](https://github.com/STAR-Ability/code-startrack-judge/issues/3). Upstream notices do not supply a license for Code Startrack-owned code. The owner must confirm the intended terms and authority to license contributions, then implement one consistent root LICENSE, README/package metadata and contribution policy.
+**Status: accepted, Apache-2.0, 2026-10-08.** The repository owner explicitly selected Apache-2.0 in the authorized complete V0.2 implementation task. Owner tracker: [#3](https://github.com/STAR-Ability/code-startrack-judge/issues/3). [LICENSE](../../LICENSE) contains the standard Apache License 2.0 text. [NOTICE](../../NOTICE) names Code Startrack contributors and retains the separately attributed upstream notices. Copyright years follow the year of the applicable contributions; this decision does not transfer ownership of third-party or contributor copyrights.
 
 | Consideration | MIT | Apache-2.0 |
 |---|---|---|
@@ -15,4 +15,4 @@
 
 Both are practical permissive choices for this infrastructure service. Apache-2.0 gives an explicit patent framework and more formal redistribution rules; MIT provides a shorter license and simpler attribution for owned code. Neither lets the project relabel third-party components or authorize imported problem content. Choosing MIT for owned code does not turn Apache-2.0 dependencies into MIT. Current reviewed MIT and Apache portions can coexist with either project choice when their obligations are separately honored; the incomplete transitive/bundled-content audit must still be resolved for a release.
 
-Once the owner decides, record the decision in a dedicated Issue/ADR, add the chosen standard text with accurate copyright ownership, document the incoming-contribution terms, and update software metadata consistently. Do not invent contributor ownership or use a blanket statement that every problem/test/illustration in the service shares the project license. Any future dependency with different terms gets a compatibility review at the actual version before adoption.
+Contributions to Code Startrack-owned source are accepted under Apache-2.0, as documented in [CONTRIBUTING.md](../../CONTRIBUTING.md). Third-party source and imported problem statements/tests/illustrations keep their own terms and evidence. The artifact-level license/NOTICE/SBOM audit remains a release gate; the owner selection alone does not prove compliance of an unbuilt image. Any future dependency with different terms gets a compatibility review at the actual version before adoption.
