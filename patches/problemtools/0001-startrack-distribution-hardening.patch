@@ -1,0 +1,23 @@
+Code Startrack modification, 2026-10-08.
+Origin: https://github.com/Kattis/problemtools
+Base commit: 6010cbaa37a1612117f49566b2fff8646d53faa2
+Reason: Exclude unnecessary VIVA and its unresolved nested binaries before distribution, retaining all batch checker/verification categories.
+Existing upstream source remains under its original MIT terms.
+
+diff --git a/support/Makefile b/support/Makefile
+--- a/support/Makefile
++++ b/support/Makefile
+@@ -1,3 +1,4 @@
++# Code Startrack modification (2026-10-08): omit VIVA; preserve required checkers.
+ PACKAGE=problemtools
+ PROGRAMS=default_validator interactive
+ 
+@@ -8,8 +9,6 @@
+ 	install -d $(DESTDIR)
+ 	$(foreach prog,$(PROGRAMS),install $(prog)/$(prog) $(DESTDIR) &&) true
+ 	install default_grader/default_grader $(DESTDIR)
+-	cp viva/viva.jar $(DESTDIR)
+-	install viva/viva.sh $(DESTDIR)
+ 
+ clean:
+ 	$(foreach prog,$(PROGRAMS),$(MAKE) -C $(prog) clean;)

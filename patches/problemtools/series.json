@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "component": "problemtools",
+  "repository": "https://github.com/Kattis/problemtools.git",
+  "baseCommit": "6010cbaa37a1612117f49566b2fff8646d53faa2",
+  "includePaths": [
+    "LICENSE",
+    "README.md",
+    "MANIFEST.in",
+    "setup.py",
+    "pyproject.toml",
+    "requirements.txt",
+    "problemtools/",
+    "support/Makefile",
+    "support/default_validator/",
+    "support/default_grader/",
+    "support/interactive/",
+    "tests/",
+    "examples/hello/",
+    "examples/different/",
+    "debian/copyright"
+  ],
+  "excludePaths": [
+    "support/viva/"
+  ],
+  "unsupportedPackageExtensions": [
+    ".viva"
+  ],
+  "patches": [
+    {
+      "path": "patches/problemtools/0001-startrack-distribution-hardening.patch",
+      "sha256": "25153dc6e016c48b15bf97036f1d94c28dad2c2b5efa87b3abe35a020be523b3",
+      "reason": "Exclude unnecessary VIVA and its unresolved nested binaries before distribution, retaining all batch checker/verification categories.",
+      "licenseImpact": "No license text is modified. Unresolved nested VIVA binaries are excluded from build inputs and install output; no rights are asserted for excluded bytes.",
+      "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+      "files": [
+        {
+          "path": "support/Makefile",
+          "baseSha256": "6c866648fa44bf69d15b3ea982430082baab799ccab1879484ebb51add8c58f9",
+          "patchedSha256": "a7649537c97b370b7b2dd7384583f1468522d0006183527c2127c36507a14c8b",
+          "mode": "100644"
+        }
+      ]
+    }
+  ]
+}

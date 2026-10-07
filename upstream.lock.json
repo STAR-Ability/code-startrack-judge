@@ -23,7 +23,29 @@
           }
         ]
       },
-      "patches": [],
+      "patches": [
+        {
+          "path": "patches/go-judge-demo/0001-startrack-distribution-hardening.patch",
+          "sha256": "ea73df9bbc56dffea986b014392debd553b510ea6ceb17cd4990b02d30f90e0c",
+          "reason": "Remove the unsolicited :2112 diagnostics listener and raw source/test/result logs; owned UDS scheduling and REST executor wiring remains a separate adapter.",
+          "licenseImpact": "Modified upstream source remains MIT; original LICENSE and applicable NOTICE stay byte-identical. New Code Startrack regression tests retain Apache-2.0 attribution.",
+          "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+          "files": [
+            {
+              "path": "judger/main.go",
+              "baseSha256": "d1c54eeac97f776aec358b015a2283aa4253fd386d1793e15005f5db2ba90d4d",
+              "patchedSha256": "e9723d74324acfecb90e6be030fea638e552e43473f40c9e9207340d069f56fd",
+              "mode": "100644"
+            },
+            {
+              "path": "judger/grpc.go",
+              "baseSha256": "83a93d46e521b20e36558748597f7a6eb53e417fc8ebacb6b77c1252f1f0b5b0",
+              "patchedSha256": "79ef7134701239e25dbdb0723c7139412ca241b59b15969d7cc66ee6afff1f1d",
+              "mode": "100644"
+            }
+          ]
+        }
+      ],
       "source_evidence": [
         {
           "upstream_path": "go.mod",
@@ -67,7 +89,41 @@
           }
         ]
       },
-      "patches": [],
+      "patches": [
+        {
+          "path": "patches/go-judge/0001-startrack-distribution-hardening.patch",
+          "sha256": "d95cee353386f04a8384a6ad2e44da11f089f0cbdba47101f229af53ff989ec5",
+          "reason": "Protect version diagnostics, remove internal config/WebSocket routes and omit secret/raw-payload logs without altering sandbox isolation.",
+          "licenseImpact": "Modified upstream source remains MIT; original LICENSE and applicable NOTICE stay byte-identical. New Code Startrack regression tests retain Apache-2.0 attribution.",
+          "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+          "files": [
+            {
+              "path": "cmd/go-judge/main.go",
+              "baseSha256": "713fcb05386484593906bfbe87a72699966d18bf2c0361128c0f07a449baeec2",
+              "patchedSha256": "b55144357d0afec3adbfaaf890d1da613bbff93c2b4827100204fd4e9a4f7bce",
+              "mode": "100644"
+            },
+            {
+              "path": "cmd/go-judge/rest_executor/cmd_handler.go",
+              "baseSha256": "09a083c8adf1b18b3bf2c924d390c0544172da41b6ba02c793366b8a74dc7853",
+              "patchedSha256": "a55ed13cbca0a8174b9c3d7b810c124ad992004aef7a5a041eb01355c2482a39",
+              "mode": "100644"
+            },
+            {
+              "path": "cmd/go-judge/grpc_executor/grpc.go",
+              "baseSha256": "03e6c0e954311aa295bfba11ecf505868065638ebc495b0337bc038e84273297",
+              "patchedSha256": "1b0ba3ad6dc75b0de412383bde5cf5ac1c4640c1b1085c11f5168a3544cf8ee5",
+              "mode": "100644"
+            },
+            {
+              "path": "cmd/go-judge/startrack_hardening_test.go",
+              "baseSha256": null,
+              "patchedSha256": "c9f1b4284ce9bb878f3ed7db5c4839f209dce29a2429d588c622b6a1579385a7",
+              "mode": "100644"
+            }
+          ]
+        }
+      ],
       "source_evidence": [
         {
           "upstream_path": "go.mod",
@@ -149,7 +205,23 @@
           }
         ]
       },
-      "patches": [],
+      "patches": [
+        {
+          "path": "patches/problemtools/0001-startrack-distribution-hardening.patch",
+          "sha256": "25153dc6e016c48b15bf97036f1d94c28dad2c2b5efa87b3abe35a020be523b3",
+          "reason": "Exclude unnecessary VIVA and its unresolved nested binaries before distribution, retaining all batch checker/verification categories.",
+          "licenseImpact": "No license text is modified. Unresolved nested VIVA binaries are excluded from build inputs and install output; no rights are asserted for excluded bytes.",
+          "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+          "files": [
+            {
+              "path": "support/Makefile",
+              "baseSha256": "6c866648fa44bf69d15b3ea982430082baab799ccab1879484ebb51add8c58f9",
+              "patchedSha256": "a7649537c97b370b7b2dd7384583f1468522d0006183527c2127c36507a14c8b",
+              "mode": "100644"
+            }
+          ]
+        }
+      ],
       "source_evidence": [
         {
           "upstream_path": "pyproject.toml",

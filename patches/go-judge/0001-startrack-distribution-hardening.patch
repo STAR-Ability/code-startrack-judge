@@ -1,0 +1,241 @@
+Code Startrack modification, 2026-10-08.
+Origin: https://github.com/criyle/go-judge
+Base commit: e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8
+Reason: Protect version diagnostics, remove internal config/WebSocket routes and omit secret/raw-payload logs without altering sandbox isolation.
+Existing upstream source remains under its original MIT terms.
+
+diff --git a/cmd/go-judge/main.go b/cmd/go-judge/main.go
+--- a/cmd/go-judge/main.go
++++ b/cmd/go-judge/main.go
+@@ -1,3 +1,4 @@
++// Code Startrack modification (2026-10-08): redact config/token logs and restrict private HTTP routes.
+ // Command go-judge will starts a http server that receives command to run
+ // programs inside a sandbox.
+ package main
+@@ -23,14 +24,12 @@
+ 	grpcexecutor "github.com/criyle/go-judge/cmd/go-judge/grpc_executor"
+ 	restexecutor "github.com/criyle/go-judge/cmd/go-judge/rest_executor"
+ 	"github.com/criyle/go-judge/cmd/go-judge/version"
+-	wsexecutor "github.com/criyle/go-judge/cmd/go-judge/ws_executor"
+ 	"github.com/criyle/go-judge/env"
+ 	"github.com/criyle/go-judge/env/pool"
+ 	"github.com/criyle/go-judge/envexec"
+ 	"github.com/criyle/go-judge/filestore"
+ 	"github.com/criyle/go-judge/pb"
+ 	"github.com/criyle/go-judge/worker"
+-	ginzap "github.com/gin-contrib/zap"
+ 	"github.com/gin-gonic/gin"
+ 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
+ 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
+@@ -59,9 +58,7 @@
+ 	}
+ 	initLogger(conf)
+ 	defer logger.Sync()
+-	if ce := logger.Check(zap.InfoLevel, "Config loaded"); ce != nil {
+-		ce.Write(zap.String("config", fmt.Sprintf("%+v", conf)))
+-	}
++	logger.Info("Config loaded")
+ 	warnIfNotLinux()
+ 
+ 	// Init environment pool
+@@ -314,25 +311,21 @@
+ 		gin.SetMode(gin.ReleaseMode)
+ 	}
+ 	r = gin.New()
+-	r.Use(ginzap.Ginzap(logger, "", false))
+-	r.Use(ginzap.RecoveryWithZap(logger, true))
++	r.Use(privateHTTPRecovery())
+ 
+ 	// Metrics Handle
+ 	if conf.EnableMetrics {
+ 		initGinMetrics(r)
+ 	}
+ 
+-	// Version handle
+-	r.GET("/version", generateHandleVersion(conf, builderParam))
+-
+-	// Config handle
+-	r.GET("/config", generateHandleConfig(conf, builderParam))
+-
+-	// Add auth token
++	// Code Startrack: authenticate every registered route, including diagnostics.
+ 	if conf.AuthToken != "" {
+ 		r.Use(tokenAuth(conf.AuthToken))
+-		logger.Info("Attach token auth", zap.String("token", conf.AuthToken))
+-	}
++		logger.Info("Attach token auth")
++	}
++
++	// Version exposes bounded capabilities; internal configuration is not a route.
++	r.GET("/version", generateHandleVersion(conf, builderParam))
+ 
+ 	// Rest Handle
+ 	cmdHandle := restexecutor.NewCmdHandle(work, conf.SrcPrefix, logger)
+@@ -340,11 +333,20 @@
+ 	fileHandle := restexecutor.NewFileHandle(fs)
+ 	fileHandle.Register(r)
+ 
+-	// WebSocket Handle
+-	wsHandle := wsexecutor.New(work, conf.SrcPrefix, logger)
+-	wsHandle.Register(r)
+-
+ 	return r
++}
++
++// privateHTTPRecovery keeps credentials, hidden data and panic values out of logs.
++func privateHTTPRecovery() gin.HandlerFunc {
++	return func(c *gin.Context) {
++		defer func() {
++			if recover() != nil {
++				logger.Error("HTTP handler failed")
++				c.AbortWithStatus(http.StatusInternalServerError)
++			}
++		}()
++		c.Next()
++	}
+ }
+ 
+ func initMonitorHTTPMux(conf *config.Config) http.Handler {
+@@ -604,24 +606,6 @@
+ 	}
+ }
+ 
+-func generateHandleConfig(conf *config.Config, builderParam map[string]any) func(*gin.Context) {
+-	return func(c *gin.Context) {
+-		c.JSON(http.StatusOK, gin.H{
+-			"copyOutOptional":   true,
+-			"pipeProxy":         true,
+-			"symlink":           true,
+-			"addressSpaceLimit": true,
+-			"stream":            true,
+-			"procPeak":          true,
+-			"copyOutTruncate":   true,
+-			"pipeProxyZeroCopy": true,
+-			"fixSymlinkEscape":  true,
+-			"fileStorePath":     conf.Dir,
+-			"runnerConfig":      builderParam,
+-		})
+-	}
+-}
+-
+ func isManagedByPM2() bool {
+ 	// List of environment variables that pm2 typically sets.
+ 	pm2EnvVars := []string{
+diff --git a/cmd/go-judge/rest_executor/cmd_handler.go b/cmd/go-judge/rest_executor/cmd_handler.go
+--- a/cmd/go-judge/rest_executor/cmd_handler.go
++++ b/cmd/go-judge/rest_executor/cmd_handler.go
+@@ -1,9 +1,9 @@
++// Code Startrack modification (2026-10-08): omit raw execution request/result logging.
+ package restexecutor
+ 
+ import (
+ 	"encoding/json"
+ 	"errors"
+-	"fmt"
+ 	"net/http"
+ 
+ 	"github.com/criyle/go-judge/cmd/go-judge/model"
+@@ -54,14 +54,8 @@
+ 		ctx.AbortWithStatusJSON(statusCode, err.Error())
+ 		return
+ 	}
+-	if ce := c.logger.Check(zap.DebugLevel, "request"); ce != nil {
+-		ce.Write(zap.String("body", fmt.Sprintf("%+v", r)))
+-	}
+ 	rtCh, _ := c.worker.Submit(ctx.Request.Context(), r)
+ 	rt := <-rtCh
+-	if ce := c.logger.Check(zap.DebugLevel, "response"); ce != nil {
+-		ce.Write(zap.String("body", fmt.Sprintf("%+v", rt)))
+-	}
+ 	if rt.Error != nil {
+ 		ctx.Error(rt.Error)
+ 		statusCode := http.StatusInternalServerError
+diff --git a/cmd/go-judge/grpc_executor/grpc.go b/cmd/go-judge/grpc_executor/grpc.go
+--- a/cmd/go-judge/grpc_executor/grpc.go
++++ b/cmd/go-judge/grpc_executor/grpc.go
+@@ -1,3 +1,4 @@
++// Code Startrack modification (2026-10-08): omit raw execution request/result logging.
+ package grpcexecutor
+ 
+ import (
+@@ -46,14 +47,8 @@
+ 		}
+ 		return nil, status.Error(code, err.Error())
+ 	}
+-	if ce := e.logger.Check(zap.DebugLevel, "request"); ce != nil {
+-		ce.Write(zap.String("body", fmt.Sprintf("%+v", r)))
+-	}
+ 	rtCh, _ := e.worker.Submit(ctx, r)
+ 	rt := <-rtCh
+-	if ce := e.logger.Check(zap.DebugLevel, "response"); ce != nil {
+-		ce.Write(zap.String("body", fmt.Sprintf("%+v", rt)))
+-	}
+ 	if rt.Error != nil {
+ 		code := codes.Internal
+ 		if errors.Is(rt.Error, worker.ErrFileNotFound) {
+diff --git a/cmd/go-judge/startrack_hardening_test.go b/cmd/go-judge/startrack_hardening_test.go
+new file mode 100644
+--- /dev/null
++++ b/cmd/go-judge/startrack_hardening_test.go
+@@ -0,0 +1,61 @@
++// SPDX-License-Identifier: Apache-2.0
++// Copyright 2026 Code Startrack contributors.
++// Code Startrack addition: private-route authentication and log leakage regression.
++package main
++
++import (
++	"bytes"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++
++	"github.com/criyle/go-judge/cmd/go-judge/config"
++	"github.com/gin-gonic/gin"
++	"go.uber.org/zap"
++	"go.uber.org/zap/zapcore"
++)
++
++func TestStartrackPrivateHTTPRoutes(t *testing.T) {
++	var logs bytes.Buffer
++	previous := logger
++	logger = zap.New(zapcore.NewCore(zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()), zapcore.AddSync(&logs), zap.DebugLevel))
++	defer func() { logger = previous }()
++	secret := strings.Repeat("canary", 8)
++	conf := &config.Config{Release: true, AuthToken: secret, Dir: "/private/internal/store"}
++	handler := initHTTPMux(conf, nil, nil, map[string]any{"private": "internal"})
++	handler.(*gin.Engine).GET("/startrack-panic", func(c *gin.Context) { panic("private-panic-" + secret) })
++	cases := []struct {
++		method, path, authorization string
++		want                        int
++	}{
++		{http.MethodGet, "/version", "", http.StatusUnauthorized},
++		{http.MethodGet, "/version", "Bearer wrong", http.StatusUnauthorized},
++		{http.MethodPost, "/run", "", http.StatusUnauthorized},
++		{http.MethodGet, "/file", "", http.StatusUnauthorized},
++		{http.MethodGet, "/version", "Bearer " + secret, http.StatusOK},
++		{http.MethodGet, "/config", "Bearer " + secret, http.StatusNotFound},
++		{http.MethodGet, "/ws", "Bearer " + secret, http.StatusNotFound},
++		{http.MethodGet, "/stream", "Bearer " + secret, http.StatusNotFound},
++		{http.MethodGet, "/startrack-panic?private-query=" + secret, "Bearer " + secret, http.StatusInternalServerError},
++	}
++	for _, item := range cases {
++		req := httptest.NewRequest(item.method, item.path, nil)
++		req.Header.Set("Authorization", item.authorization)
++		req.Header.Set("X-Private-Canary", "private-header-"+secret)
++		response := httptest.NewRecorder()
++		handler.ServeHTTP(response, req)
++		if response.Code != item.want {
++			t.Fatalf("%s %s: status %d, want %d", item.method, item.path, response.Code, item.want)
++		}
++		if strings.Contains(response.Body.String(), conf.Dir) {
++			t.Fatal("internal store exposed in diagnostic response")
++		}
++	}
++	if strings.Contains(logs.String(), secret) {
++		t.Fatal("runtime token leaked into startup/request logs")
++	}
++	if initMonitorHTTPMux(conf) != nil {
++		t.Fatal("default profile unexpectedly enables monitor listener")
++	}
++}
