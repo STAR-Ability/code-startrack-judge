@@ -11,11 +11,15 @@ Code Startrack Judge & Problem Service evolves independently of a single milesto
 | Internal API generation | `/internal/v2` |
 | API contract | [v0.2/api.md](v0.2/api.md) |
 | Database contract | [v0.2/database.md](v0.2/database.md) |
+| Integration contract | [v0.2/integration.md](v0.2/integration.md) |
+| Engineering clarifications/amendments | [v0.2/clarifications.md](v0.2/clarifications.md); implementation/release review gates recorded separately |
+| Supplied source provenance | [v0.2/provenance.md](v0.2/provenance.md) |
+| Immutable package/runtime protocol | [v0.2/package-protocol.md](v0.2/package-protocol.md), [manifest schema](v0.2/manifest-schema.json), [validation checkpoint schema](v0.2/validation-results-schema.json) |
 | Open questions | [Resolution register](open-questions.md) |
 
 The original supplied documents remain at [判题题库api文档.md](../../判题题库api文档.md) and [判题题库数据库文档.md](../../判题题库数据库文档.md). Those root originals and the `v0.2/` snapshots are frozen baseline evidence; never overwrite them to describe a later release. New publications/errata use new artifacts, and this index's active pointer changes deliberately. The `v0.2/` copies preserve the originals' bytes, with adjacent Chinese-name symlink aliases preserving their mutual relative links. Integrity is recorded in `v0.2/manifest.json` and checked by repository validation.
 
-Both supplied contracts reference `V0.2-整体架构与联调说明.md`, which was absent when this foundation was created. Their four historical reference links (two originals and two snapshots) are the exact bounded missing-link exception in repository validation. Their bytes are preserved rather than replaced with a fabricated document. Use this index for current navigation. [Q-001](open-questions.md#q-001--missing-whole-system-architecture-contract) records the missing evidence and the integration gate.
+Both supplied contracts reference `V0.2-整体架构与联调说明.md`, which was absent when the foundation was created. The exact owner-supplied `0.2.0` integration contract has now been recovered, copied without changing its bytes, and recorded in the manifest. The historical links resolve through adjacent aliases; their former bounded missing-link exception is no longer needed. Six linked service documents are preserved as supplementary [reference evidence](v0.2/reference/README.md), with exact checksums and aliases. [Q-001](open-questions.md#q-001--missing-whole-system-architecture-contract) records the recovered evidence; real consumer/integration acceptance remains a separate gate.
 
 ## Authority and publication
 

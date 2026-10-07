@@ -207,6 +207,23 @@ def check_contracts(root: Path) -> tuple[list[str], str, dict, dict]:
                     errors.append(f"{context}: snapshot path is outside its version directory")
                 if manifest_path == current and path.is_file():
                     active_text.append(path.read_text(encoding="utf-8"))
+            # Clarifications are additive publications, never edits to the frozen
+            # baseline. Verify their own immutable evidence independently.
+            amendment_paths = []
+            for amendment in manifest.get("amendments", []):
+                context = f"contract amendment {amendment.get('path')}"
+                errors.extend(check_hash(root, amendment, "path", context))
+                amendment_path = root / amendment["path"]
+                if not within_root(manifest_path.parent, amendment_path):
+                    errors.append(f"{context}: amendment is outside its version directory")
+                amendment_paths.append(amendment["path"])
+            if len(amendment_paths) != len(set(amendment_paths)):
+                errors.append(f"{manifest_path.relative_to(root)}: duplicate amendment paths")
+            for reference in manifest.get("supplementaryReferences", []):
+                context = f"supplementary contract reference {reference.get('path')}"
+                errors.extend(check_hash(root, reference, "path", context))
+                if not within_root(manifest_path.parent, root / reference["path"]):
+                    errors.append(f"{context}: reference is outside its version directory")
             if manifest_path == current:
                 active_manifest = manifest
                 for key in ("contractVersion", "apiGeneration"):
@@ -280,6 +297,18 @@ def check_upstream(root: Path, contract_text: str, active_manifest: dict) -> lis
                 errors.append(f"{context}: missing audited license expression/scope")
             if not isinstance(component.get("patches"), list):
                 errors.append(f"{context}: missing explicit patch inventory")
+            elif component["patches"]:
+                series_path = root / "patches" / component["name"] / "series.json"
+                if not series_path.is_file():
+                    errors.append(f"{context}: missing patch-series provenance")
+                else:
+                    series = json.loads(series_path.read_text(encoding="utf-8"))
+                    if series.get("baseCommit") != commit or series.get("repository") != component["repository"]:
+                        errors.append(f"{context}: patch series does not match its locked origin/commit")
+                    if series.get("patches") != component["patches"]:
+                        errors.append(f"{context}: locked patch inventory differs from reviewed series")
+                for patch in component["patches"]:
+                    errors.extend(check_hash(root, patch, "path", context))
         for component in lock.get("supplemental_licenses", []):
             errors.extend(check_evidence(root, component, f"supplemental {component.get('name')}"))
     except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:

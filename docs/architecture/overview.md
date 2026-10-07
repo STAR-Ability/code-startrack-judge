@@ -26,7 +26,7 @@ flowchart LR
     J --> S[Supervised sandbox processes]
 ```
 
-This is the service-local boundary. The missing referenced whole-system contract is tracked as [Q-001](../contracts/open-questions.md#q-001--missing-whole-system-architecture-contract); no full four-service deployment topology is inferred from this diagram.
+The recovered [whole-system integration contract](../contracts/v0.2/integration.md) defines the four-service topology and integration flow. [Q-001](../contracts/open-questions.md#q-001--missing-whole-system-architecture-contract) records its byte-identical recovery and provenance; deployment acceptance remains a separate gate.
 
 ## Planned modules and ownership seams
 

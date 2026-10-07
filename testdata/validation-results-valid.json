@@ -1,0 +1,57 @@
+{
+  "structure": {
+    "passed": true,
+    "evidence": [
+      {
+        "check": "SYNTHETIC_SCHEMA_FIXTURE",
+        "subjectSha256": null,
+        "logObjectKey": null,
+        "summary": "Synthetic schema fixture; not execution evidence."
+      }
+    ]
+  },
+  "statement": {
+    "passed": true,
+    "evidence": [
+      {
+        "check": "SYNTHETIC_SCHEMA_FIXTURE",
+        "subjectSha256": null,
+        "logObjectKey": null,
+        "summary": "Synthetic schema fixture; not execution evidence."
+      }
+    ]
+  },
+  "testData": {
+    "passed": true,
+    "evidence": [
+      {
+        "check": "SYNTHETIC_SCHEMA_FIXTURE",
+        "subjectSha256": null,
+        "logObjectKey": null,
+        "summary": "Synthetic schema fixture; not execution evidence."
+      }
+    ]
+  },
+  "validators": {
+    "passed": true,
+    "evidence": [
+      {
+        "check": "SYNTHETIC_SCHEMA_FIXTURE",
+        "subjectSha256": null,
+        "logObjectKey": null,
+        "summary": "Synthetic schema fixture; not execution evidence."
+      }
+    ]
+  },
+  "referenceSolutions": {
+    "passed": true,
+    "evidence": [
+      {
+        "check": "SYNTHETIC_SCHEMA_FIXTURE",
+        "subjectSha256": null,
+        "logObjectKey": null,
+        "summary": "Synthetic schema fixture; not execution evidence."
+      }
+    ]
+  }
+}
