@@ -18,7 +18,7 @@ jobs:
   foundation:
     name: Portable foundation
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       # v4.3.1; verified against actions/checkout's GitHub tag ref.
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -26,9 +26,48 @@ jobs:
           persist-credentials: false
       - name: Test the foundation validator
         run: python3 scripts/check-foundation.py --self-test
+      - name: Install verified Go SDK
+        run: make toolchain
+      - name: Install hash-locked contract test dependencies
+        run: make contract-test-setup
       - name: Validate repository foundation
         run: make check
       - name: Parse workflow, issue forms, and Compose YAML
         run: ruby -rpsych -e 'ARGV.each { |path| Psych.parse_file(path) }' .github/workflows/*.yml .github/ISSUE_TEMPLATE/*.yml compose.yaml
       - name: Validate portable Compose configuration
         run: docker compose --env-file .env.example --file compose.yaml config --quiet
+      - name: Fetch and verify pinned upstream source
+        run: make upstream-fetch upstream-verify
+      - name: Verify upstream patch provenance and omissions
+        run: make upstream-patch-check
+
+  postgres:
+    name: PostgreSQL contracts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.10-bookworm@sha256:9b18b78397054fce88a9552e9d5a3ad5bb7fd258c5b3cc1c5028e46373d6ea8f
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          # Disposable synthetic CI credential; never used by deployments.
+          POSTGRES_PASSWORD: EXAMPLE_CI_ONLY_POSTGRES_PASSWORD
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      JUDGE_TEST_ADMIN_DATABASE_URL: postgresql://postgres:EXAMPLE_CI_ONLY_POSTGRES_PASSWORD@127.0.0.1:5432/postgres?sslmode=disable
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - name: Install verified Go SDK
+        run: make toolchain
+      - name: Exercise actual PostgreSQL migrations and invariants
+        run: .local/toolchains/go1.26.8/go/bin/go test -mod=readonly -race -count=1 -v ./internal/persistence/migrate

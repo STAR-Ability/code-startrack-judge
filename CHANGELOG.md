@@ -10,6 +10,14 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 - Architecture decisions, implementation dependency plan, forward-only migration policy, and security/release procedures.
 - Portable PostgreSQL development environment, exact upstream source/license inventory, and foundation CI.
 - Small-team `dev` integration / protected `main` release workflow and V0.2 work tracking.
+- Byte-identical recovered integration contract, explicit V0.2 clarifications, typed package/validation schemas and canonical/archive golden vectors.
+- Go 1.26.8 service, strict internal HTTP/DTO/hash boundaries, native dependency/license inventory and reproducible build checks.
+- Initial forward PostgreSQL schema, checksum-aware migration runner and separately scoped provisioning/runtime roles.
+- Provenance-tracked upstream hardening patches and private binary-safe sandbox REST transport.
+
+### Changed
+
+- Adopted owner-approved Apache-2.0 for Code Startrack-owned source; retained independent third-party terms and problem license approval.
 
 ### Security
 
@@ -17,5 +25,4 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 
 ### Planned
 
-- V0.2 service implementation, migration runner/schema, package adapters, task/outbox execution and deployment qualification.
-- Owner selection of the project's own license. Third-party notices are independently retained.
+- V0.2 business workflows, package adapters, task/outbox execution and actual image/Linux deployment qualification.

@@ -1,10 +1,11 @@
 # Portable development
 
-Phase 0 supplies a reproducible PostgreSQL environment and exact upstream source
-verification. The service, judge schema, migration runner, API and workers have
-not been implemented. There is no `make run` command or working judge endpoint
-yet. Follow the [implementation plan](../architecture/implementation-plan.md)
-for the next milestones.
+The completed Phase 0 foundation supplies reproducible PostgreSQL infrastructure
+and exact upstream source verification. V0.2 implementation is now in progress;
+[service development](service.md) documents the locked SDK, native checks, build
+and `make run` entrypoint. Workflow/runtime readiness remains gated by actual
+implementation and qualification. Follow the [implementation plan](../architecture/implementation-plan.md)
+and linked Issues for their scoped acceptance.
 
 ## Requirements and first use
 
@@ -20,6 +21,8 @@ git clone https://github.com/STAR-Ability/code-startrack-judge.git
 cd code-startrack-judge
 git switch dev
 make bootstrap
+make toolchain
+make contract-test-setup
 make check
 make infra-up
 make db-version
@@ -103,20 +106,19 @@ python3 scripts/upstream.py verify --component go-judge
 git --git-dir .cache/upstream/go-judge.git show e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8:go.mod
 ```
 
-The pinned Go components require Go **1.26.0** and problemtools requires Python
->=3.11, but upstream **build/install tooling is deferred** until its implementing
-Issue establishes locked transitive dependencies and a reproducible toolchain.
+The pinned Go components require at least Go **1.26.0**; owned builds lock the
+compatible patched **1.26.8** SDK. problemtools requires Python >=3.11; its exact
+image/transitive installation is tracked by its implementation Issues.
 Source retrieval is not runtime compatibility or package-license approval.
 See the [upstream inventory](../upstream/dependencies.md) and
 [compatibility matrix](../upstream/compatibility-matrix.md).
 
 ## Service development and sandbox validation
 
-The next implementation step will add service configuration and native
-language tooling; database migration and service start commands must be added
-and verified in their Issues. Portable tests may exercise DTOs, repositories,
-parsers and mocks as those exist. They must not execute untrusted submissions,
-validators, checkers or reference programs on the host.
+Service configuration, strict DTOs, canonical hashing and native tooling are
+being implemented. Portable tests exercise their DTOs and explicit mocks;
+database and worker checks are verified in their Issues. They must not execute
+untrusted submissions, validators, checkers or reference programs on the host.
 
 `make sandbox-preflight` only checks Linux prerequisites. It fails on macOS;
 success is **not** proof that resource and isolation controls work. Real judge
