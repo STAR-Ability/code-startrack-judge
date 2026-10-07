@@ -2,7 +2,7 @@
 
 The [versioned database contract](../contracts/v0.2/database.md) defines service ownership and data invariants. The [migration directory policy](../../migrations/README.md) defines file identities and runner requirements. This document describes how developers and operators apply that policy; it does not replace contract tables with a second schema specification.
 
-## Phase 0 commands and limits
+## Current commands and scope
 
 Follow [getting started](getting-started.md) to configure Docker Compose and generated local credentials, then run:
 
@@ -11,12 +11,16 @@ make bootstrap
 make infra-up
 make db-version
 make migration-status
+make build
+make database-status
+make migration-up
+make database-status
 make check
 ```
 
-`db-version` checks the PostgreSQL **server** version. `migration-status` reports the repository's migration history, currently level **0** with no SQL files and no runner. Neither command proves an applied business schema. Phase 0 deliberately provides no migration apply command, JudgeTask tables, or application service. Do not manually create those tables to work around the missing implementation.
+`db-version` checks the PostgreSQL **server** version. `migration-status` reports the repository's available forward files, currently level **1**. `database-status` reads the actual native version/dirty state and validates applied checksums. `migration-up` uses the pinned native runner and embedded SQL. Supply `JUDGE_MIGRATION_DATABASE_URL` privately; build and apply are separate operations. Follow [role provisioning](database-provisioning.md) before `migration-up`, then apply the explicit runtime grants afterward. [The migration runbook](migrations.md) contains direct executable commands, PostgreSQL tests and failure behavior.
 
-Local infrastructure administration credentials are generated for a disposable development database. They are not application credentials or evidence of production access control. The first schema Issue must provide schema-scoped roles and runnable, pinned native migrations before repository/business integration work depends on database tables.
+Local infrastructure administration credentials are generated for a disposable development database. They are not application or migration credentials. The runner requires a non-administrative owner of `judge`; runtime uses a separate identity with explicit business-table privileges and read-only migration tracking. A running PostgreSQL server or an available SQL file alone does not prove an applied business schema or production access control.
 
 ## Database and credential boundaries
 
@@ -28,7 +32,7 @@ Use schema-qualified object names. Keep the migration tool's tracking table in `
 
 ## Development migration workflow
 
-Once the first schema Issue has supplied the pinned runner and commands:
+For each new forward schema change:
 
 1. Read the active contract, accepted ADRs, previous migrations, and the implementation Issue. Resolve any contract conflict in the [question register](../contracts/open-questions.md) before encoding a competing interpretation.
 2. Ask the migration coordinator for the next identity. Add forward SQL and its explanation; do not use ORM auto-sync or amend a previously shared file. Follow the initial dependency order in database contract section 14, including deferred local compound foreign keys for circular artifact/version/validation references.
@@ -36,13 +40,13 @@ Once the first schema Issue has supplied the pinned runner and commands:
 4. Apply all migrations to a fresh disposable database, then upgrade a database initialized at the previous released level with representative historical records. Repeat the forward command, check actual version/dirty state, compare checksums, and run repository/API integration tests. Test new constraints with invalid rows, not only happy-path inserts.
 5. Record the validation and operational evidence in the Issue/PR. Update the release's supported schema range and migration metadata. Integrate into `dev` after review and checks.
 
-The first schema Issue must turn those steps into documented executable commands and CI. Until then, they are planned requirements, not tests that Phase 0 claims to have run.
+Run the [database-backed migration checks](migrations.md#postgresql-validation) with an isolated PostgreSQL administrator connection. The suite creates disposable databases and roles, tests retained previous-level records and verifies native locking, dirty failure, checksum changes/missing history, circular relationships, immutable facts and runtime privilege denials. If its required test connection is absent, database tests explicitly skip; ordinary unit success is not database acceptance evidence. Historical Phase 0 reports retain their original scope.
 
 ## Historical records and data conversions
 
 Preserve the identity and traceability of problem versions, artifacts, license evidence, validation runs, language configurations, JudgeTasks, results, and published contracts. Migration-level conversions must preserve old value semantics, original hashes, upstream provenance, image/toolchain digests, and object references. New problem/execution meaning is a new immutable version, not an overwrite of a historical record.
 
-Review any lifecycle update against the contract's permitted exceptions, such as first publication, active language selection, and task/outbox state before terminal commitment. Artifact validation-pointer mutability and recovery-state details are tracked in the question register; a schema migration must not silently settle those questions. Expired catalog snapshots and terminal temporary source copies have separate contract cleanup rules; they are not permission to delete immutable packages/results. Never cascade a historical problem/task deletion to its dependants.
+Review any lifecycle update against the contract's permitted exceptions, such as first publication, active language selection, and task/outbox state before terminal commitment. The [published clarifications](../contracts/v0.2/clarifications.md) freeze source/content identities and evidence variants, permit one exact-context selected validation pointer, and define the bounded recovery reservation graph. New license approval inserts evidence; it never edits an old record. Source cleanup changes only the private transient key and preserves public task timestamps/revisions. Expired catalog snapshots are cleaned as whole snapshots; neither cleanup permits deleting immutable packages/results. Never cascade a historical problem/task deletion to its dependants.
 
 For an evolving table, prefer **expand → backfill → verify → switch readers/writers → remove obsolete structure in a later migration**. Backfills must be bounded, restartable, and observable. Keep old application binaries compatible during the intended deployment overlap. Removing a column or constraint requires an explicit compatibility plan and evidence that supported readers no longer need it. Do not make immutable historical rows masquerade as records created under the new contract.
 

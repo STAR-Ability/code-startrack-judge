@@ -1,6 +1,6 @@
 # Code Startrack Judge & Problem Service — repository operating rules
 
-These rules apply to humans and coding agents throughout this repository. Read this file, the current contracts, and the relevant accepted ADRs before changing behavior. Phase 0 establishes the foundation; business implementation proceeds through scoped Issues.
+These rules apply to humans and coding agents throughout this repository. Read this file, the current contracts, and the relevant accepted ADRs before changing behavior. The Phase 0 foundation is complete; V0.2 business implementation proceeds through scoped Issues.
 
 ## Identity and ownership
 
@@ -22,7 +22,7 @@ A published historical contract governs its historical release. A draft future c
 
 - Target: V0.2 / service release `0.2.0`; no production release recorded yet.
 - Implementation baseline: [contracts v0.2](docs/contracts/README.md), contract publication identifier `0.2.0`, API generation `/internal/v2`.
-- Repository migration level: `0` (no business DDL or deployed migration history established here).
+- Repository migration level: `1` (initial schema candidate; applied database history is recorded separately).
 - Release/deployment evidence belongs in [release records](docs/releases/process.md); [state.json](docs/releases/state.json) records the repository's current pointers, not live deployment health.
 
 Update these small pointers when a release/contract becomes active; do not turn this file into a milestone checklist.
