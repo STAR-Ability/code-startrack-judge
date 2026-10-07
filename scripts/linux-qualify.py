@@ -86,6 +86,7 @@ def main():
     if evidence.exists() or evidence.is_symlink():
         raise ValueError("fresh_evidence_directory_required")
     evidence.mkdir(parents=True, mode=0o755)
+    evidence.chmod(0o755)
     prefix = ["docker", "--context", args.docker_context]
     daemon = json.loads(run(prefix, ["info", "--format", "{{json .}}"]).stdout)
     if daemon.get("CgroupVersion") != "2" or daemon.get("MemTotal", 0) < 15 << 30 or daemon.get("NCPU", 0) < 4:
@@ -204,6 +205,7 @@ def main():
         if facilities is not None:
             shutil.rmtree(facilities)
         (evidence / "qualification.json").write_text(json.dumps(report, indent=2) + "\n")
+        (evidence / "qualification.json").chmod(0o644)
     print("Linux synthetic runtime checks " + ("passed; full acceptance pending" if report["runtimeChecksPassed"] else "failed: " + report["failureCode"]))
     return 0 if report["runtimeChecksPassed"] else 1
 

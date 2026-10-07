@@ -34,7 +34,6 @@ jobs:
       RELEASE_VALIDATION_RUN: ${{ github.event.workflow_run.html_url }}
       IMAGE_TAG: ghcr.io/star-ability/code-startrack-judge:git-${{ github.event.workflow_run.head_sha }}
       SOURCE_TAG: ghcr.io/star-ability/code-startrack-judge-sources:git-${{ github.event.workflow_run.head_sha }}
-      DOCKER_CONFIG: ${{ runner.temp }}/judge-registry-auth
     steps:
       # v4.3.1; exact source from the successful protected-main Foundation run.
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
@@ -42,6 +41,10 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Set private registry path for this runner attempt
+        run: |
+          printf 'DOCKER_CONFIG=%s\n' \
+            "$RUNNER_TEMP/judge-registry-auth-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
       - name: Authenticate the fixed image registry
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}

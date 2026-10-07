@@ -754,7 +754,7 @@
         },
         {
           "entrypoint": "./cmd/startrack-supervisor",
-          "dependencyPackageCount": 89,
+          "dependencyPackageCount": 85,
           "modulePaths": []
         }
       ]
@@ -850,7 +850,7 @@
         },
         {
           "entrypoint": "./cmd/startrack-supervisor",
-          "dependencyPackageCount": 89,
+          "dependencyPackageCount": 85,
           "modulePaths": []
         }
       ]

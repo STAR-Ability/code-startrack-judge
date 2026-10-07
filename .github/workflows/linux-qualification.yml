@@ -25,14 +25,16 @@ jobs:
     runs-on: [self-hosted, Linux, X64, judge-sandbox-qualification]
     environment: judge-sandbox-qualification
     timeout-minutes: 45
-    env:
-      QUALIFICATION_EVIDENCE_DIR: ${{ runner.temp }}/judge-linux-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-      DOCKER_CONFIG: ${{ runner.temp }}/judge-linux-registry-auth-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
+      - name: Set private paths for this runner attempt
+        run: |
+          printf 'QUALIFICATION_EVIDENCE_DIR=%s\nDOCKER_CONFIG=%s\n' \
+            "$RUNNER_TEMP/judge-linux-evidence-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            "$RUNNER_TEMP/judge-linux-registry-auth-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
       - name: Authenticate read access to the fixed registry
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,11 +52,11 @@ jobs:
             --expected-commit "$GITHUB_SHA" --docker-context default \
             --evidence "$QUALIFICATION_EVIDENCE_DIR"
       - name: Preserve sanitized actual qualification evidence
-        if: always()
+        if: always() && env.QUALIFICATION_EVIDENCE_DIR != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: linux-qualification-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ env.QUALIFICATION_EVIDENCE_DIR }}/
+          path: ${{ env.QUALIFICATION_EVIDENCE_DIR }}/qualification.json
           if-no-files-found: error
           retention-days: 90
       - name: Remove registry read credentials
