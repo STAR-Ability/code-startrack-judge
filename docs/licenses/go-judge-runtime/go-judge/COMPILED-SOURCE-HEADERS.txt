@@ -4,3 +4,12 @@
 // SPDX-License-Identifier: Apache-2.0
 // Code Startrack addition: execve resets the launcher's dumpability setting.
 
+===== seccomp/startrack-workload.yaml sha256:e47a2805e1f4c70bf359b4df5500fc9ed7dca3ddfc004733ec66d17b801dc417 =====
+# Copyright 2026 Code Startrack contributors. SPDX-License-Identifier: Apache-2.0
+# Additional workload-only restrictions; the unchanged init whitelist is inherited.
+
+===== seccomp/startrack_workload.go sha256:49315b0e0b318c17892c7d7f9e29f026fa6dec6a0832d7405746a44c121ac4f9 =====
+// Copyright 2026 Code Startrack contributors.
+// SPDX-License-Identifier: Apache-2.0
+
+

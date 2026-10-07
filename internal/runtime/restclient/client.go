@@ -196,6 +196,9 @@ func (c *Client) Upload(ctx context.Context, contents []byte) (FileID, error) {
 // Run preserves the REST bare-array response and exact nanosecond/byte units.
 // copyOut (JSON string contents) is unavailable: all outputs use cached files.
 func (c *Client) Run(ctx context.Context, request Request) ([]Result, error) {
+	// The owner must not mutate during this snapshot. Later in-flight changes
+	// cannot alter the validated request, projection bindings or cleanup inputs.
+	request = freezeRequest(request)
 	if err := validateRequest(request, c.limits); err != nil {
 		return nil, err
 	}
@@ -226,6 +229,23 @@ func (c *Client) Run(ctx context.Context, request Request) ([]Result, error) {
 		}
 	}
 	return results, err
+}
+
+func freezeRequest(request Request) Request {
+	frozen := Request{RequestID: request.RequestID, Commands: make([]Command, len(request.Commands))}
+	for i, command := range request.Commands {
+		command.Args = append([]string(nil), command.Args...)
+		command.Env = append([]string(nil), command.Env...)
+		command.Files = append([]File(nil), command.Files...)
+		command.CopyOutCached = append([]Output(nil), command.CopyOutCached...)
+		copyIn := make(map[string]FileID, len(command.CopyIn))
+		for name, id := range command.CopyIn {
+			copyIn[name] = id
+		}
+		command.CopyIn = copyIn
+		frozen.Commands[i] = command
+	}
+	return frozen
 }
 
 func (c *Client) cleanupResponseIDs(values []wireResult, request Request) bool {

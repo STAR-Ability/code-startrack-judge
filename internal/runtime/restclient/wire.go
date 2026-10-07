@@ -111,6 +111,12 @@ func projectResults(w []wireResult, req Request, limits Limits) ([]Result, error
 		for _, output := range req.Commands[i].CopyOutCached {
 			requested[output.Name] = output
 		}
+		collectors := make(map[string]bool)
+		for _, file := range req.Commands[i].Files {
+			if file.Collector != "" && file.CollectPipe && file.LimitBytes > 0 {
+				collectors[file.Collector] = true
+			}
+		}
 		ids := make(map[string]FileID, len(value.FileIDs))
 		for name, id := range value.FileIDs {
 			if _, ok := requested[name]; !ok || !id.valid() || inputIDs[id] || outputIDs[id] {
@@ -127,17 +133,34 @@ func projectResults(w []wireResult, req Request, limits Limits) ([]Result, error
 			}
 		}
 		fileErrorTypes := make([]FileErrorType, 0, len(value.FileError))
+		sizeOnly, collectorOnly := len(value.FileError) > 0, len(value.FileError) > 0
 		for _, failure := range value.FileError {
 			if !failure.Type.valid() {
 				return nil, &Error{Kind: ProtocolError}
 			}
 			fileErrorTypes = append(fileErrorTypes, failure.Type)
+			_, outputRequested := requested[failure.Name]
+			switch failure.Type {
+			case CollectSizeExceeded:
+				sizeOnly = sizeOnly && outputRequested && collectors[failure.Name]
+				collectorOnly = collectorOnly && outputRequested && collectors[failure.Name] && failure.Message == pinnedCollectorOutputLimitError
+			case CopyOutSizeExceeded:
+				sizeOnly = sizeOnly && outputRequested && req.Commands[i].CopyOutMaxBytes > 0
+				collectorOnly = false
+			default:
+				sizeOnly, collectorOnly = false, false
+			}
 		}
 		totalFiles += len(ids)
 		if totalFiles > limits.Files {
 			return nil, &Error{Kind: BoundsError}
 		}
-		results[i] = Result{Status: *value.Status, ExitStatus: *value.ExitStatus, CPUTimeNS: *value.Time, WallTimeNS: *value.RunTime, MemoryBytes: *value.Memory, ProcessPeak: value.ProcPeak, CachedFiles: ids, HasError: value.Error != "", FileErrorCount: len(value.FileError), FileErrorTypes: fileErrorTypes}
+		results[i] = Result{Status: *value.Status, ExitStatus: *value.ExitStatus, CPUTimeNS: *value.Time, WallTimeNS: *value.RunTime, MemoryBytes: *value.Memory, ProcessPeak: value.ProcPeak, CachedFiles: ids, HasError: value.Error != "", FileErrorCount: len(value.FileError), FileErrorTypes: fileErrorTypes, RequestedOutputSizeExceeded: sizeOnly, CollectorOutputLimitError: collectorOnly && value.Error == pinnedCollectorOutputLimitError}
 	}
 	return results, nil
 }
+
+// Exact go-sandbox v0.14.0/99ea73b runner.StatusOutputLimitExceeded.Error().
+// The pinned go-judge collector returns this typed error for finite overflow.
+// This equality creates a bounded structural fact; raw diagnostics are dropped.
+const pinnedCollectorOutputLimitError = "Output Limit Exceeded"

@@ -5,6 +5,7 @@ package supervisor
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	_ "embed"
 	"encoding/hex"
@@ -30,16 +31,54 @@ import (
 var isolationProbe []byte
 
 type probeObservation struct {
-	UID, GID, ExecutionUID                                                                                     int
-	PeerFilesystem                                                                                             bool
-	Seccomp, CapsZero, NoNewPrivileges, PrivateMounts, Readonly, Filesystem, Credentials, SiblingProc, Network bool
-	Descriptors                                                                                                bool
-	PIDNamespace, NetNamespace                                                                                 string
+	UID                       int    `json:"uid"`
+	GID                       int    `json:"gid"`
+	ExecutionUID              int    `json:"executionUID"`
+	PeerFilesystem            bool   `json:"peerFilesystem"`
+	Seccomp                   bool   `json:"seccomp"`
+	CapsZero                  bool   `json:"capsZero"`
+	NoNewPrivileges           bool   `json:"noNewPrivileges"`
+	PrivateMounts             bool   `json:"privateMounts"`
+	Readonly                  bool   `json:"readonly"`
+	Filesystem                bool   `json:"filesystem"`
+	Credentials               bool   `json:"credentials"`
+	SiblingProc               bool   `json:"siblingProc"`
+	Network                   bool   `json:"network"`
+	Descriptors               bool   `json:"descriptors"`
+	PIDNamespace              string `json:"pidNamespace"`
+	NetNamespace              string `json:"netNamespace"`
+	CapabilityBoundingBits    uint64 `json:"capabilityBoundingBits"`
+	CapabilityEffectiveBits   uint64 `json:"capabilityEffectiveBits"`
+	CapabilityPermittedBits   uint64 `json:"capabilityPermittedBits"`
+	CapabilityInheritableBits uint64 `json:"capabilityInheritableBits"`
+	CapabilityAmbientBits     uint64 `json:"capabilityAmbientBits"`
+	Securebits                int    `json:"securebits"`
+	SeccompFilters            int    `json:"seccompFilters"`
+	DenialFailure             string `json:"denialFailure"`
+	ReadonlyFailure           string `json:"readonlyFailure"`
+	ReadonlyMountCount        int    `json:"readonlyMountCount"`
+	ReadonlyWriteDeniedCount  int    `json:"readonlyWriteDeniedCount"`
+	ReadonlyEROFSCount        int    `json:"readonlyEROFSCount"`
+	ReadonlyEACCESCount       int    `json:"readonlyEACCESCount"`
+	ReadonlyEPERMCount        int    `json:"readonlyEPERMCount"`
+}
+
+type qualificationResourceObservation struct {
+	Fixture              string                     `json:"fixture"`
+	Status               restclient.Status          `json:"status"`
+	ExitStatus           int                        `json:"exitStatus"`
+	CPUTimeNS            uint64                     `json:"cpuTimeNS"`
+	WallTimeNS           uint64                     `json:"wallTimeNS"`
+	MemoryBytes          uint64                     `json:"memoryBytes"`
+	ProcessPeak          uint64                     `json:"processPeak"`
+	OutputCollectedBytes int                        `json:"outputCollectedBytes"`
+	FileErrorTypes       []restclient.FileErrorType `json:"fileErrorTypes"`
 }
 
 type cgroupObservation struct {
 	CPU, Memory, PIDs, Compiler, Concurrent bool
 	mu                                      sync.Mutex
+	cleanup                                 *qualificationCleanup
 }
 
 func sampleCgroups(ctx context.Context, observation *cgroupObservation) {
@@ -50,34 +89,30 @@ func sampleCgroups(ctx context.Context, observation *cgroupObservation) {
 		inspectorGroups := map[string]bool{}
 		inspectorModes := map[string]bool{}
 		for _, path := range paths {
-			procs, err := os.ReadFile(filepath.Join(path, "cgroup.procs"))
+			procs, err := qualificationRead(filepath.Join(path, "cgroup.procs"))
 			if err != nil || len(bytes.TrimSpace(procs)) == 0 {
 				continue
 			}
-			memory, e1 := os.ReadFile(filepath.Join(path, "memory.max"))
-			pids, e2 := os.ReadFile(filepath.Join(path, "pids.max"))
-			cpu, e3 := os.ReadFile(filepath.Join(path, "cpu.stat"))
-			m, _ := strconv.ParseUint(strings.TrimSpace(string(memory)), 10, 64)
-			p, _ := strconv.ParseUint(strings.TrimSpace(string(pids)), 10, 64)
 			observation.mu.Lock()
-			observation.CPU = observation.CPU || (e3 == nil && strings.Contains(string(cpu), "usage_usec"))
-			observation.Memory = observation.Memory || (e1 == nil && m > 0 && m <= 512<<20)
-			observation.PIDs = observation.PIDs || (e2 == nil && p > 0 && p <= 32)
 			for _, pid := range strings.Fields(string(procs)) {
-				comm, _ := os.ReadFile("/proc/" + pid + "/comm")
-				name := strings.TrimSpace(string(comm))
-				if name == "g++" || name == "cc1plus" {
-					status, e := os.ReadFile("/proc/" + pid + "/status")
-					if e == nil && compilerBoundary(string(status)) {
-						observation.Compiler = true
+				args, argsErr := qualificationRead("/proc/" + pid + "/cmdline")
+				mode := observation.cleanup.mode(args)
+				stable := false
+				if argsErr == nil && mode != "" {
+					id, parseErr := strconv.Atoi(pid)
+					if parseErr != nil {
+						observation.cleanup.failed = true
+					} else {
+						stable = observation.cleanup.observe(path, id, args)
 					}
 				}
+				comm, _ := qualificationRead("/proc/" + pid + "/comm")
+				name := strings.TrimSpace(string(comm))
 				if name == "probe" {
-					args, e := os.ReadFile("/proc/" + pid + "/cmdline")
-					for _, mode := range []string{"inspect-a", "inspect-b"} {
-						if e == nil && string(args) == "/w/probe\x00"+mode+"\x00" {
+					for _, inspection := range []string{"inspect-a", "inspect-b"} {
+						if stable && mode == inspection {
 							inspectorGroups[path] = true
-							inspectorModes[mode] = true
+							inspectorModes[inspection] = true
 						}
 					}
 				}
@@ -99,7 +134,7 @@ func qualificationCommand(args []string, stdin restclient.FileID, input map[stri
 	return restclient.Command{Args: args, Env: []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C", "LC_ALL=C", "HOME=/w", "TMPDIR=/w"}, Files: []restclient.File{{ID: stdin}, {Collector: "stdout", LimitBytes: 4096, CollectPipe: true}, {Collector: "stderr", LimitBytes: 4096, CollectPipe: true}}, CopyIn: input, CopyOutCached: []restclient.Output{{Name: "stdout"}, {Name: "stderr"}}, CPULimitNS: uint64(time.Second), ClockLimitNS: uint64(3 * time.Second), MemoryLimitBytes: 128 << 20, StackLimitBytes: 128 << 20, ProcessLimit: 16, CopyOutMaxBytes: 4 << 20, StrictMemoryLimit: true}
 }
 
-func qualify(ctx context.Context, s settings, runtimePID int) error {
+func qualify(ctx context.Context, s settings, runtimePID int, startup bool) error {
 	managerPID, err := awaitManager(ctx, runtimePID)
 	if err != nil {
 		return err
@@ -162,12 +197,21 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 			return fail("qualification_artifact_identity")
 		}
 	}
-	observation := &cgroupObservation{}
+	var random [16]byte
+	if _, err := rand.Read(random[:]); err != nil {
+		return fail("qualification_nonce")
+	}
+	nonce := hex.EncodeToString(random[:])
+	observation := &cgroupObservation{cleanup: newQualificationCleanup(nonce)}
+	defer observation.cleanup.close()
+	cleanupEvidence := qualificationCleanupObservation{}
+	var forkPeak uint64
 	sampleCtx, stopSampling := context.WithCancel(ctx)
 	samplingDone := make(chan struct{})
 	go func() { defer close(samplingDone); sampleCgroups(sampleCtx, observation) }()
 	defer func() { stopSampling(); <-samplingDone }()
-	compile := qualificationCommand([]string{"/usr/bin/g++", "-std=c++17", "-O0", "/w/probe.cpp", "-o", "/w/probe"}, stdin, map[string]restclient.FileID{"probe.cpp": source})
+	sourceName := "probe-" + nonce + ".cpp"
+	compile := qualificationCommand([]string{"/usr/bin/g++", "-std=c++17", "-O0", "/w/" + sourceName, "-o", "/w/probe"}, stdin, map[string]restclient.FileID{sourceName: source})
 	compile.CPULimitNS, compile.ClockLimitNS, compile.MemoryLimitBytes, compile.StackLimitBytes, compile.ProcessLimit = uint64(10*time.Second), uint64(20*time.Second), 512<<20, 512<<20, 32
 	compile.CopyOutCached = append(compile.CopyOutCached, restclient.Output{Name: "probe"})
 	compiled, err := session.Run(ctx, restclient.Request{RequestID: "supervisor-qualification-compile", Commands: []restclient.Command{compile}})
@@ -179,7 +223,7 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 		return fail("qualification_binary")
 	}
 	command := func(mode string) restclient.Command {
-		return qualificationCommand([]string{"/w/probe", mode}, stdin, map[string]restclient.FileID{"probe": binary})
+		return qualificationCommand([]string{"/w/probe", mode, nonce}, stdin, map[string]restclient.FileID{"probe": binary})
 	}
 	inspected, err := session.Run(ctx, restclient.Request{RequestID: "supervisor-qualification-concurrent", Commands: []restclient.Command{command("inspect-a"), command("inspect-b")}})
 	if err != nil || len(inspected) != 2 {
@@ -189,6 +233,15 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 	seenPIDNamespaces := map[string]bool{}
 	seenNetNamespaces := map[string]bool{}
 	checks := map[string]bool{}
+	observations := []probeObservation{}
+	resources := []qualificationResourceObservation{}
+	// Even a failed fixed synthetic probe retains its bounded nonsecret facts.
+	// The readiness measurement is written only after every invariant passes.
+	defer func() {
+		if len(observations) > 0 {
+			writeProbeObservations(s, managerPID, observations, resources, cleanupEvidence)
+		}
+	}()
 	for _, result := range inspected {
 		if result.Status != restclient.Accepted || result.ExitStatus != 0 || result.HasError || result.FileErrorCount != 0 {
 			return fail("qualification_inspection")
@@ -198,6 +251,7 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 		if e != nil || json.Unmarshal(data, &measured) != nil {
 			return fail("qualification_observation")
 		}
+		observations = append(observations, measured)
 		if measured.UID != 1000 || measured.GID != 1000 || measured.ExecutionUID < 1000 || seenUIDs[measured.ExecutionUID] {
 			return fail("qualification_execution_identity")
 		}
@@ -206,8 +260,16 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 			return fail("qualification_namespaces")
 		}
 		seenPIDNamespaces[measured.PIDNamespace], seenNetNamespaces[measured.NetNamespace] = true, true
-		if !measured.Seccomp || !measured.CapsZero || !measured.NoNewPrivileges || !measured.PrivateMounts || !measured.Readonly || !measured.Filesystem || !measured.Credentials || !measured.SiblingProc || !measured.Network || !measured.Descriptors || !measured.PeerFilesystem {
+		if !measured.Seccomp || measured.SeccompFilters < 3 || !measured.CapsZero || measured.Securebits != 47 || measured.DenialFailure != "" || measured.CapabilityEffectiveBits != 0 || measured.CapabilityPermittedBits != 0 || measured.CapabilityInheritableBits != 0 || measured.CapabilityAmbientBits != 0 || !measured.NoNewPrivileges || !measured.PrivateMounts || !measured.Readonly || !measured.Filesystem || !measured.Credentials || !measured.SiblingProc || !measured.Network || !measured.Descriptors || !measured.PeerFilesystem {
 			return fail("qualification_boundary")
+		}
+		if measured.ReadonlyFailure != "" || measured.ReadonlyMountCount != 9 || measured.ReadonlyWriteDeniedCount != 9 || measured.ReadonlyEROFSCount+measured.ReadonlyEACCESCount+measured.ReadonlyEPERMCount != 9 {
+			return fail("qualification_readonly_observations")
+		}
+		for _, count := range []int{measured.ReadonlyEROFSCount, measured.ReadonlyEACCESCount, measured.ReadonlyEPERMCount} {
+			if count < 0 || count > 9 {
+				return fail("qualification_readonly_observations")
+			}
 		}
 	}
 	for _, key := range []string{"seccomp", "namespaces", "network_denied", "filesystem_isolation", "credential_isolation", "sibling_proc_denied", "unique_execution_uids"} {
@@ -228,7 +290,22 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 		c := command(fixture.mode)
 		c.CPULimitNS, c.ClockLimitNS, c.MemoryLimitBytes, c.StackLimitBytes, c.ProcessLimit = fixture.cpu, fixture.clock, fixture.memory, fixture.memory, fixture.process
 		results, e := session.Run(ctx, restclient.Request{RequestID: "supervisor-qualification-" + fixture.mode, Commands: []restclient.Command{c}})
-		if e != nil || len(results) != 1 || results[0].Status != fixture.status || results[0].HasError || results[0].FileErrorCount != 0 {
+		boundedOutput := false
+		if e == nil && len(results) == 1 {
+			r := results[0]
+			resources = append(resources, qualificationResourceObservation{Fixture: fixture.mode, Status: r.Status, ExitStatus: r.ExitStatus, CPUTimeNS: r.CPUTimeNS, WallTimeNS: r.WallTimeNS, MemoryBytes: r.MemoryBytes, ProcessPeak: r.ProcessPeak, FileErrorTypes: r.FileErrorTypes})
+			if fixture.mode == "output" && !r.HasError && r.FileErrorCount == 1 && len(r.FileErrorTypes) == 1 && r.FileErrorTypes[0] == restclient.CollectSizeExceeded && (r.Status == restclient.OutputLimit || r.Status == restclient.TimeLimit) {
+				// The mature collector retains exactly limit+1 as its overflow
+				// sentinel. A prior CPU limit may remain the low-level status.
+				output, downloadErr := session.Download(ctx, r.CachedFiles["stdout"], 4097)
+				resources[len(resources)-1].OutputCollectedBytes = len(output)
+				boundedOutput = downloadErr == nil && len(output) == 4097 && r.WallTimeNS <= fixture.clock+uint64(time.Second)
+			}
+		}
+		if e != nil || len(results) != 1 || fixture.mode == "output" && !boundedOutput || fixture.mode != "output" && (results[0].Status != fixture.status || results[0].HasError || results[0].FileErrorCount != 0) {
+			for _, result := range results {
+				fmt.Fprintf(os.Stderr, "supervisor qualification_fixture mode=%s status=%s exit=%d memory=%d cpu=%d wall=%d error=%t fileErrors=%d fileErrorTypes=%v\n", fixture.mode, result.Status, result.ExitStatus, result.MemoryBytes, result.CPUTimeNS, result.WallTimeNS, result.HasError, result.FileErrorCount, result.FileErrorTypes)
+			}
 			return fail("qualification_" + fixture.mode)
 		}
 		r := results[0]
@@ -243,6 +320,7 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 			checks["output_limits"] = true
 		case "fork":
 			checks["process_limits"] = r.ProcessPeak > 1 && r.ProcessPeak <= 8
+			forkPeak = r.ProcessPeak
 		}
 	}
 	cleaned, e := session.Run(ctx, restclient.Request{RequestID: "supervisor-qualification-cleanup", Commands: []restclient.Command{command("inspect")}})
@@ -264,14 +342,17 @@ func qualify(ctx context.Context, s settings, runtimePID int) error {
 	stopSampling()
 	<-samplingDone
 	observation.mu.Lock()
-	checks["cgroup_cpu"], checks["cgroup_memory"], checks["cgroup_pids"], checks["compiler_isolation"] = observation.CPU, observation.Memory, observation.PIDs, observation.Compiler
+	checks["cgroup_cpu"], checks["cgroup_memory"], checks["cgroup_pids"], checks["compiler_isolation"] = observation.cleanup.cpu, observation.cleanup.memory, observation.cleanup.pids, observation.cleanup.compiler
 	checks["namespaces"] = checks["namespaces"] && observation.Concurrent
 	observation.mu.Unlock()
-	checks["cleanup"] = executionCgroupsEmpty()
+	cleanupEvidence, checks["cleanup"] = observation.cleanup.proof(forkPeak, startup)
 	for _, key := range judgeruntime.RequiredIsolationChecks {
 		if !checks[key] {
 			return fail("qualification_" + key)
 		}
+	}
+	if err := writeProbeObservations(s, managerPID, observations, resources, cleanupEvidence); err != nil {
+		return err
 	}
 	return writeMeasurement(s, managerPID, checks)
 }
@@ -337,7 +418,8 @@ func compilerBoundary(status string) bool {
 			return false
 		}
 	}
-	return len(fields["NSpid"]) >= 3 && strings.Join(fields["NoNewPrivs"], "") == "1" && strings.Join(fields["Seccomp"], "") == "2" && len(fields["Seccomp_filters"]) == 1 && fields["Seccomp_filters"][0] != "0" && fields["Seccomp_filters"][0] != "1"
+	filters, err := strconv.Atoi(strings.Join(fields["Seccomp_filters"], ""))
+	return err == nil && filters >= 3 && len(fields["NSpid"]) >= 3 && strings.Join(fields["NoNewPrivs"], "") == "1" && strings.Join(fields["Seccomp"], "") == "2"
 }
 
 func awaitManager(ctx context.Context, helperPID int) (int, error) {
@@ -436,7 +518,7 @@ func measuredProfile(pid int) (string, error) {
 			profile.WriteByte('\n')
 		}
 	}
-	for _, path := range []string{"/proc/self/status", "/proc/self/attr/current", managerPrefix + "/uid_map", managerPrefix + "/gid_map", "/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/pids.max", "/sys/fs/cgroup/cpu.max", "/opt/startrack/mount.yaml", "/opt/startrack/startrack-v02.seccomp.json", "/opt/startrack/startrack-v02.apparmor"} {
+	for _, path := range []string{"/proc/self/status", "/proc/self/attr/current", managerPrefix + "/uid_map", managerPrefix + "/gid_map", "/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/pids.max", "/sys/fs/cgroup/cpu.max", "/opt/startrack/mount.yaml", "/opt/startrack/startrack-v02.seccomp.json", "/opt/startrack/startrack-v02.apparmor", "/opt/startrack/startrack-workload-seccomp.yaml", "/opt/startrack/workload-security-profile.lock.json"} {
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return "", fail("measurement_profile")

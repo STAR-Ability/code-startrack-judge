@@ -77,9 +77,11 @@ class UpstreamPatchTests(unittest.TestCase):
                     self.assertIn("No input format validators found", validator_checks)
                 if name == "go-judge":
                     self.assertTrue((output / "seccomp/NOTICE").is_file())
+                    workload_changes = {record["path"] for patch in evidence["patches"] if patch["path"].endswith("0003-workload-namespace-seccomp.patch") for record in patch["files"]}
                     for record in evidence["inventory"]:
-                        if record["path"].startswith(("env/", "envexec/", "seccomp/")):
+                        if record["path"].startswith(("env/", "envexec/", "seccomp/")) and record["path"] not in workload_changes:
                             self.assertEqual(record["sha256"], record["sourceSha256"])
+                    self.assertEqual((output / "seccomp/startrack-workload.yaml").read_bytes(), (ROOT / "docker/startrack-workload-seccomp.yaml").read_bytes())
                     main = (output / "cmd/go-judge/main.go").read_text()
                     self.assertNotIn('r.GET("/config"', main)
                     self.assertLess(main.index("r.Use(tokenAuth"), main.index('r.GET("/version"'))

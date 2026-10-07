@@ -257,7 +257,7 @@ func TestRoleVerdictMatrix(t *testing.T) {
 			}
 		})
 	}
-	resource := restclient.Result{Status: restclient.FileError, FileErrorCount: 1, FileErrorTypes: []restclient.FileErrorType{restclient.CopyOutSizeExceeded}}
+	resource := restclient.Result{Status: restclient.FileError, FileErrorCount: 1, FileErrorTypes: []restclient.FileErrorType{restclient.CopyOutSizeExceeded}, RequestedOutputSizeExceeded: true}
 	verdict, _ := compilerVerdict(resource)
 	if verdict != contract.VerdictCE || contestantVerdict(resource) != contract.VerdictOLE || checkerVerdict(resource) != contract.VerdictIE {
 		t.Fatal("resource exhaustion misclassified")

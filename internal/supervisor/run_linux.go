@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -45,6 +46,10 @@ func Run(ctx context.Context) error {
 	os.Remove(QualificationPath + ".tmp")
 	os.Remove(MatrixPath)
 	os.Remove(MatrixPath + ".tmp")
+	for _, path := range []string{IsolationObservationsPath, CapacityPath, ProcessBoundaryPath} {
+		os.Remove(path)
+		os.Remove(path + ".tmp")
+	}
 	accounting := &cgroupAccounting{}
 	defer accounting.close()
 	if err = prepareCgroup(accounting); err != nil {
@@ -101,35 +106,51 @@ func Run(ctx context.Context) error {
 			}
 		}
 	}()
+	// Qualification helpers own real processes and accounting descriptors. Stop
+	// and reap them before component shutdown and before accounting is closed.
+	ctx, cancelQualification := context.WithCancel(ctx)
+	var qualificationWG sync.WaitGroup
+	defer func() { cancelQualification(); qualificationWG.Wait() }()
 	runtime, err := startRuntime(s, runtimeDrain)
 	if err != nil {
 		return err
 	}
 	runtimeState := monitor(runtime)
+	// Establish the complete global-idle proof before any business or matrix
+	// process can dispatch work. Refreshes prove only their own execution cleanup.
+	initialCtx, cancelInitial := context.WithTimeout(ctx, 60*time.Second)
+	err = qualify(initialCtx, s, runtime.Process.Pid, true)
+	cancelInitial()
+	if err != nil {
+		return err
+	}
 	qualificationFailed := make(chan error, 1)
 	startQualification := func() {
+		qualificationWG.Add(1)
 		go func() {
+			defer qualificationWG.Done()
 			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(15 * time.Second):
+				}
 				probeCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-				err := qualify(probeCtx, s, runtime.Process.Pid)
+				err := qualify(probeCtx, s, runtime.Process.Pid, false)
 				cancel()
 				if err != nil {
 					os.Remove(QualificationPath)
 					qualificationFailed <- err
 					return
 				}
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(15 * time.Second):
-				}
 			}
 		}()
 	}
-	if s.qualificationOnly {
+	if s.qualificationOnly && s.capacityPhase == "" {
 		startQualification()
 		matrixFailed := make(chan error, 1)
-		go func() { matrixFailed <- runQualificationMatrix(ctx, s, accounting) }()
+		qualificationWG.Add(1)
+		go func() { defer qualificationWG.Done(); matrixFailed <- runQualificationMatrix(ctx, s, accounting) }()
 		select {
 		case <-ctx.Done():
 			return nil
@@ -171,12 +192,40 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return fail("judger_start")
 	}
-	monitor(judger)
+	judgerState := monitor(judger)
+	if s.capacityPhase != "" {
+		startQualification()
+		capacityFailed := make(chan error, 1)
+		qualificationWG.Add(1)
+		go func() { defer qualificationWG.Done(); capacityFailed <- runImportCapacity(ctx, s, accounting) }()
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-runtimeState.done:
+				return fail("runtime_stopped")
+			case <-judgerState.done:
+				return fail("judger_stopped")
+			case err := <-qualificationFailed:
+				return err
+			case err := <-capacityFailed:
+				if err != nil {
+					return err
+				}
+				// Preserve the measured instance and private objects until the
+				// trusted runner collects accounting and stops it explicitly.
+				capacityFailed = nil
+			}
+		}
+	}
 	api := ownedChild(APIBinary, s.apiEnvironment(), APIUID, []uint32{SchedulingGID})
 	if api.Start() != nil {
 		return fail("api_start")
 	}
 	monitor(api)
+	if err := VerifyServiceProcessBoundary(ctx, api.Process.Pid, judger.Process.Pid); err != nil {
+		return err
+	}
 	startQualification()
 	failure := make(chan struct{}, len(children))
 	for _, child := range children {

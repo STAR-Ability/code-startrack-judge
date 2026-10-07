@@ -11,7 +11,8 @@ RUN --network=none test "$(go version)" = 'go version go1.26.8 linux/amd64' && \
     go build -mod=vendor -trimpath -buildvcs=false -o /out/judge-migrate ./cmd/judge-migrate && \
     go build -mod=vendor -trimpath -buildvcs=false -o /out/judge-admin ./cmd/judge-admin && \
     go build -mod=vendor -trimpath -buildvcs=false -o /out/judge-outbox ./cmd/judge-outbox && \
-    go build -mod=vendor -trimpath -buildvcs=false -o /out/startrack-runtime-matrix ./cmd/startrack-runtime-matrix
+    go build -mod=vendor -trimpath -buildvcs=false -o /out/startrack-runtime-matrix ./cmd/startrack-runtime-matrix && \
+    go build -mod=vendor -trimpath -buildvcs=false -o /out/startrack-import-capacity ./cmd/startrack-import-capacity
 WORKDIR /src/go-judge
 COPY upstream/go-judge/ ./
 RUN --network=none go build -mod=vendor -trimpath -buildvcs=false -o /out/go-judge ./cmd/go-judge
@@ -28,6 +29,7 @@ RUN --network=none test "$(g++ --version | head -n 1)" = 'g++ (Debian 12.2.0-14+
 FROM python:3.11.15-bookworm@sha256:eaeffb6e8511935426934aac863940fbd004ef31dab0d7fc27a129bb7c19d9a8
 COPY --from=go-build /out/ /usr/local/libexec/startrack/
 COPY --from=go-build /out/startrack-runtime-matrix /opt/startrack/bin/startrack-runtime-matrix
+COPY --from=go-build /out/startrack-import-capacity /opt/startrack/bin/startrack-import-capacity
 COPY --from=native-build /out/default_validator /opt/startrack/libexec/default_validator
 COPY --from=native-build /out/startrack-checker-launcher /usr/local/bin/startrack-checker-launcher
 COPY upstream/problemtools/support/default_grader/default_grader /opt/startrack/libexec/default_grader
@@ -39,6 +41,8 @@ COPY docker/image.lock.json /opt/startrack/image.lock.json
 COPY docker/security-profile.lock.json /opt/startrack/security-profile.lock.json
 COPY docker/startrack-v02.seccomp.json /opt/startrack/startrack-v02.seccomp.json
 COPY docker/startrack-v02.apparmor /opt/startrack/startrack-v02.apparmor
+COPY docker/startrack-workload-seccomp.yaml /opt/startrack/startrack-workload-seccomp.yaml
+COPY docker/workload-security-profile.lock.json /opt/startrack/workload-security-profile.lock.json
 COPY service/migrations/ /opt/startrack/migrations/
 COPY service/scripts/validation-tools.py /build/validation-tools.py
 COPY validation-tools/ /build/validation-tools/

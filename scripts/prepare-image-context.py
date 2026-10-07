@@ -94,7 +94,7 @@ def prepare(value: str, release_commit: str | None = None) -> Path:
             copy_file(source, destination / "service" / relative)
         if relative in ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md") or relative.startswith("docs/licenses/"):
             copy_file(source, destination / "legal" / relative)
-    for name in ("Dockerfile", "mount.yaml", "image.lock.json", "startrack-v02.apparmor", "seccomp-source.json", "startrack-v02.seccomp.json", "security-profile.lock.json"):
+    for name in ("Dockerfile", "mount.yaml", "image.lock.json", "startrack-v02.apparmor", "seccomp-source.json", "startrack-v02.seccomp.json", "security-profile.lock.json", "startrack-workload-seccomp.yaml", "workload-security-profile.lock.json"):
         copy_file(ROOT / "docker" / name, destination / "docker" / name)
     copy_file(ROOT / "docker/Dockerfile", destination / "Dockerfile")
     for name in ("upstream.lock.json", "toolchain.lock.json", "validation-tools.lock.json", "validation-sources.lock.json"):
@@ -122,6 +122,10 @@ def prepare(value: str, release_commit: str | None = None) -> Path:
             vendor_module.apply(prepared)
             generated[name]["vendorInventory"] = inventory(prepared / "vendor")
             copy_file(prepared / ".startrack-vendor-patches.json", destination / "provenance/go-sandbox-vendor-patches.json")
+            workload_spec = importlib.util.spec_from_file_location("startrack_workload_seccomp", ROOT / "scripts/workload-seccomp.py")
+            workload_module = importlib.util.module_from_spec(workload_spec)
+            workload_spec.loader.exec_module(workload_module)
+            workload_module.verify(ROOT, prepared)
     for name, directory in (("service", destination / "service/vendor"), ("go-judge", destination / "upstream/go-judge/vendor")):
         for path in directory.rglob("*"):
             if path.is_file() and path.name.upper().startswith(("LICENSE", "LICENCE", "COPYING", "COPYRIGHT", "NOTICE", "PATENTS")):

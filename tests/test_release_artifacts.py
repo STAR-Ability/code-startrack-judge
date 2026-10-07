@@ -203,6 +203,7 @@ class ReleaseArtifactTests(unittest.TestCase):
         binaries = {"/usr/local/libexec/startrack/" + name: directory / "bin" / name for name in RELEASE.BINARIES if name not in ("default_validator", "startrack-checker-launcher")}
         binaries.update({"/opt/startrack/libexec/" + name: directory / "helpers" / name for name in ("default_validator", "default_grader", "problemtools-bridge.py")})
         binaries["/opt/startrack/bin/startrack-runtime-matrix"] = directory / "tools/startrack-runtime-matrix"
+        binaries["/opt/startrack/bin/startrack-import-capacity"] = directory / "tools/startrack-import-capacity"
         binaries["/usr/local/bin/startrack-checker-launcher"] = directory / "bin/startrack-checker-launcher"
         for name, path in binaries.items():
             write(path, path.name.encode())
@@ -214,7 +215,9 @@ class ReleaseArtifactTests(unittest.TestCase):
         return directory
 
     def test_actual_image_audit_rejects_legal_security_inventory_binary_and_history_drift(self):
-        for variant in ("valid", "license", "extra_legal", "profile", "python", "os", "binary", "missing_binary", "migration", "dirty_context",
+        for variant in ("valid", "license", "extra_legal", "profile", "python", "os", "binary", "missing_binary",
+                        "capacity_libexec", "capacity_tool", "missing_capacity_libexec", "missing_capacity_tool", "missing_capacity_checksum", "diverged_capacity",
+                        "migration", "dirty_context",
                         "installed_missing_baseline", "installed_changed_baseline", "installed_extra", "installed_duplicate_baseline", "installed_duplicate_os"):
             with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temporary, patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
                 directory = self.image_fixture(Path(temporary).resolve())
@@ -237,6 +240,23 @@ class ReleaseArtifactTests(unittest.TestCase):
                     (directory / "tools/startrack-runtime-matrix").write_bytes(b"changed second copy")
                 elif variant == "missing_binary":
                     (directory / "bin/go-judge").unlink()
+                elif variant in ("capacity_libexec", "capacity_tool"):
+                    branch = "bin" if variant == "capacity_libexec" else "tools"
+                    (directory / branch / "startrack-import-capacity").write_bytes(b"changed capacity binary")
+                elif variant in ("missing_capacity_libexec", "missing_capacity_tool"):
+                    branch = "bin" if variant == "missing_capacity_libexec" else "tools"
+                    (directory / branch / "startrack-import-capacity").unlink()
+                elif variant == "missing_capacity_checksum":
+                    path = directory / "provenance/binaries.sha256"
+                    path.write_text("".join(line for line in path.read_text().splitlines(keepends=True)
+                                            if "/opt/startrack/bin/startrack-import-capacity" not in line))
+                elif variant == "diverged_capacity":
+                    body = b"self-consistent different capacity binary"
+                    (directory / "tools/startrack-import-capacity").write_bytes(body)
+                    path = directory / "provenance/binaries.sha256"
+                    path.write_text("".join(checksum(body) + "  /opt/startrack/bin/startrack-import-capacity\n"
+                                            if "/opt/startrack/bin/startrack-import-capacity" in line else line
+                                            for line in path.read_text().splitlines(keepends=True)))
                 elif variant == "migration":
                     (directory / "migrations/000001_initial.up.sql").write_bytes(b"rewrite")
                 elif variant.startswith("installed_"):

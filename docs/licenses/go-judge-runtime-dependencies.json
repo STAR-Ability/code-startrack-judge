@@ -22,8 +22,8 @@
     "baseCommit": "e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8",
     "goModSha256": "e56d8e069f4ea4e51b5927f323609af89aea7c45eb2e663ac9429704a07171e5",
     "goSumSha256": "1f3894369c350603397f7c6332294ce414bbe95dcbf9b584f35653d3a82e33e8",
-    "upstreamBuildProvenanceSha256": "6a6be59e297def8d2404a967dc2fec02e45157a7991918343cb5595c751fdc7f",
-    "vendorPatchProvenanceSha256": "dd3db8541ac2aa5d840770c0f6f5eb3a469bc25baa1f63ffef171f6b8da7eec6",
+    "upstreamBuildProvenanceSha256": "ffcbf56108f7e60f3d764c4eca837d9973b596060602da522e307f54aaf59c92",
+    "vendorPatchProvenanceSha256": "6f7dd6f4f631251f7199dcb5a7071c190faa8596b2ae97c07b5616a273e9ee33",
     "compiledSourceFiles": [
       {
         "path": "cmd/go-judge/config/config.go",
@@ -152,8 +152,8 @@
       },
       {
         "path": "env/env_linux.go",
-        "sha256": "1e8f80884194c8be04a2045d609d534b381c11ca9feaeadbd68e424cae8657c9",
-        "sizeBytes": 8782
+        "sha256": "518a61f6cfeb7a2aa97043b1595698c5e5498118a82c78d3cec5ebeb074c8afd",
+        "sizeBytes": 9524
       },
       {
         "path": "env/linuxcontainer/cgroup_cached_pool_linux.go",
@@ -182,8 +182,8 @@
       },
       {
         "path": "env/linuxcontainer/environment_linux.go",
-        "sha256": "eb2ef5b2d2960efbebf1d607307d997b07b2e65b4a8d43504720e77faa380c47",
-        "sizeBytes": 4582
+        "sha256": "d93ed8b9f75bfe19a08c5c8a3693d123087f003706170501a320d31d2fb973a5",
+        "sizeBytes": 4678
       },
       {
         "path": "env/linuxcontainer/envprocess_linux.go",
@@ -326,6 +326,16 @@
         "sizeBytes": 12398
       },
       {
+        "path": "seccomp/startrack-workload.yaml",
+        "sha256": "e47a2805e1f4c70bf359b4df5500fc9ed7dca3ddfc004733ec66d17b801dc417",
+        "sizeBytes": 689
+      },
+      {
+        "path": "seccomp/startrack_workload.go",
+        "sha256": "49315b0e0b318c17892c7d7f9e29f026fa6dec6a0832d7405746a44c121ac4f9",
+        "sizeBytes": 2449
+      },
+      {
         "path": "worker/file.go",
         "sha256": "a88b1198806300f1e17806637280fdaadcf53d6b9384d87ad14e1deff6ed9d16",
         "sizeBytes": 2419
@@ -375,8 +385,8 @@
       },
       {
         "localPath": "docs/licenses/go-judge-runtime/go-judge/COMPILED-SOURCE-HEADERS.txt",
-        "sha256": "bc0aa28fc66762cdb04c8914fd9ccb2dce3e705a45b631ef6589d92716ad78a0",
-        "sizeBytes": 265
+        "sha256": "8f64fd5c1bea5f5cdc1b63631bcf02a585cae17088c79a62d653cdead4050614",
+        "sizeBytes": 750
       }
     ],
     "dependsOn": [
@@ -1232,8 +1242,8 @@
         },
         {
           "path": "container/container_exec_linux.go",
-          "sha256": "770b6d842ec1fe9e96d082366e0dbd3c3106c8e8e2e829d138fdc194948a6187",
-          "sizeBytes": 5359
+          "sha256": "94446cd836438a917c6e02f6ad1a3e0c87e9d889b79179392d47daf6694663fb",
+          "sizeBytes": 5320
         },
         {
           "path": "container/container_init_linux.go",

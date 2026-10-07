@@ -1,0 +1,17 @@
+diff --git a/container/container_exec_linux.go b/container/container_exec_linux.go
+--- a/container/container_exec_linux.go
++++ b/container/container_exec_linux.go
+@@ -101,10 +101,9 @@
+ 		SyncFunc:   syncFunc,
+ 		Credential: cred,
+ 		CTTY:       cmd.CTTY,
+-		// The container init installs c.Seccomp during initialization. The
+-		// child inherits it, so installing another filter here is unnecessary
+-		// and would repeat kernel validation for every workload.
+-		Seccomp:  nil,
++		// Code Startrack: retain the inherited init filter and install the
++		// supplied workload guard using the existing post-setup forkexec path.
++		Seccomp:  cmd.Seccomp.SockFprog(),
+ 		CgroupFd: cgroupFd,
+ 
+ 		UnshareCgroupAfterSync: c.UnshareCgroup,

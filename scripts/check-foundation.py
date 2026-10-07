@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import ast
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
@@ -372,6 +373,18 @@ def check_security_profile(root: Path) -> list[str]:
     return errors
 
 
+def check_workload_profile(root: Path) -> list[str]:
+    """Check the fixed stacked workload guard's source identity, not execution."""
+    try:
+        spec = importlib.util.spec_from_file_location("startrack_workload_seccomp", ROOT / "scripts/workload-seccomp.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.verify(root)
+    except (OSError, ValueError, TypeError, KeyError, StopIteration, AttributeError) as exc:
+        return [f"workload seccomp profile: invalid retained source/lock ({type(exc).__name__})"]
+    return []
+
+
 def check_workflow(content: str, relative: str) -> list[str]:
     errors = []
     for action in re.findall(r"^\s*-?\s*uses:\s*([^\s#]+)", content, flags=re.MULTILINE):
@@ -484,6 +497,7 @@ def validate(root: Path) -> tuple[list[str], list[str]]:
     errors.extend(contract_errors)
     errors.extend(check_upstream(root, contract_text, active_manifest))
     errors.extend(check_security_profile(root))
+    errors.extend(check_workload_profile(root))
     level = state.get("repositoryMigrationLevel")
     if not isinstance(level, int) or isinstance(level, bool) or level < 0 or level != len(migration_files):
         errors.append("release state: repositoryMigrationLevel must match the numbered repository migration files")

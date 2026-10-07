@@ -39,6 +39,7 @@ type settings struct {
 	databaseURL, incomingToken, outgoingToken, runtimeToken, schedulerToken, cursorKey string
 	imageDigest, checkerDigest, bridgeDigest, acquisitionProxy                         string
 	qualificationOnly                                                                  bool
+	capacityPhase                                                                      string
 }
 
 func (settings) String() string     { return "supervisor settings [credentials redacted]" }
@@ -56,6 +57,10 @@ func loadSettings(getenv func(string) string, read func(string) (string, error))
 		}
 	}
 	s := settings{imageDigest: getenv("JUDGE_WORKER_IMAGE_DIGEST"), checkerDigest: getenv("JUDGE_CHECKER_SHA256"), bridgeDigest: getenv("JUDGE_MATURE_BRIDGE_SHA256"), acquisitionProxy: getenv("JUDGE_ACQUISITION_PROXY"), qualificationOnly: getenv("JUDGE_QUALIFICATION_ONLY") == "true"}
+	s.capacityPhase = getenv("JUDGE_QUALIFICATION_CAPACITY_PHASE")
+	if s.capacityPhase != "" && (!s.qualificationOnly || (s.capacityPhase != "reject" && s.capacityPhase != "validate")) {
+		return settings{}, fail("qualification_capacity_phase")
+	}
 	if !digestPattern.MatchString(s.imageDigest) || !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(s.checkerDigest) || !regexp.MustCompile(`^[0-9a-f]{64}$`).MatchString(s.bridgeDigest) {
 		return settings{}, fail("image_identity")
 	}
@@ -116,6 +121,10 @@ func (s settings) apiEnvironment() []string {
 
 func (s settings) judgerEnvironment() []string {
 	return []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C.UTF-8", "TZ=UTC", "HOME=/nonexistent", "TMPDIR=/run/startrack-judger/tmp", "JUDGE_RUNTIME_TOKEN=" + s.runtimeToken, "JUDGE_SCHEDULER_TOKEN=" + s.schedulerToken, "JUDGE_SCHEDULER_FD=3", "JUDGE_WORKER_IMAGE_DIGEST=" + s.imageDigest, "JUDGE_CHECKER_SHA256=" + s.checkerDigest, "JUDGE_MATURE_BRIDGE_SHA256=" + s.bridgeDigest}
+}
+
+func (s settings) capacityEnvironment() []string {
+	return []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C.UTF-8", "TZ=UTC", "HOME=/nonexistent", "TMPDIR=/run/startrack-api/tmp", "JUDGE_QUALIFICATION_ONLY=true", "JUDGE_PRIVATE_STORAGE_DIR=" + PrivateDirectory, "JUDGE_DATABASE_URL=" + s.databaseURL, "JUDGE_SCHEDULER_TOKEN=" + s.schedulerToken}
 }
 
 func (s settings) runtimeEnvironment() []string {

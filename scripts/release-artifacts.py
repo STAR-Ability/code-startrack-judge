@@ -33,10 +33,11 @@ PROVENANCE = (
     "go-judge-runtime-dependencies.json",
 )
 BINARIES = ("judge-service", "startrack-judger", "supervisor", "runtime-init",
-            "judge-migrate", "judge-admin", "judge-outbox", "startrack-runtime-matrix", "go-judge",
+            "judge-migrate", "judge-admin", "judge-outbox", "startrack-runtime-matrix", "startrack-import-capacity", "go-judge",
             "default_validator", "startrack-checker-launcher")
 CONFIGS = ("image.lock.json", "mount.yaml", "startrack-v02.apparmor",
-           "startrack-v02.seccomp.json", "security-profile.lock.json")
+           "startrack-v02.seccomp.json", "security-profile.lock.json",
+           "startrack-workload-seccomp.yaml", "workload-security-profile.lock.json")
 
 
 class Failure(Exception):
@@ -238,6 +239,7 @@ def verify_extracted(directory: Path, commit: str) -> dict:
     binary_paths.update({"/opt/startrack/libexec/" + name: directory / "helpers" / name
                          for name in ("default_validator", "default_grader", "problemtools-bridge.py")})
     binary_paths["/opt/startrack/bin/startrack-runtime-matrix"] = directory / "tools/startrack-runtime-matrix"
+    binary_paths["/opt/startrack/bin/startrack-import-capacity"] = directory / "tools/startrack-import-capacity"
     binary_paths["/usr/local/bin/startrack-checker-launcher"] = directory / "bin/startrack-checker-launcher"
     for line in (directory / "provenance/binaries.sha256").read_text().splitlines():
         checksum, name = line.split(maxsplit=1)
@@ -247,6 +249,8 @@ def verify_extracted(directory: Path, commit: str) -> dict:
     require(set(binaries) == set(binary_paths))
     for name, path in binary_paths.items():
         require(path.is_file() and not path.is_symlink() and binaries[name] == sha_file(path))
+    require(binaries["/usr/local/libexec/startrack/startrack-import-capacity"] ==
+            binaries["/opt/startrack/bin/startrack-import-capacity"])
     state = json.loads((ROOT / "docs/releases/state.json").read_bytes())
     require(state["repositoryMigrationLevel"] == len(migrations))
     return {"contractVersion": state["contractVersion"], "apiGeneration": state["apiGeneration"],

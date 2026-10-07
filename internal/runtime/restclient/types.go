@@ -144,6 +144,14 @@ type Result struct {
 	HasError       bool
 	FileErrorCount int
 	FileErrorTypes []FileErrorType
+	// RequestedOutputSizeExceeded proves that every file error is a size cap
+	// bound to this command's frozen cached outputs. Collector caps must also
+	// match a bounded requested pipe collector. No failed target is retained.
+	RequestedOutputSizeExceeded bool
+	// CollectorOutputLimitError recognizes only the pinned collector's fixed
+	// error representation with exclusively request-bound collector size caps.
+	// HasError remains truthful; role adapters may narrowly classify this fact.
+	CollectorOutputLimitError bool
 }
 
 func (r Result) String() string {

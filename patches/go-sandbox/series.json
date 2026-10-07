@@ -56,6 +56,21 @@
           "mode": "100644"
         }
       ]
+    },
+    {
+      "path": "patches/go-sandbox/0004-workload-seccomp-plumbing.patch",
+      "sha256": "6d9be7a3456cdb565fa979f8a86f11d306173ec5e7e5daea706979e570ae2816",
+      "reason": "Pass the already-supported execCmd.Seccomp filter to forkexec.Runner.Seccomp using existing Filter.SockFprog, activating the mature post-setup workload installation path. The exact upstream had deliberately set this field nil; the broad inherited init policy remains installed, trusted cgroup/namespace setup and DropCaps remain unchanged.",
+      "licenseImpact": "Modified go-sandbox source remains MIT with original license byte-identical and a prominent Code Startrack comment. This reconnects existing mature filter plumbing and does not introduce custom BPF, new sandbox machinery or outer profile/capability changes.",
+      "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Inspect ExecveParam/execCmd serialization, SockFprog lifetime and existing forkexec filter installation after trusted namespace/cgroup and capability removal. Verify nonempty workload guard on ordinary and clone3 cgroup paths; rerun actual source loader VM and complete exact-image Linux isolation, fork/thread, compiler/reference/validator and verdict qualification.",
+      "files": [
+        {
+          "path": "container/container_exec_linux.go",
+          "baseSha256": "770b6d842ec1fe9e96d082366e0dbd3c3106c8e8e2e829d138fdc194948a6187",
+          "patchedSha256": "94446cd836438a917c6e02f6ad1a3e0c87e9d889b79179392d47daf6694663fb",
+          "mode": "100644"
+        }
+      ]
     }
   ]
 }

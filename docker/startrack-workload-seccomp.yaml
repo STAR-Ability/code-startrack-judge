@@ -1,0 +1,18 @@
+# Copyright 2026 Code Startrack contributors. SPDX-License-Identifier: Apache-2.0
+# Additional workload-only restrictions; the unchanged init whitelist is inherited.
+architecture: x86_64
+default_action: allow
+syscalls:
+  - names: [unshare, setns]
+    action: errno
+  - names: [clone3]
+    action: errno
+  # Keep this conditional group last: the pinned assembler consumes the argument
+  # accumulator on a mismatch. No syscall-number group may follow it.
+  - names_with_args:
+      - name: clone
+        arguments:
+          - argument: 0
+            operation: BitsSet
+            value: 2114060288 # 0x7e020000: NEWNS, NEWCGROUP, NEWUTS, NEWIPC, NEWUSER, NEWPID, NEWNET
+    action: errno

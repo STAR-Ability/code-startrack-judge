@@ -606,16 +606,11 @@ func (a *Adapter) compile(ctx context.Context, id string, source []byte) (exe []
 }
 
 func compilerVerdict(r restclient.Result) (contract.JudgeVerdict, string) {
-	if !r.HasError && r.FileErrorCount > 0 && len(r.FileErrorTypes) == r.FileErrorCount {
-		resourceOnly := true
-		for _, kind := range r.FileErrorTypes {
-			if kind != restclient.CopyOutSizeExceeded {
-				resourceOnly = false
-			}
-		}
-		if resourceOnly {
-			return contract.VerdictCE, "COMPILER_RESOURCE_LIMIT"
-		}
+	if r.Status == restclient.NonzeroExit && (r.ExitStatus == 126 || r.ExitStatus == 127) {
+		return contract.VerdictIE, "COMPILER_INFRASTRUCTURE_FAILED"
+	}
+	if requestedOutputSizeExceeded(r) {
+		return contract.VerdictCE, "COMPILER_RESOURCE_LIMIT"
 	}
 	if infrastructure(r) {
 		return contract.VerdictIE, "COMPILER_INFRASTRUCTURE_FAILED"
@@ -635,16 +630,8 @@ func compilerVerdict(r restclient.Result) (contract.JudgeVerdict, string) {
 	return contract.VerdictIE, "COMPILER_INFRASTRUCTURE_FAILED"
 }
 func contestantVerdict(r restclient.Result) contract.JudgeVerdict {
-	if !r.HasError && r.FileErrorCount > 0 && len(r.FileErrorTypes) == r.FileErrorCount {
-		sizeOnly := true
-		for _, kind := range r.FileErrorTypes {
-			if kind != restclient.CopyOutSizeExceeded {
-				sizeOnly = false
-			}
-		}
-		if sizeOnly {
-			return contract.VerdictOLE
-		}
+	if requestedOutputSizeExceeded(r) {
+		return contract.VerdictOLE
 	}
 	if infrastructure(r) {
 		return contract.VerdictIE
@@ -665,6 +652,26 @@ func contestantVerdict(r restclient.Result) contract.JudgeVerdict {
 		return contract.VerdictRE
 	}
 	return contract.VerdictIE
+}
+
+// The pinned collector can report a genuine output cap alongside the later
+// CPU/memory or process status. Only complete request-bound size facts take
+// precedence, and fatal/unknown statuses or unrelated errors always remain IE.
+func requestedOutputSizeExceeded(r restclient.Result) bool {
+	switch r.Status {
+	case restclient.Accepted, restclient.TimeLimit, restclient.MemoryLimit, restclient.OutputLimit, restclient.FileError, restclient.NonzeroExit, restclient.Signalled, restclient.DangerousSyscall:
+	default:
+		return false
+	}
+	if !r.RequestedOutputSizeExceeded || r.FileErrorCount <= 0 || len(r.FileErrorTypes) != r.FileErrorCount || r.HasError && !r.CollectorOutputLimitError {
+		return false
+	}
+	for _, kind := range r.FileErrorTypes {
+		if kind != restclient.CopyOutSizeExceeded && kind != restclient.CollectSizeExceeded || r.HasError && kind != restclient.CollectSizeExceeded {
+			return false
+		}
+	}
+	return true
 }
 func checkerVerdict(r restclient.Result) contract.JudgeVerdict {
 	if infrastructure(r) || r.Status != restclient.NonzeroExit {

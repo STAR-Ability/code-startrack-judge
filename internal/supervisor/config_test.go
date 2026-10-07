@@ -34,14 +34,14 @@ func testSettings(t *testing.T) settings {
 
 func TestCredentialScopes(t *testing.T) {
 	s := testSettings(t)
-	for role, environment := range map[string][]string{"api": s.apiEnvironment(), "judger": s.judgerEnvironment(), "runtime": s.runtimeEnvironment()} {
+	for role, environment := range map[string][]string{"api": s.apiEnvironment(), "judger": s.judgerEnvironment(), "runtime": s.runtimeEnvironment(), "capacity": s.capacityEnvironment()} {
 		joined := strings.Join(environment, "\n")
 		for _, secret := range []struct {
 			value string
 			roles string
 		}{
-			{s.databaseURL, "api"}, {s.incomingToken, "api"}, {s.outgoingToken, "api"}, {s.cursorKey, "api"},
-			{s.schedulerToken, "api judger"}, {s.runtimeToken, "judger runtime"},
+			{s.databaseURL, "api capacity"}, {s.incomingToken, "api"}, {s.outgoingToken, "api"}, {s.cursorKey, "api"},
+			{s.schedulerToken, "api judger capacity"}, {s.runtimeToken, "judger runtime"},
 		} {
 			if strings.Contains(joined, secret.value) != strings.Contains(secret.roles, role) {
 				t.Fatalf("%s credential scope violated", role)

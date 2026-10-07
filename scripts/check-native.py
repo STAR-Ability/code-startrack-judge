@@ -31,6 +31,8 @@ def main() -> int:
         subprocess.run([sys.executable, "scripts/check-go-judge-licenses.py", "legal"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_go_judge_license_review.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_release_artifacts.py", "-v"], cwd=ROOT, env=env, check=True)
+        subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_workload_seccomp_review.py", "-v"], cwd=ROOT, env=env, check=True)
+        subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_linux_import_capacity.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run(["node", "scripts/verify-canonical-golden.mjs"], cwd=ROOT, env=env, check=True)
         schema_python = ROOT / ".local" / "contract-schema-tests" / "bin" / "python"
         if not schema_python.is_file():

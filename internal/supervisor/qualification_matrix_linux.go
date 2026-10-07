@@ -155,6 +155,14 @@ func runQualificationMatrix(ctx context.Context, s settings, accounting *cgroupA
 		<-done
 		return fail("qualification_matrix_timeout")
 	}
+	// Keep the bounded fixed synthetic report even when the matrix exits nonzero.
+	// It stays private until the trusted harness validates a successful outcome.
+	if len(output.Bytes()) > 0 {
+		if reportLog, openErr := openPrivateLog(filepath.Join(filepath.Dir(MatrixPath), "matrix-report-private.json"), 0); openErr == nil {
+			reportLog.Write(output.Bytes())
+			reportLog.Close()
+		}
+	}
 	if err != nil {
 		return fail("qualification_matrix_execution")
 	}

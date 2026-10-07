@@ -69,6 +69,45 @@
           "mode": "100644"
         }
       ]
+    },
+    {
+      "path": "patches/go-judge/0003-workload-namespace-seccomp.patch",
+      "sha256": "e064c45be2a87a2f369386d3dd584d8d4181b5d25d196e907967293ecc8ba3d0",
+      "reason": "Assemble a fixed embedded workload-only namespace guard with the pinned Elastic API and supply it through both existing linuxcontainer builder paths and ExecveParam.Seccomp. Preserve the unchanged broad init whitelist and trusted clone3(CLONE_INTO_CGROUP) setup; only workload unshare/setns, namespace clone flags and clone3 are restricted. Workload clone3 returns ENOSYS for libc fallback; conditional clone is terminal to avoid pinned assembler accumulator fall-through changing ordinary syscalls. Refuse disabled or caller-replaced init policies.",
+      "licenseImpact": "Modified upstream env source remains MIT with prominent Code Startrack comments and byte-identical upstream LICENSE/NOTICE. New fixed profile, assembler integration and inert VM regression tests are separately Apache-2.0 attributed. No custom BPF or isolation implementation is introduced.",
+      "upgradeCondition": "Rebase only against reviewed exact go-judge and go-sandbox pins. Inspect both builder paths, inherited init-profile identity, mature final-exec seccomp ordering, assembler argument accumulator and clone ABI. Rerun actual loader VM ordinary-syscall/clone/clone3/x32/foreign-architecture stack regressions, source/license closure and final Linux compiler/reference/validator/thread/fork/verdict/isolation matrix with at least three workload filters. Portable VM tests do not establish Linux installation or sandbox acceptance.",
+      "files": [
+        {
+          "path": "env/env_linux.go",
+          "baseSha256": "1e8f80884194c8be04a2045d609d534b381c11ca9feaeadbd68e424cae8657c9",
+          "patchedSha256": "518a61f6cfeb7a2aa97043b1595698c5e5498118a82c78d3cec5ebeb074c8afd",
+          "mode": "100644"
+        },
+        {
+          "path": "env/linuxcontainer/environment_linux.go",
+          "baseSha256": "eb2ef5b2d2960efbebf1d607307d997b07b2e65b4a8d43504720e77faa380c47",
+          "patchedSha256": "d93ed8b9f75bfe19a08c5c8a3693d123087f003706170501a320d31d2fb973a5",
+          "mode": "100644"
+        },
+        {
+          "path": "seccomp/startrack_workload.go",
+          "baseSha256": null,
+          "patchedSha256": "49315b0e0b318c17892c7d7f9e29f026fa6dec6a0832d7405746a44c121ac4f9",
+          "mode": "100644"
+        },
+        {
+          "path": "seccomp/startrack-workload.yaml",
+          "baseSha256": null,
+          "patchedSha256": "e47a2805e1f4c70bf359b4df5500fc9ed7dca3ddfc004733ec66d17b801dc417",
+          "mode": "100644"
+        },
+        {
+          "path": "seccomp/startrack_workload_test.go",
+          "baseSha256": null,
+          "patchedSha256": "323d8e376054c2f9e2b3088c32a2480ecedcf1c8938394f21995e3291ecf6116",
+          "mode": "100644"
+        }
+      ]
     }
   ]
 }

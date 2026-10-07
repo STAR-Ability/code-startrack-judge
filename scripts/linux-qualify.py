@@ -42,7 +42,7 @@ def regular_json(path, limit=65536):
 def retain_private(runtime_evidence, evidence):
     destination = evidence / "private"
     destination.mkdir(mode=0o700)
-    candidates = [(runtime_evidence / name, name) for name in ("runtime-private.log", "qualification-private.log", "matrix-private.log")]
+    candidates = [(runtime_evidence / name, name) for name in ("runtime-private.log", "qualification-private.log", "matrix-private.log", "matrix-report-private.json")]
     matrix_directory = runtime_evidence / "private-matrix"
     if matrix_directory.is_dir() and not matrix_directory.is_symlink():
         entries = list(matrix_directory.iterdir())
@@ -66,6 +66,26 @@ def retain_private(runtime_evidence, evidence):
             output.write(data)
         retained += 1
     return retained
+
+
+def isolation_observations(runtime_evidence, measurement, digest):
+    observations = regular_json(runtime_evidence / "runtime-isolation-observations.json", 8192)
+    if observations.get("version") != 1 or observations.get("workerImageDigest") != digest or any(observations.get(key) != measurement.get(key) for key in ("pid", "startTicks", "bootId")):
+        raise ValueError("runtime_observations_identity_invalid")
+    values = observations.get("observations", [])
+    if len(values) != 2 or any(value.get("seccompFilters", 0) < 3 or value.get("securebits") != 47 or value.get("denialFailure") != "" or any(value.get(key) != 0 for key in ("capabilityEffectiveBits", "capabilityPermittedBits", "capabilityInheritableBits", "capabilityAmbientBits")) or not isinstance(value.get("capabilityBoundingBits"), int) or not 0 <= value["capabilityBoundingBits"] < 1 << 53 for value in values):
+        raise ValueError("runtime_observations_incomplete")
+    for value in values:
+        counters = [value.get(name) for name in ("readonlyEROFSCount", "readonlyEACCESCount", "readonlyEPERMCount")]
+        if value.get("readonly") is not True or value.get("readonlyFailure") != "" or value.get("readonlyMountCount") != 9 or value.get("readonlyWriteDeniedCount") != 9 or any(type(count) is not int or not 0 <= count <= 9 for count in counters) or sum(counters) != 9:
+            raise ValueError("runtime_readonly_observations_incomplete")
+    cleanup = observations.get("cleanupObservations", {})
+    if any(type(cleanup.get(name)) is not int or not lower <= cleanup[name] <= upper for name, lower, upper in (
+        ("ownedModesObserved", 10, 10), ("ownedGroupsObserved", 10, 32),
+        ("ownedProcessesObserved", 10, 1024), ("forkWitnessProcesses", 2, 8),
+    )) or cleanup.get("ownedProcessesReaped") is not True or cleanup.get("ownedGroupsDrained") is not True or type(cleanup.get("startupGlobalIdle")) is not bool:
+        raise ValueError("runtime_cleanup_observations_incomplete")
+    return observations
 
 
 def main():
@@ -116,9 +136,10 @@ def main():
             containers.append(extract)
             for name in ("context-inventory.json", "binaries.sha256"):
                 run(prefix, ["cp", extract + ":/opt/startrack/provenance/" + name, str(facilities / name)])
-            run(prefix, ["cp", extract + ":/opt/startrack/startrack-v02.apparmor", str(facilities / "image.apparmor")])
-            if hashlib.sha256((facilities / "image.apparmor").read_bytes()).hexdigest() != apparmor_hash:
-                raise ValueError("image_apparmor_profile_mismatch")
+            for name in ("startrack-v02.apparmor", "startrack-v02.seccomp.json", "startrack-workload-seccomp.yaml", "workload-security-profile.lock.json"):
+                run(prefix, ["cp", extract + ":/opt/startrack/" + name, str(facilities / name)])
+                if (facilities / name).read_bytes() != (ROOT / "docker" / name).read_bytes():
+                    raise ValueError("image_security_profile_mismatch")
             context = regular_json(facilities / "context-inventory.json", 32 << 20)
             if context.get("gitHead") != args.expected_commit:
                 raise ValueError("image_source_commit_mismatch")
@@ -171,6 +192,7 @@ def main():
             measurement = regular_json(measurement_path)
             if measurement.get("identity", {}).get("workerImageDigest") != digest or not all(measurement.get("checks", {}).get(key) is True for key in REQUIRED_CHECKS):
                 raise ValueError("runtime_measurement_incomplete")
+            observations = isolation_observations(runtime_evidence, measurement, digest)
             matrix_path = runtime_evidence / "runtime-matrix.json"
             deadline = time.monotonic() + 930
             while not matrix_path.exists():
@@ -184,7 +206,7 @@ def main():
             matrix = matrix_report["matrix"]
             if matrix.get("passed") is not True:
                 raise ValueError("runtime_matrix_failed")
-            report.update({"runtimeChecksPassed": True, "failureCode": "", "measurement": measurement, "matrix": matrix, "cgroupsBefore": matrix_report["cgroupsBefore"], "cgroupsAfter": matrix_report["cgroupsAfter"]})
+            report.update({"runtimeChecksPassed": True, "failureCode": "", "measurement": measurement, "isolationObservations": observations, "matrix": matrix, "cgroupsBefore": matrix_report["cgroupsBefore"], "cgroupsAfter": matrix_report["cgroupsAfter"]})
     except (ValueError, OSError, KeyError, json.JSONDecodeError, subprocess.SubprocessError) as error:
         report["failureCode"] = str(error) if isinstance(error, ValueError) and re.fullmatch(r"[a-z_]+", str(error)) else type(error).__name__
     finally:

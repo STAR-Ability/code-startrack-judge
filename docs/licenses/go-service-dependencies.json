@@ -10,7 +10,8 @@
     "./cmd/startrack-judger",
     "./cmd/startrack-runtime-init",
     "./cmd/startrack-runtime-matrix",
-    "./cmd/startrack-supervisor"
+    "./cmd/startrack-supervisor",
+    "./cmd/startrack-import-capacity"
   ],
   "goToolchain": {
     "version": "1.26.8",
@@ -557,6 +558,22 @@
             "go.yaml.in/yaml/v3",
             "golang.org/x/text"
           ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-import-capacity",
+          "dependencyPackageCount": 263,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
         }
       ]
     },
@@ -662,6 +679,22 @@
             "go.yaml.in/yaml/v3",
             "golang.org/x/text"
           ]
+        },
+        {
+          "entrypoint": "./cmd/startrack-import-capacity",
+          "dependencyPackageCount": 262,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
         }
       ]
     },
@@ -757,8 +790,24 @@
         },
         {
           "entrypoint": "./cmd/startrack-supervisor",
-          "dependencyPackageCount": 85,
+          "dependencyPackageCount": 89,
           "modulePaths": []
+        },
+        {
+          "entrypoint": "./cmd/startrack-import-capacity",
+          "dependencyPackageCount": 263,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
         }
       ]
     },
@@ -854,8 +903,24 @@
         },
         {
           "entrypoint": "./cmd/startrack-supervisor",
-          "dependencyPackageCount": 85,
+          "dependencyPackageCount": 89,
           "modulePaths": []
+        },
+        {
+          "entrypoint": "./cmd/startrack-import-capacity",
+          "dependencyPackageCount": 262,
+          "modulePaths": [
+            "github.com/cyberphone/json-canonicalization",
+            "github.com/golang-migrate/migrate/v4",
+            "github.com/jackc/pgerrcode",
+            "github.com/jackc/pgpassfile",
+            "github.com/jackc/pgservicefile",
+            "github.com/jackc/pgx/v5",
+            "github.com/jackc/puddle/v2",
+            "go.yaml.in/yaml/v3",
+            "golang.org/x/sync",
+            "golang.org/x/text"
+          ]
         }
       ]
     }

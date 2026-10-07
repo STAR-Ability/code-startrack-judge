@@ -329,7 +329,7 @@ func printProgram(value string) string {
 const sumProgram = "#include <cstdio>\nint main(){long a,b;if(std::scanf(\"%ld %ld\",&a,&b)!=2)return 1;std::printf(\"%ld\\n\",a+b);}\n"
 const busyProgram = "int main(){volatile unsigned long x=0;for(;;)x++;}\n"
 const sleepProgram = "#include <unistd.h>\nint main(){sleep(10);}\n"
-const memoryProgram = "#include <cstdlib>\nint main(){for(;;){volatile char* p=(char*)std::malloc(1048576);if(!p)std::abort();for(int i=0;i<1048576;i+=4096)p[i]=1;}}\n"
+const memoryProgram = "#include <fcntl.h>\n#include <sys/mman.h>\n#include <unistd.h>\nint main(){const int n=64<<20;int fd=open(\"/w/matrix-memory\",O_RDWR|O_CREAT|O_EXCL,0600);if(fd<0)return 71;if(ftruncate(fd,n)!=0)return 72;void* mapped=mmap(nullptr,n,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);if(mapped==MAP_FAILED)return 73;close(fd);volatile char* p=(volatile char*)mapped;for(int i=0;i<n;i+=4096)p[i]=1;}\n"
 const outputProgram = "#include <unistd.h>\nint main(){char p[8192]={};for(;;)if(write(1,p,sizeof(p))<0)return 0;}\n"
 const signalProgram = "#include <csignal>\nint main(){std::raise(SIGSEGV);}\n"
 const binaryProgram = "#include <unistd.h>\nint main(){unsigned char p[]={255,0,65};return write(1,p,sizeof(p))==3?0:1;}\n"
