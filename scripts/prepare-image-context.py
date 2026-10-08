@@ -87,7 +87,7 @@ def prepare(value: str, release_commit: str | None = None) -> Path:
         relative = raw.decode("utf-8")
         source = ROOT / relative
         parts = Path(relative).parts
-        include = relative in ("go.mod", "go.sum", "scripts/problemtools-bridge.py", "scripts/validation-tools.py") or (
+        include = relative in ("go.mod", "go.sum", "scripts/problemtools-bridge.py", "scripts/problemtools-wheel-audit.py", "scripts/validation-tools.py") or (
             parts[0] in ("cmd", "internal", "migrations") and source.suffix in (".go", ".cc", ".h", ".py", ".sql")
         )
         if include:

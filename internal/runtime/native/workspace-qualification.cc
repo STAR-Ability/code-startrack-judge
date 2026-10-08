@@ -47,23 +47,47 @@ static int inode_probe() {
     return snapshot("inode", true, true) ? 0 : 125;
 }
 
+static int allocation_denied(int fd) {
+    if (errno != ENOSPC || allocated < (1536ULL << 20)) return 125;
+    if (!snapshot("allocation", true, false)) return 125;
+    if (fd >= 0 && close(fd) != 0) return 125;
+    char name[64];
+    for (u64 index = 0; index < created; ++index) {
+        std::snprintf(name, sizeof(name), "/w/qualification-allocation-%02llu", index);
+        if (unlink(name) != 0) return 125;
+    }
+    return snapshot("allocation", true, true) ? 0 : 125;
+}
+
 static int allocation_probe() {
-    const char *name = "/w/qualification-allocation";
-    int fd = open(name, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
-    if (fd < 0) return 125;
+    // Exercise aggregate capacity without reaching the inherited 256 MiB/file
+    // RLIMIT_FSIZE. The fixed set still attempts at most 3 GiB in total.
+    constexpr u64 file_bytes = 128ULL << 20;
+    int fd = -1;
+    u64 written = 0;
     static const char data[65536] = {};
     if (!snapshot("allocation", false, false)) return 125;
     for (; allocated < (3ULL << 30);) {
-        ssize_t n = write(fd, data, sizeof(data));
+        if (fd < 0 || written == file_bytes) {
+            if (fd >= 0 && close(fd) != 0) return 125;
+            fd = -1;
+            if (created >= 24) return 125;
+            char name[64];
+            std::snprintf(name, sizeof(name), "/w/qualification-allocation-%02llu", created);
+            fd = open(name, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+            if (fd < 0) return allocation_denied(fd);
+            ++created;
+            written = 0;
+        }
+        u64 remaining = file_bytes - written;
+        ssize_t n = write(fd, data, remaining < sizeof(data) ? remaining : sizeof(data));
         if (n < 0) {
             if (errno == EINTR) continue;
-            if (errno != ENOSPC || allocated < (1536ULL << 20)) return 125;
-            if (!snapshot("allocation", true, false)) return 125;
-            if (close(fd) != 0 || unlink(name) != 0) return 125;
-            return snapshot("allocation", true, true) ? 0 : 125;
+            return allocation_denied(fd);
         }
         if (n == 0) return 125;
         allocated += u64(n);
+        written += u64(n);
         if (allocated % (64ULL << 20) == 0 && !snapshot("allocation", false, false)) return 125;
     }
     return 125;

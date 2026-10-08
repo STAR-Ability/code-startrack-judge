@@ -25,13 +25,15 @@ SOURCES = "ghcr.io/star-ability/code-startrack-judge-sources"
 COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
 PROVENANCE = (
-    "binaries.sha256", "os-packages.tsv", "python-packages.json", "problemtools-wheel.sha256",
+    "binaries.sha256", "os-packages.tsv", "python-packages.json", "problemtools-wheel.sha256", "problemtools-wheel-audit.json",
     "context-inventory.json", "generated-dependencies.json",
     "go-judge-sources.json", "problemtools-sources.json",
     "go-sandbox-vendor-patches.json", "upstream.lock.json",
     "toolchain.lock.json", "validation-tools.lock.json", "validation-sources.lock.json", "validation-tools-installed.json",
     "go-judge-runtime-dependencies.json",
 )
+BUILD_OUTPUT_PROVENANCE = frozenset(("binaries.sha256", "os-packages.tsv", "python-packages.json", "problemtools-wheel.sha256",
+                                    "problemtools-wheel-audit.json", "validation-tools-installed.json", "context-inventory.json"))
 BINARIES = ("judge-service", "startrack-judger", "supervisor", "runtime-init",
             "judge-migrate", "judge-admin", "judge-outbox", "startrack-runtime-matrix", "startrack-import-capacity", "go-judge",
             "default_validator", "startrack-checker-launcher")
@@ -163,6 +165,49 @@ def inspect_image(image: str, commit: str, repository: str = IMAGE) -> dict:
     return value
 
 
+def wheel_audit_module():
+    spec = importlib.util.spec_from_file_location("startrack_wheel_audit", Path(__file__).parent / "problemtools-wheel-audit.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def verify_context_provenance(directory: Path, records: dict[str, dict]) -> None:
+    require({"provenance/" + name for name in PROVENANCE if name not in BUILD_OUTPUT_PROVENANCE} <= set(records))
+    for name, record in records.items():
+        if not name.startswith("provenance/"):
+            continue
+        path = directory / name
+        require(path.is_file() and not path.is_symlink() and path.stat().st_size == record["sizeBytes"]
+                and sha_file(path) == record["sha256"])
+
+
+def verify_problemtools_install(directory: Path) -> dict:
+    path = directory / "provenance/problemtools-wheel-audit.json"
+    require(path.stat().st_size <= 16 << 20)
+    try:
+        receipt = json.loads(path.read_bytes())
+        wheel_audit_module().verify(receipt, (directory / "provenance/problemtools-wheel.sha256").read_text(),
+                                    directory / "installed", sha_file(directory / "provenance/problemtools-sources.json"),
+                                    sha_file(directory / "provenance/context-inventory.json"))
+    except (ValueError, TypeError, KeyError, OSError):
+        raise Failure("canonical wheel/installed distribution evidence invalid") from None
+    return {"problemtoolsWheelSHA256": receipt["wheelSHA256"], "problemtoolsWheelAuditSHA256": sha_file(path)}
+
+
+def verify_checker_fixture_carrier(directory: Path, records: dict[str, dict]) -> dict:
+    source_prefix = "upstream/problemtools/tests/default_validator_tests/"
+    installed_prefix = "qualification/default_validator_tests/"
+    expected = {installed_prefix + name.removeprefix(source_prefix): (record["sha256"], record["sizeBytes"])
+                for name, record in records.items() if name.startswith(source_prefix)}
+    actual = {path.relative_to(directory).as_posix(): (sha_file(path), path.stat().st_size)
+              for path in files(directory / "qualification")}
+    require(bool(expected) and actual == expected)
+    manifest = [{"path": name, "sha256": digest, "sizeBytes": size} for name, (digest, size) in sorted(actual.items())]
+    return {"defaultCheckerCarrierInventorySHA256": hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "defaultCheckerCarrierFiles": len(manifest), "defaultCheckerCarrierBytes": sum(record["sizeBytes"] for record in manifest)}
+
+
 def verify_extracted(directory: Path, commit: str) -> dict:
     inventory = files(directory)
     require(bool(inventory))
@@ -174,7 +219,9 @@ def verify_extracted(directory: Path, commit: str) -> dict:
         require(path.is_file() and path.stat().st_size > 0)
     context = json.loads((directory / "provenance/context-inventory.json").read_bytes())
     require(isinstance(context, dict))
-    context_records(context, commit)
+    records = context_records(context, commit)
+    verify_context_provenance(directory, records)
+    checker_carrier = verify_checker_fixture_carrier(directory, records)
     require(context.get("schemaVersion") == 1 and context.get("gitHead") == commit)
     require(context.get("sourceState") == "CLEAN" and context.get("workingTreeStatus") == "")
     require(context.get("releaseCommit") == commit and context.get("qualification") == "UNQUALIFIED")
@@ -232,7 +279,11 @@ def verify_extracted(directory: Path, commit: str) -> dict:
     expected_python["problemtools"] = "1.20260907"
     actual_python = {normalized(entry["name"]): entry["version"] for entry in python}
     require(len(actual_python) == len(python) and actual_python == expected_python)
-    json.loads((directory / "provenance/generated-dependencies.json").read_bytes())
+    generated = json.loads((directory / "provenance/generated-dependencies.json").read_bytes())
+    require(generated.get("schemaVersion") == 1 and generated.get("scope") == "BUILD_INPUTS_ONLY"
+            and isinstance(generated.get("generatedDependencyInputs"), dict)
+            and set(generated["generatedDependencyInputs"]) == {"service", "go-judge"})
+    wheel_identities = verify_problemtools_install(directory)
     binaries = {}
     binary_paths = {"/usr/local/libexec/startrack/" + name: directory / "bin" / name
                     for name in BINARIES if name not in ("default_validator", "startrack-checker-launcher")}
@@ -253,11 +304,16 @@ def verify_extracted(directory: Path, commit: str) -> dict:
             binaries["/opt/startrack/bin/startrack-import-capacity"])
     state = json.loads((ROOT / "docs/releases/state.json").read_bytes())
     require(state["repositoryMigrationLevel"] == len(migrations))
-    return {"contractVersion": state["contractVersion"], "apiGeneration": state["apiGeneration"],
+    return {"contractVersion": state["contractVersion"], "apiGeneration": state["apiGeneration"], **wheel_identities, **checker_carrier,
             "contractManifestSHA256": sha_file(ROOT / state["contractPath"] / "manifest.json"),
             "migrationLevel": len(migrations),
             "migrationChecksums": {path.name: sha_file(path) for path in migrations},
-            "securityConfigChecksums": {name: sha_file(directory / name) for name in CONFIGS}}
+            "securityConfigChecksums": {name: sha_file(directory / name) for name in CONFIGS},
+            "inventoryScopes": {"osPackages": "MEASURED_LOCKED_INSTALLED_PACKAGE_SET", "pythonPackages": "MEASURED_LOCKED_INSTALLED_PACKAGE_SET",
+                                "executables": "LISTED_RUNTIME_EXECUTABLES", "problemtoolsWheel": "CANONICAL_WHEEL_AND_INSTALLED_DISTRIBUTION",
+                                "defaultCheckerQualificationFixtures": "PINNED_UPSTREAM_DATA_ONLY",
+                                "generatedDependencyInputs": "BUILD_INPUTS_ONLY", "goJudgeSBOM": "ACTUAL_LINKED_ELF_ONLY",
+                                "wholeImageSBOM": "SEPARATE_EVIDENCE_REQUIRED", "distributedLayers": "SEPARATE_EVIDENCE_REQUIRED"}}
 
 
 def write_record(directory: Path, record: dict) -> None:
@@ -440,12 +496,18 @@ def audit(image: str, directory: Path, commit: str, metadata: Path | None, sourc
     container = command(["docker", "create", "--network", "none", image])
     require(re.fullmatch(r"[0-9a-f]{64}", container) is not None)
     try:
-        for name in ("legal", "provenance", "migrations", *CONFIGS):
+        for name in ("legal", "provenance", "migrations", "qualification", *CONFIGS):
             command(["docker", "cp", container + ":/opt/startrack/" + name, str(directory / name)])
         command(["docker", "cp", container + ":/usr/local/libexec/startrack", str(directory / "bin")])
         command(["docker", "cp", container + ":/opt/startrack/libexec", str(directory / "helpers")])
         command(["docker", "cp", container + ":/opt/startrack/bin", str(directory / "tools")])
         command(["docker", "cp", container + ":/usr/local/bin/startrack-checker-launcher", str(directory / "bin/startrack-checker-launcher")])
+        # Only fixed pinned package paths are extracted; receipt entries never
+        # become caller-selected Docker paths. The full file set is remeasured.
+        for name in wheel_audit_module().INSTALLED_PATHS:
+            destination = directory / "installed" / name.lstrip("/")
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            command(["docker", "cp", container + ":" + name, str(destination)])
     finally:
         command(["docker", "rm", "--volumes", container])
     identities = verify_extracted(directory, commit)

@@ -42,6 +42,10 @@ type caseEvidence struct {
 	CPUTimeNS     uint64                `json:"cpuTimeNs"`
 	MemoryBytes   uint64                `json:"memoryBytes"`
 }
+type defaultCheckerEvidence struct {
+	judgeruntime.DefaultCheckerQualification
+	PrivateLog privateLogEvidence `json:"privateLog"`
+}
 type matrixReport struct {
 	Version                      int                         `json:"version"`
 	Environment                  string                      `json:"environment"`
@@ -49,6 +53,7 @@ type matrixReport struct {
 	Passed                       bool                        `json:"passed"`
 	Cases                        []caseEvidence              `json:"cases"`
 	Mature                       []matureEvidence            `json:"mature"`
+	DefaultChecker               defaultCheckerEvidence      `json:"defaultChecker"`
 	Statement                    statementEvidence           `json:"statement"`
 	LargeStatement               largeStatementEvidence      `json:"largeStatement"`
 	Workspace                    workspaceEvidence           `json:"workspace"`
@@ -296,6 +301,15 @@ func runMatrix(ctx context.Context, control matrixControl) (report matrixReport,
 		}
 	}
 	blobs.corrupt = ""
+	if adapter.Qualify(ctx) != nil {
+		return report, errors.New("default checker matrix refresh failed")
+	}
+	checkerRegression, checkerErr := adapter.QualifyDefaultChecker(ctx)
+	checkerLog, logErr := retainMatrixLog("DEFAULT_CHECKER_REGRESSIONS", checkerRegression.RawLog)
+	report.DefaultChecker = defaultCheckerEvidence{DefaultCheckerQualification: checkerRegression, PrivateLog: checkerLog}
+	if checkerErr != nil || logErr != nil || !checkerRegression.Passed {
+		return report, errors.New("pinned default checker matrix mismatch")
+	}
 	if e := runMatureMatrix(ctx, adapter, blobs, factory, &report); e != nil {
 		return report, e
 	}

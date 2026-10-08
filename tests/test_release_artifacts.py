@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import tarfile
 import tempfile
 import types
@@ -195,8 +196,25 @@ class ReleaseArtifactTests(unittest.TestCase):
             body = json.dumps(tools).encode() if name == "validation-tools.lock.json" else b"{}"
             write(root / name, body)
             write(directory / "provenance" / name, body)
+        write(directory / "provenance/generated-dependencies.json", json.dumps({"schemaVersion": 1, "scope": "BUILD_INPUTS_ONLY", "generatedDependencyInputs": {"service": {}, "go-judge": {}}}).encode())
+        from test_problemtools_wheel_audit import WheelEvidenceTests
+        wheel = WheelEvidenceTests().fixture(root)
+        write(directory / "provenance/problemtools-sources.json", (root / "opt/startrack/provenance/problemtools-sources.json").read_bytes())
+        for name in RELEASE.PROVENANCE:
+            if name not in RELEASE.BUILD_OUTPUT_PROVENANCE:
+                body = (directory / "provenance" / name).read_bytes()
+                entries.append({"path": "provenance/" + name, "sizeBytes": len(body), "sha256": checksum(body), "mode": "0644"})
+        fixture_body = b"inert original fixture bytes\n"
+        fixture_name = "test_simple_ac/user.out"
+        write(directory / "qualification/default_validator_tests" / fixture_name, fixture_body)
+        entries.append({"path": "upstream/problemtools/tests/default_validator_tests/" + fixture_name,
+                        "sizeBytes": len(fixture_body), "sha256": checksum(fixture_body), "mode": "0644"})
         context = {"schemaVersion": 1, "gitHead": COMMIT, "releaseCommit": COMMIT, "sourceState": "CLEAN", "workingTreeStatus": "", "qualification": "UNQUALIFIED", "inventory": entries}
         write(directory / "provenance/context-inventory.json", json.dumps(context).encode())
+        write(root / "opt/startrack/provenance/context-inventory.json", json.dumps(context).encode())
+        write(directory / "provenance/problemtools-wheel.sha256", (checksum(wheel.read_bytes()) + "  /build/dist/" + wheel.name + "\n").encode())
+        write(directory / "provenance/problemtools-wheel-audit.json", json.dumps(RELEASE.wheel_audit_module().capture(wheel, root)).encode())
+        shutil.copytree(root / "usr", directory / "installed/usr")
         write(directory / "provenance/validation-tools-installed.json", json.dumps({"schemaVersion": 1, "lockSha256": RELEASE.sha_file(root / "validation-tools.lock.json"), "platform": "linux/amd64", "pythonVersion": "3.11.15", "debianPackages": tools["baselineAnchors"], "pythonPackages": tools["wheels"] + tools["baselinePythonPackages"]}).encode())
         write(directory / "provenance/python-packages.json", json.dumps([{"name": "fixture_lib", "version": "2"}, {"name": "pip", "version": "3"}, {"name": "problemtools", "version": "1.20260907"}]).encode())
         write(directory / "provenance/os-packages.tsv", b"libbase:amd64\t1\tamd64\n")
@@ -217,7 +235,7 @@ class ReleaseArtifactTests(unittest.TestCase):
     def test_actual_image_audit_rejects_legal_security_inventory_binary_and_history_drift(self):
         for variant in ("valid", "license", "extra_legal", "profile", "python", "os", "binary", "missing_binary",
                         "capacity_libexec", "capacity_tool", "missing_capacity_libexec", "missing_capacity_tool", "missing_capacity_checksum", "diverged_capacity",
-                        "migration", "dirty_context",
+                        "migration", "dirty_context", "provenance_generated", "provenance_source", "provenance_vendor", "missing_provenance_entry", "wheel_receipt", "installed_payload", "checker_fixture_changed", "checker_fixture_extra", "checker_fixture_missing",
                         "installed_missing_baseline", "installed_changed_baseline", "installed_extra", "installed_duplicate_baseline", "installed_duplicate_os"):
             with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temporary, patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
                 directory = self.image_fixture(Path(temporary).resolve())
@@ -259,6 +277,29 @@ class ReleaseArtifactTests(unittest.TestCase):
                                             for line in path.read_text().splitlines(keepends=True)))
                 elif variant == "migration":
                     (directory / "migrations/000001_initial.up.sql").write_bytes(b"rewrite")
+                elif variant.startswith("provenance_"):
+                    name = {"provenance_generated": "generated-dependencies.json", "provenance_source": "problemtools-sources.json", "provenance_vendor": "go-sandbox-vendor-patches.json"}[variant]
+                    (directory / "provenance" / name).write_text('{"tampered":true}')
+                elif variant == "missing_provenance_entry":
+                    path = directory / "provenance/context-inventory.json"
+                    context = json.loads(path.read_bytes())
+                    context["inventory"] = [entry for entry in context["inventory"] if entry["path"] != "provenance/generated-dependencies.json"]
+                    path.write_text(json.dumps(context))
+                elif variant == "wheel_receipt":
+                    path = directory / "provenance/problemtools-wheel-audit.json"
+                    receipt = json.loads(path.read_bytes())
+                    receipt["wheelSHA256"] = "0" * 64
+                    path.write_text(json.dumps(receipt))
+                elif variant == "installed_payload":
+                    (directory / "installed/usr/local/lib/python3.11/site-packages/problemtools/__init__.py").write_bytes(b"tampered")
+                elif variant.startswith("checker_fixture_"):
+                    path = directory / "qualification/default_validator_tests/test_simple_ac/user.out"
+                    if variant == "checker_fixture_changed":
+                        path.write_bytes(b"changed fixture")
+                    elif variant == "checker_fixture_extra":
+                        (path.parent / "unexpected").write_bytes(b"extra fixture")
+                    else:
+                        path.unlink()
                 elif variant.startswith("installed_"):
                     path = directory / "provenance/validation-tools-installed.json"
                     value = json.loads(path.read_bytes())

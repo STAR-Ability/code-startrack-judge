@@ -34,6 +34,7 @@ COPY --from=native-build /out/default_validator /opt/startrack/libexec/default_v
 COPY --from=native-build /out/startrack-checker-launcher /usr/local/bin/startrack-checker-launcher
 COPY upstream/problemtools/support/default_grader/default_grader /opt/startrack/libexec/default_grader
 COPY service/scripts/problemtools-bridge.py /opt/startrack/libexec/problemtools-bridge.py
+COPY upstream/problemtools/tests/default_validator_tests/ /opt/startrack/qualification/default_validator_tests/
 COPY legal/ /opt/startrack/legal/
 COPY provenance/ /opt/startrack/provenance/
 COPY docker/mount.yaml /opt/startrack/mount.yaml
@@ -45,6 +46,7 @@ COPY docker/startrack-workload-seccomp.yaml /opt/startrack/startrack-workload-se
 COPY docker/workload-security-profile.lock.json /opt/startrack/workload-security-profile.lock.json
 COPY service/migrations/ /opt/startrack/migrations/
 COPY service/scripts/validation-tools.py /build/validation-tools.py
+COPY service/scripts/problemtools-wheel-audit.py /build/problemtools-wheel-audit.py
 COPY validation-tools/ /build/validation-tools/
 COPY upstream/problemtools/ /build/problemtools/
 RUN --network=none /usr/local/bin/python3 /build/validation-tools.py install \
@@ -55,6 +57,9 @@ RUN --network=none /usr/local/bin/python3 /build/validation-tools.py install \
     --no-build-isolation --no-deps --no-index --wheel-dir /build/dist /build/problemtools && \
     /usr/local/bin/python3 -m pip install --disable-pip-version-check --no-index --no-deps /build/dist/problemtools-1.20260907-*.whl && \
     sha256sum /build/dist/problemtools-1.20260907-*.whl > /opt/startrack/provenance/problemtools-wheel.sha256 && \
+    /usr/local/bin/python3 /build/problemtools-wheel-audit.py \
+    --wheel /build/dist/problemtools-1.20260907-py3-none-any.whl \
+    --output /opt/startrack/provenance/problemtools-wheel-audit.json && \
     /usr/local/bin/python3 -m pip check && \
     /usr/local/bin/python3 -m pip list --format=json > /opt/startrack/provenance/python-packages.json && \
     rm -rf /build /root/.cache
