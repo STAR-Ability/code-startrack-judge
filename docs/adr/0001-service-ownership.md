@@ -21,6 +21,8 @@ Ownership makes audit, failure handling and future upgrades explicit. Backend ca
 
 Backend mocks and contract tests are required. Logical Submission references are intentional and need input/mapping verification. Catalog caches and result projections are derived, carry their source owner and cannot overwrite judge facts. The missing whole-system reference remains [Q-001](../contracts/open-questions.md#q-001--missing-whole-system-architecture-contract).
 
+Current status (2026-10-08): the exact owner-supplied [whole-system integration contract](../contracts/v0.2/integration.md) has been recovered byte-identically. [Q-001](../contracts/open-questions.md#q-001--missing-whole-system-architecture-contract) records its provenance and resolution; real consumer and integration acceptance remain separate gates.
+
 ## Alternatives
 
 Shared business tables or a combined user/judge service simplify some local queries but violate the supplied contracts and obscure fact ownership. They are not authorized alternatives for V0.2.

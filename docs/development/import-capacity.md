@@ -110,7 +110,7 @@ The binary never publishes a problem.
 The disposable private facility must persist or be completely restored between
 phases. A fresh empty tmpfs cannot stand in for retained historical objects.
 Qualification uses the supervisor-owned 6 GiB service and 4 GiB runtime cgroups,
-10 GiB outer budget, bounded 2 GiB private ext4 facility, and the qualified 2 GiB
+10 GiB outer budget, bounded 2 GiB private ext4 facility, and the candidate 2 GiB
 workspace with 262,144 inodes. Their actual accounting is collected by the Linux
 harness; the binary's archive statistics are not memory or filesystem peaks.
 

@@ -117,7 +117,7 @@ See the [upstream inventory](../upstream/dependencies.md) and
 ## Service development and sandbox validation
 
 Service configuration, strict DTOs, canonical hashing and native tooling are
-being implemented. Portable tests exercise their DTOs and explicit mocks;
+implemented on `dev`; final image and cross-service acceptance remain pending. Portable tests exercise their DTOs and explicit mocks;
 database and worker checks are verified in their Issues. They must not execute
 untrusted submissions, validators, checkers or reference programs on the host.
 

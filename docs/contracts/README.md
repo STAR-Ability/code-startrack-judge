@@ -6,7 +6,7 @@ Code Startrack Judge & Problem Service evolves independently of a single milesto
 
 | Item | Current value |
 |---|---|
-| Target service release | V0.2, not yet implemented or released |
+| Target service release | V0.2 implementation on `dev`; final acceptance and release pending |
 | Contract release | `0.2.0` |
 | Internal API generation | `/internal/v2` |
 | API contract | [v0.2/api.md](v0.2/api.md) |
