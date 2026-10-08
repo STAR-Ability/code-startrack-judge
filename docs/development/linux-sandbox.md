@@ -24,6 +24,21 @@ python3 scripts/linux-qualify.py \
 
 The launcher verifies the actual image digest/platform and clean release source inventory, loads the exact AppArmor policy and checks its bytes against the image, supplies independent synthetic root0400 credentials, and tests the no-capability failure baseline before the explicit candidate profile. The supervisor measures the actual sandbox and starts only the fixed matrix binary as UID20001 in its service cgroup. Matrix credentials use stdin; the process inherits a scoped environment. Retained cgroup directory descriptors remain root-only and CLOEXEC so accounting covers the actual service/runtime/outer limits and peaks. The matrix has a finite fifteen-minute bound. Bounded raw synthetic diagnostics are retained separately under the root0700 `private/` evidence directory; public JSON contains structural observations and artifact digests.
 
+After the complete matrix passes, the launcher preserves its private diagnostics
+under `pre-crash/private/`, then deliberately kills the measured go-judge manager.
+The fixed probe binds a PID descriptor to the recorded PID, start ticks, boot ID
+and process name before sending SIGKILL; it needs no ptrace access or additional
+capabilities. Acceptance requires container exit1 and removal of the old
+qualification record. The trusted host also witnesses the original process
+generations and holds the original container cgroup directory descriptor;
+every witnessed process must be gone and that group must be empty or removed.
+Restarting the same immutable image and profile must
+produce a newer process identity, every required isolation check and an initial
+global-idle cleanup proof. `runtimeCrashRestart` reports this separate gate;
+normal persistent task recovery and final process-memory acceptance remain
+separate checks. A retained Docker OOM flag is recorded without attributing it
+to the outer budget; local and descendant cgroup events require separate review.
+
 The candidate requires cgroup v2, at least four visible CPUs and at least15GiB measured host memory. The configured maxima are10GiB outer,6GiB service,4GiB runtime, swap0, and2GiB `/run` and `/w` tmpfs. Maximum-package and parallel-statement measurements must demonstrate these budgets before they become qualified capacity. The launcher reports `qualified:false` while any acceptance gate remains outstanding, even when its runtime checks pass. Local diagnostic candidates may use only the dedicated `colima-startrack-v02` context; dirty diagnostic source and edited binaries must never be presented as release provenance.
 
 The fixed workload guard stacks with the inherited init whitelist and outer filter; actual workload observations require at least three filters. Supplemental bounded evidence retains the four zero capability masks, observed bounding mask, securebits47, fixed privilege-denial results, all nine read-only mount/write checks and exact resource fixture results. Strict upstream memory mode also imposes a data-segment limit, so the synthetic cgroup MLE fixture commits a private tmpfs file mapping without changing the hard memory cap. Infinite pipe output is collected to the mature limit+1 overflow sentinel; an earlier CPU limit can remain the raw status, while the exact collector error and bounded retained bytes establish output enforcement. Business verdict mapping is qualified separately through the real adapter matrix.

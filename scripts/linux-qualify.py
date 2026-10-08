@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import errno
 import hashlib
 import json
 import os
@@ -24,6 +25,24 @@ CAPABILITIES = ("CHOWN", "FOWNER", "KILL", "SETUID", "SETGID", "SYS_ADMIN", "SYS
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 REQUIRED_CHECKS = {"seccomp", "namespaces", "network_denied", "filesystem_isolation", "credential_isolation", "sibling_proc_denied", "unique_execution_uids", "cpu_limits", "wall_limits", "memory_limits", "output_limits", "process_limits", "cgroup_cpu", "cgroup_memory", "cgroup_pids", "compiler_isolation", "cleanup", "cache_cleanup"}
+MANAGER_KILL_PROBE = """import json, os, signal, sys
+from pathlib import Path
+pid, ticks, boot = int(sys.argv[1]), sys.argv[2], sys.argv[3]
+if pid <= 1 or not ticks.isdecimal():
+    raise SystemExit(1)
+descriptor = os.pidfd_open(pid, 0)
+try:
+    raw = Path('/proc/' + str(pid) + '/stat').read_text()
+    fields = raw[raw.rindex(')') + 1:].split()
+    if (len(fields) < 20 or fields[0] == 'Z' or fields[19] != ticks
+            or Path('/proc/' + str(pid) + '/comm').read_text().strip() != 'go-judge'
+            or Path('/proc/sys/kernel/random/boot_id').read_text().strip() != boot):
+        raise SystemExit(1)
+    signal.pidfd_send_signal(descriptor, signal.SIGKILL)
+    print(json.dumps({'killSent': True, 'pid': pid, 'startTicks': ticks, 'bootId': boot}))
+finally:
+    os.close(descriptor)
+"""
 
 
 def run(prefix, args, *, check=True, stdin=None, timeout=240):
@@ -47,7 +66,7 @@ def retain_private(runtime_evidence, evidence):
     if matrix_directory.is_dir() and not matrix_directory.is_symlink():
         entries = list(matrix_directory.iterdir())
         if len(entries) <= 8:
-            candidates.extend((path, "matrix-" + path.name) for path in entries if re.fullmatch(r"(?:ALL_PARTS|VALIDATOR_EXIT_ZERO|ACCEPTED_REFERENCE_WRONG|STATEMENT_ARTIFACTS|MAXIMUM_PACKAGE)-[A-Za-z0-9]+\.log", path.name))
+            candidates.extend((path, "matrix-" + path.name) for path in entries if re.fullmatch(r"(?:ALL_PARTS|VALIDATOR_EXIT_ZERO|ACCEPTED_REFERENCE_WRONG|STATEMENT_ARTIFACTS|LARGE_STATEMENT|WORKSPACE|DEFAULT_CHECKER_REGRESSIONS)-[A-Za-z0-9]+\.log", path.name))
     retained = 0
     for source, name in candidates:
         try:
@@ -88,6 +107,239 @@ def isolation_observations(runtime_evidence, measurement, digest):
     return observations
 
 
+def require_failed_closed(state, measurement_path):
+    if (state.get("Running") is not False or state.get("Status") != "exited"
+            or type(state.get("ExitCode")) is not int or state["ExitCode"] != 1
+            or type(state.get("Pid")) is not int or state["Pid"] != 0
+            or measurement_path.exists() or measurement_path.is_symlink()):
+        raise ValueError("runtime_crash_failed_open")
+
+
+def process_start_ticks(pid):
+    raw = Path("/proc", str(pid), "stat").read_text()
+    fields = raw[raw.rindex(")") + 1:].split()
+    if len(fields) < 20 or not fields[19].isdecimal():
+        raise ValueError("runtime_crash_process_identity_invalid")
+    return fields[19]
+
+
+def process_snapshot(pid):
+    directory = os.open(Path("/proc", str(pid)), os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        values = {}
+        for name in ("stat", "status", "cgroup"):
+            descriptor = os.open(name, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=directory)
+            with os.fdopen(descriptor, "rb") as source:
+                data = source.read(8193)
+            if len(data) > 8192:
+                raise ValueError("runtime_crash_process_metadata_bounds")
+            values[name] = data.decode("ascii")
+        fields = values["stat"][values["stat"].rindex(")") + 1:].split()
+        if len(fields) < 20 or not fields[19].isdecimal():
+            raise ValueError("runtime_crash_process_identity_invalid")
+        return fields[19], values["status"].splitlines(), values["cgroup"].splitlines()
+    finally:
+        os.close(directory)
+
+
+def capture_execution_drain(prefix, active, measurement):
+    state = json.loads(run(prefix, ["inspect", active, "--format", "{{json .State}}"], timeout=10).stdout)
+    identifier = run(prefix, ["inspect", active, "--format", "{{.Id}}"], timeout=10).stdout.strip()
+    init = state.get("Pid")
+    if state.get("Running") is not True or type(init) is not int or init <= 1 or not re.fullmatch(r"[0-9a-f]{64}", identifier):
+        raise ValueError("runtime_crash_host_identity_invalid")
+    cgroups = Path("/proc", str(init), "cgroup").read_text().splitlines()
+    if len(cgroups) != 1 or not cgroups[0].startswith("0::/"):
+        raise ValueError("runtime_crash_host_cgroup_invalid")
+    relative = Path(cgroups[0][4:])
+    if relative.is_absolute() or ".." in relative.parts or relative.name != "service":
+        raise ValueError("runtime_crash_host_cgroup_invalid")
+    relative = relative.parent  # PID1 is in /service; /runtime is its sibling.
+    if not any(part in (identifier, "docker-" + identifier + ".scope") for part in relative.parts):
+        raise ValueError("runtime_crash_host_cgroup_invalid")
+    outer_membership = "0::/" + relative.as_posix()
+    descriptor = os.open(Path("/sys/fs/cgroup") / relative, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC | os.O_NOFOLLOW)
+    try:
+        facts = os.fstat(descriptor)
+        rows = run(prefix, ["top", active, "-eo", "pid"], timeout=10).stdout.splitlines()
+        if not rows or rows[0].strip() != "PID" or not 2 <= len(rows) <= 513:
+            raise ValueError("runtime_crash_host_roster_invalid")
+        pids = [int(row.strip()) for row in rows[1:] if re.fullmatch(r"[1-9][0-9]{0,9}", row.strip())]
+        if len(pids) != len(rows) - 1 or len(set(pids)) != len(pids) or init not in pids:
+            raise ValueError("runtime_crash_host_roster_invalid")
+        originals, manager_seen = {}, False
+        for pid in pids:
+            try:
+                ticks, status, membership = process_snapshot(pid)
+            except FileNotFoundError:
+                continue  # A short-lived completed probe is already gone.
+            if len(membership) != 1 or not (membership[0] == outer_membership or membership[0].startswith(outer_membership + "/")):
+                continue  # A reused PID belonging to another workload is excluded.
+            originals[pid] = ticks
+            nspid = next((line.split()[1:] for line in status if line.startswith("NSpid:")), [])
+            if len(nspid) >= 2 and nspid[1] == str(measurement["pid"]) and ticks == measurement["startTicks"]:
+                manager_seen = True
+        if init not in originals or not manager_seen:
+            raise ValueError("runtime_crash_host_positive_coverage_missing")
+        return {"descriptor": descriptor, "device": facts.st_dev, "inode": facts.st_ino, "processes": originals}
+    except BaseException:
+        os.close(descriptor)
+        raise
+
+
+def execution_drained(witness):
+    facts = os.fstat(witness["descriptor"])
+    if (facts.st_dev, facts.st_ino) != (witness["device"], witness["inode"]):
+        raise ValueError("runtime_crash_cgroup_identity_changed")
+    for pid, ticks in witness["processes"].items():
+        try:
+            if process_start_ticks(pid) == ticks:
+                return False
+        except FileNotFoundError:
+            pass
+    try:
+        descriptor = os.open("pids.current", os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW, dir_fd=witness["descriptor"])
+    except OSError as error:
+        if error.errno in (errno.ENOENT, errno.ENODEV):
+            return True  # The original kernel cgroup has been removed.
+        raise
+    with os.fdopen(descriptor, "rb") as counter:
+        value = counter.read(128).strip()
+    if not re.fullmatch(rb"[0-9]{1,20}", value):
+        raise ValueError("runtime_crash_cgroup_counter_invalid")
+    return int(value) == 0
+
+
+def require_fresh_restart(previous, current, observations):
+    if (type(current.get("pid")) is not int or current["pid"] <= 1
+            or current.get("identity") != previous.get("identity")
+            or current.get("bootId") != previous.get("bootId")
+            or not re.fullmatch(r"[0-9a-f]{64}", previous.get("securityProfileSha256", ""))
+            or current.get("securityProfileSha256") != previous["securityProfileSha256"]
+            or not isinstance(current.get("startTicks"), str)
+            or not re.fullmatch(r"[0-9]{1,20}", current["startTicks"])
+            or int(current["startTicks"]) <= int(previous["startTicks"])
+            or any(current.get("checks", {}).get(key) is not True for key in REQUIRED_CHECKS)
+            or observations.get("cleanupObservations", {}).get("startupGlobalIdle") is not True):
+        raise ValueError("runtime_restart_measurement_invalid")
+
+
+def matrix_log_facts(matrix):
+    mature = matrix.get("mature", [])
+    names = {"ALL_PARTS", "VALIDATOR_EXIT_ZERO", "ACCEPTED_REFERENCE_WRONG"}
+    if len(mature) != 3 or {entry.get("name") for entry in mature} != names:
+        raise ValueError("matrix_private_diagnostics_invalid")
+    facts = {entry["name"]: entry["privateLog"] for entry in mature}
+    facts.update({"STATEMENT_ARTIFACTS": matrix["statement"]["privateLog"],
+                  "LARGE_STATEMENT": matrix["largeStatement"]["statement"]["privateLog"],
+                  "WORKSPACE": matrix["workspace"]["privateLog"],
+                  "DEFAULT_CHECKER_REGRESSIONS": matrix["defaultChecker"]["privateLog"]})
+    return facts
+
+
+def verify_preserved_matrix(private, matrix):
+    if regular_json(private / "matrix-report-private.json") != matrix:
+        raise ValueError("matrix_private_report_mismatch")
+    facts = matrix_log_facts(matrix)
+    retained = []
+    for name, expected in sorted(facts.items()):
+        matches = [path for path in private.iterdir()
+                   if re.fullmatch(r"matrix-" + name + r"-[A-Za-z0-9]+\.log", path.name)]
+        if (len(matches) != 1 or matches[0].is_symlink() or not matches[0].is_file()
+                or type(expected.get("retainedBytes")) is not int or not 0 <= expected["retainedBytes"] <= 65536
+                or matches[0].stat().st_size != expected["retainedBytes"]
+                or not re.fullmatch(r"[0-9a-f]{64}", expected.get("retainedSha256", ""))
+                or hashlib.sha256(matches[0].read_bytes()).hexdigest() != expected["retainedSha256"]):
+            raise ValueError("matrix_private_log_mismatch")
+        retained.append({"fixture": name, "retainedSha256": expected["retainedSha256"],
+                         "retainedBytes": expected["retainedBytes"]})
+    return {"matrixReportSha256": hashlib.sha256((private / "matrix-report-private.json").read_bytes()).hexdigest(),
+            "fixtureLogs": retained}
+
+
+def preserve_completed_matrix(runtime_evidence, evidence, matrix):
+    # The public matrix is written just before its deferred private exporter.
+    # Wait for complete, digest-bound export rather than racing that transfer.
+    deadline = time.monotonic() + 10
+    facts = matrix_log_facts(matrix)
+    source = runtime_evidence / "private-matrix"
+    while True:
+        complete = source.is_dir() and not source.is_symlink()
+        entries = list(source.iterdir()) if complete else []
+        complete = complete and len(entries) <= 8
+        for name, expected in facts.items():
+            matches = [path for path in entries if re.fullmatch(name + r"-[A-Za-z0-9]+\.log", path.name)]
+            complete = complete and len(matches) == 1
+            if len(matches) == 1:
+                path = matches[0]
+                complete = (complete and not path.is_symlink() and path.is_file()
+                            and path.stat().st_size == expected["retainedBytes"] <= 65536
+                            and hashlib.sha256(path.read_bytes()).hexdigest() == expected["retainedSha256"])
+        if complete:
+            break
+        if time.monotonic() >= deadline:
+            raise ValueError("matrix_private_export_incomplete")
+        time.sleep(0.025)
+    pre_crash = evidence / "pre-crash"
+    pre_crash.mkdir(mode=0o700)
+    count = retain_private(runtime_evidence, pre_crash)
+    binding = verify_preserved_matrix(pre_crash / "private", matrix)
+    return {"filesRetained": count, **binding}
+
+
+def crash_restart(prefix, active, runtime_evidence, previous, digest):
+    pid, ticks, boot = (previous.get(key) for key in ("pid", "startTicks", "bootId"))
+    if (type(pid) is not int or pid <= 1 or not isinstance(ticks, str) or not re.fullmatch(r"[0-9]{1,20}", ticks)
+            or not isinstance(boot, str) or not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", boot)):
+        raise ValueError("runtime_crash_identity_invalid")
+    witness = capture_execution_drain(prefix, active, previous)
+    try:
+        return measured_crash_restart(prefix, active, runtime_evidence, previous, digest, witness)
+    finally:
+        os.close(witness["descriptor"])
+
+
+def measured_crash_restart(prefix, active, runtime_evidence, previous, digest, witness):
+    pid, ticks, boot = (previous[key] for key in ("pid", "startTicks", "bootId"))
+    killed = run(prefix, ["exec", "--user", "0", active, "/usr/bin/python3", "-c",
+                         MANAGER_KILL_PROBE, str(pid), ticks, boot], timeout=30)
+    if json.loads(killed.stdout) != {"killSent": True, "pid": pid, "startTicks": ticks, "bootId": boot}:
+        raise ValueError("runtime_crash_signal_unconfirmed")
+    deadline = time.monotonic() + 75
+    while True:
+        state = json.loads(run(prefix, ["inspect", active, "--format", "{{json .State}}"], timeout=10).stdout)
+        if state.get("Running") is False:
+            break
+        if time.monotonic() >= deadline:
+            raise ValueError("runtime_crash_shutdown_timeout")
+        time.sleep(0.25)
+    measurement_path = runtime_evidence / "runtime-measurement.json"
+    require_failed_closed(state, measurement_path)
+    deadline = time.monotonic() + 15
+    while not execution_drained(witness):
+        if time.monotonic() >= deadline:
+            raise ValueError("runtime_crash_original_execution_retained")
+        time.sleep(0.025)
+    run(prefix, ["restart", active], timeout=30)
+    deadline = time.monotonic() + 90
+    while not measurement_path.exists() or not (runtime_evidence / "runtime-isolation-observations.json").exists():
+        running = run(prefix, ["inspect", active, "--format", "{{.State.Running}}"], timeout=10)
+        if running.stdout.strip() != "true" or time.monotonic() >= deadline:
+            raise ValueError("runtime_restart_measurement_unavailable")
+        time.sleep(0.25)
+    current = regular_json(measurement_path)
+    observations = isolation_observations(runtime_evidence, current, digest)
+    require_fresh_restart(previous, current, observations)
+    return {"passed": True, "managerSignal": "SIGKILL", "signalBoundToPIDFD": True,
+            "originalHostProcessesObserved": len(witness["processes"]), "originalHostProcessesGone": True,
+            "originalCgroupDrainedOrRemoved": True, "originalCgroupIdentityHeld": True,
+            "failedContainerExitCode": state["ExitCode"], "dockerOOMKilled": state.get("OOMKilled"),
+            "oldQualificationRemoved": True, "restartInitialMeasurement": current,
+            "restartInitialObservations": observations,
+            "restartedMatrixUsedForAcceptance": False,
+            "scope": "Manager death and same-image/profile restart; business task recovery is a separate gate"}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
@@ -124,7 +376,7 @@ def main():
     subprocess.run(["apparmor_parser", "--replace", str(apparmor)], capture_output=True, timeout=30, check=True)
     identifier = "startrack-qualification-" + secrets.token_hex(8)
     containers = []
-    report = {"schemaVersion": 1, "scope":"LINUX_RUNTIME_SYNTHETIC", "qualified": False,"runtimeChecksPassed":False,"requiredAcceptanceGates":{"matureRolesAndStatements":False,"maximumPackageAndParallelStatements":False,"finalServiceProcessMemory":False,"independentSecurityReview":False},"sourceCommit": args.expected_commit,
+    report = {"schemaVersion": 1, "scope":"LINUX_RUNTIME_SYNTHETIC", "qualified": False,"runtimeChecksPassed":False,"requiredAcceptanceGates":{"matureRolesAndStatements":False,"maximumPackageAndParallelStatements":False,"runtimeCrashRestart":False,"finalServiceProcessMemory":False,"independentSecurityReview":False},"sourceCommit": args.expected_commit,
               "imageReference": args.image, "imageID": image["Id"], "failureCode": "incomplete"}
     report["trustedHost"] = {"memoryBytes": daemon["MemTotal"], "cpuCount": daemon["NCPU"], "cgroupVersion": daemon["CgroupVersion"], "apparmorSha256": apparmor_hash, "apparmorParserVersion": parser_version}
     facilities = runtime_evidence = None
@@ -206,6 +458,11 @@ def main():
             matrix = matrix_report["matrix"]
             if matrix.get("passed") is not True:
                 raise ValueError("runtime_matrix_failed")
+            # A restart truncates fixed private logs. Preserve completed matrix
+            # diagnostics before deliberately crashing the measured manager.
+            report["preCrashPrivateDiagnostics"] = preserve_completed_matrix(runtime_evidence, evidence, matrix)
+            report["runtimeCrashRestart"] = crash_restart(prefix, active, runtime_evidence, measurement, digest)
+            report["requiredAcceptanceGates"]["runtimeCrashRestart"] = True
             report.update({"runtimeChecksPassed": True, "failureCode": "", "measurement": measurement, "isolationObservations": observations, "matrix": matrix, "cgroupsBefore": matrix_report["cgroupsBefore"], "cgroupsAfter": matrix_report["cgroupsAfter"]})
     except (ValueError, OSError, KeyError, json.JSONDecodeError, subprocess.SubprocessError) as error:
         report["failureCode"] = str(error) if isinstance(error, ValueError) and re.fullmatch(r"[a-z_]+", str(error)) else type(error).__name__

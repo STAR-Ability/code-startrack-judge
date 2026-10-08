@@ -231,7 +231,7 @@ func retainQualificationMatrixLogs() {
 	if err != nil || len(entries) > 8 {
 		return
 	}
-	allowed := regexp.MustCompile(`^(ALL_PARTS|VALIDATOR_EXIT_ZERO|ACCEPTED_REFERENCE_WRONG|STATEMENT_ARTIFACTS|MAXIMUM_PACKAGE)-[A-Za-z0-9]+\.log$`)
+	allowed := regexp.MustCompile(`^(ALL_PARTS|VALIDATOR_EXIT_ZERO|ACCEPTED_REFERENCE_WRONG|STATEMENT_ARTIFACTS|LARGE_STATEMENT|WORKSPACE|DEFAULT_CHECKER_REGRESSIONS)-[A-Za-z0-9]+\.log$`)
 	for _, entry := range entries {
 		if !allowed.MatchString(entry.Name()) {
 			continue
