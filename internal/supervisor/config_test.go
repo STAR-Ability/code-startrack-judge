@@ -95,6 +95,10 @@ func TestSecretFileBoundary(t *testing.T) {
 		if os.WriteFile(path, []byte(value), mode) != nil {
 			t.Fatal("fixture write")
 		}
+		// Keep each permission fixture exact even under a restrictive caller umask.
+		if os.Chmod(path, mode) != nil {
+			t.Fatal("fixture permissions")
+		}
 	}
 	write("synthetic-token", 0400)
 	if value, err := readSecretFile(path, uint32(os.Geteuid())); err != nil || value != "synthetic-token" {

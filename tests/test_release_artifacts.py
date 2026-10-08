@@ -324,12 +324,15 @@ class ReleaseArtifactTests(unittest.TestCase):
                 path.chmod(0o644)
                 add("context/" + relative, body)
         (root / "upstream.lock.json").write_bytes(json.dumps(lock).encode())
+        (root / "upstream.lock.json").chmod(0o644)
         add("context/provenance/upstream.lock.json", (root / "upstream.lock.json").read_bytes())
         for name in ("toolchain.lock.json", "validation-tools.lock.json", "validation-sources.lock.json"):
             (root / name).write_bytes(b"{}")
+            (root / name).chmod(0o644)
             add("context/provenance/" + name, b"{}")
         for name in ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"):
             (root / name).write_bytes(name.encode())
+            (root / name).chmod(0o644)
             add("context/legal/" + name, name.encode())
         def records(values):
             return [{"path": name, "sizeBytes": len(body), "sha256": checksum(body), "mode": "0644"} for name, body in sorted(values.items())]
