@@ -4,7 +4,6 @@ package supervisor
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -20,7 +19,7 @@ import (
 
 // Run is the fixed PID1 service bootstrap. A failed component stops the whole
 // container; the operator restarts the measured instance, never a weaker mode.
-func Run(ctx context.Context) error {
+func Run(ctx context.Context) (result error) {
 	if ctx == nil || os.Getpid() != 1 || os.Geteuid() != 0 {
 		return fail("linux_pid1")
 	}
@@ -51,7 +50,12 @@ func Run(ctx context.Context) error {
 		os.Remove(path + ".tmp")
 	}
 	accounting := &cgroupAccounting{}
-	defer accounting.close()
+	resourcesSettled := true
+	defer func() {
+		if resourcesSettled {
+			accounting.close()
+		}
+	}()
 	if err = prepareCgroup(accounting); err != nil {
 		return err
 	}
@@ -66,83 +70,87 @@ func Run(ctx context.Context) error {
 		return fail("bootstrap_proc_mount")
 	}
 
-	type childState struct {
-		cmd  *exec.Cmd
-		done chan struct{}
-	}
-	children := []childState{}
-	runtimeDrain := make(chan struct{})
-	monitor := func(c *exec.Cmd) childState {
-		state := childState{c, make(chan struct{})}
-		go func() {
-			c.Wait()
-			if c.Path == RuntimeInitBinary {
-				<-runtimeDrain
-			}
-			if c.ProcessState != nil {
-				if status, ok := c.ProcessState.Sys().(syscall.WaitStatus); ok {
-					fmt.Fprintf(os.Stderr, "supervisor child_exit pid=%d status=%d signal=%d\n", c.Process.Pid, status.ExitStatus(), status.Signal())
-				}
-			}
-			close(state.done)
-		}()
-		children = append(children, state)
-		return state
-	}
+	publication := newQualificationPublication(QualificationPath)
+	children := []*componentChild{}
+	// Parent cancellation means a stop request only after full normal startup.
+	// Real recurring probes keep their own existing deadlines during API drain.
+	workCtx, cancelWork := context.WithCancel(context.WithoutCancel(ctx))
+	var qualificationWG sync.WaitGroup
 	defer func() {
-		os.Remove(QualificationPath)
-		for _, child := range children {
-			child.cmd.Process.Signal(syscall.SIGTERM)
+		if result != nil {
+			publication.reject(result)
 		}
-		deadline := time.After(10 * time.Second)
-		for _, child := range children {
-			select {
-			case <-child.done:
-			case <-deadline:
-				for _, c := range children {
-					c.cmd.Process.Kill()
-				}
-				return
-			}
+		publication.revoke()
+		cancelWork()
+		helpersDone := make(chan struct{})
+		go func() { qualificationWG.Wait(); close(helpersDone) }()
+		select {
+		case <-helpersDone:
+		case <-time.After(65 * time.Second):
+			publication.reject(fail("qualification_shutdown_deadline"))
+			resourcesSettled = false
+		}
+		if !stopComponents(children, publication, 10*time.Second, 5*time.Second) {
+			resourcesSettled = false
+		}
+		if err := publication.failure(); err != nil {
+			result = err
 		}
 	}()
-	// Qualification helpers own real processes and accounting descriptors. Stop
-	// and reap them before component shutdown and before accounting is closed.
-	ctx, cancelQualification := context.WithCancel(ctx)
-	var qualificationWG sync.WaitGroup
-	defer func() { cancelQualification(); qualificationWG.Wait() }()
-	runtime, err := startRuntime(s, runtimeDrain)
+	go func() {
+		select {
+		case <-publication.failed:
+			cancelWork()
+		case <-workCtx.Done():
+		}
+	}()
+	runtime, diagnostics, err := startRuntime(s)
 	if err != nil {
 		return err
 	}
-	runtimeState := monitor(runtime)
+	runtimeState := monitorComponent(runtime, "runtime", publication, diagnostics, 5*time.Second)
+	children = append(children, runtimeState)
 	// Establish the complete global-idle proof before any business or matrix
 	// process can dispatch work. Refreshes prove only their own execution cleanup.
 	initialCtx, cancelInitial := context.WithTimeout(ctx, 60*time.Second)
-	err = qualify(initialCtx, s, runtime.Process.Pid, true)
+	go func() {
+		select {
+		case <-publication.failed:
+			cancelInitial()
+		case <-initialCtx.Done():
+		}
+	}()
+	err = qualify(initialCtx, s, runtime.Process.Pid, true, publication)
 	cancelInitial()
 	if err != nil {
 		return err
 	}
-	qualificationFailed := make(chan error, 1)
+	qualificationDone := make(chan struct{})
 	startQualification := func() {
 		qualificationWG.Add(1)
 		go func() {
 			defer qualificationWG.Done()
+			defer close(qualificationDone)
+			timer := time.NewTimer(15 * time.Second)
+			defer timer.Stop()
 			for {
 				select {
-				case <-ctx.Done():
+				case <-workCtx.Done():
 					return
-				case <-time.After(15 * time.Second):
+				case <-publication.stopped:
+					return
+				case <-timer.C:
 				}
-				probeCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
-				err := qualify(probeCtx, s, runtime.Process.Pid, false)
+				if !publication.admitProbe() {
+					return
+				}
+				probeCtx, cancel := context.WithTimeout(workCtx, 60*time.Second)
+				err := qualify(probeCtx, s, runtime.Process.Pid, false, publication)
 				cancel()
-				if err != nil {
-					os.Remove(QualificationPath)
-					qualificationFailed <- err
+				if !publication.acceptProbeResult(err) {
 					return
 				}
+				timer.Reset(15 * time.Second)
 			}
 		}()
 	}
@@ -150,25 +158,25 @@ func Run(ctx context.Context) error {
 		startQualification()
 		matrixFailed := make(chan error, 1)
 		qualificationWG.Add(1)
-		go func() { defer qualificationWG.Done(); matrixFailed <- runQualificationMatrix(ctx, s, accounting) }()
+		go func() { defer qualificationWG.Done(); matrixFailed <- runQualificationMatrix(workCtx, s, accounting) }()
 		select {
 		case <-ctx.Done():
-			return nil
-		case <-runtimeState.done:
+			return fail("qualification_aborted")
+		case <-runtimeState.exited:
 			return fail("runtime_stopped")
-		case err := <-qualificationFailed:
-			return err
+		case <-publication.failed:
+			return publication.failure()
 		case err := <-matrixFailed:
 			if err != nil {
 				return err
 			}
 			select {
 			case <-ctx.Done():
-				return nil
-			case <-runtimeState.done:
+				return fail("qualification_aborted")
+			case <-runtimeState.exited:
 				return fail("runtime_stopped")
-			case err := <-qualificationFailed:
-				return err
+			case <-publication.failed:
+				return publication.failure()
 			}
 		}
 	}
@@ -192,22 +200,23 @@ func Run(ctx context.Context) error {
 	if err != nil {
 		return fail("judger_start")
 	}
-	judgerState := monitor(judger)
+	judgerState := monitorComponent(judger, "judger", publication, nil, 5*time.Second)
+	children = append(children, judgerState)
 	if s.capacityPhase != "" {
 		startQualification()
 		capacityFailed := make(chan error, 1)
 		qualificationWG.Add(1)
-		go func() { defer qualificationWG.Done(); capacityFailed <- runImportCapacity(ctx, s, accounting) }()
+		go func() { defer qualificationWG.Done(); capacityFailed <- runImportCapacity(workCtx, s, accounting) }()
 		for {
 			select {
 			case <-ctx.Done():
-				return nil
-			case <-runtimeState.done:
+				return fail("qualification_aborted")
+			case <-runtimeState.exited:
 				return fail("runtime_stopped")
-			case <-judgerState.done:
+			case <-judgerState.exited:
 				return fail("judger_stopped")
-			case err := <-qualificationFailed:
-				return err
+			case <-publication.failed:
+				return publication.failure()
 			case err := <-capacityFailed:
 				if err != nil {
 					return err
@@ -222,22 +231,46 @@ func Run(ctx context.Context) error {
 	if api.Start() != nil {
 		return fail("api_start")
 	}
-	monitor(api)
+	apiState := monitorComponent(api, "api", publication, nil, 5*time.Second)
+	children = append(children, apiState)
 	if err := VerifyServiceProcessBoundary(ctx, api.Process.Pid, judger.Process.Pid); err != nil {
 		return err
 	}
 	startQualification()
-	failure := make(chan struct{}, len(children))
-	for _, child := range children {
-		go func(c childState) { <-c.done; failure <- struct{}{} }(child)
-	}
 	select {
 	case <-ctx.Done():
-		return nil
-	case <-failure:
-		return fail("component_stopped")
-	case err := <-qualificationFailed:
-		return err
+		// Only this fully initialized normal-service branch permits graceful
+		// drain. Fresh qualifying executions continue until the API has exited.
+		publication.terminate(apiState)
+		apiDeadline := time.NewTimer(30 * time.Second)
+		defer apiDeadline.Stop()
+		select {
+		case <-apiState.exited:
+			if apiState.waitErr != nil {
+				return fail("api_stopped")
+			}
+		case <-publication.failed:
+			return publication.failure()
+		case <-apiDeadline.C:
+			return fail("api_drain_deadline")
+		}
+		if err := publication.revoke(); err != nil {
+			return err
+		}
+		// Revoke stops scheduling, but an already admitted real probe retains
+		// its normal 60s execution deadline and independent 5s cache cleanup.
+		probeDeadline := time.NewTimer(65 * time.Second)
+		defer probeDeadline.Stop()
+		select {
+		case <-qualificationDone:
+			return publication.failure()
+		case <-publication.failed:
+			return publication.failure()
+		case <-probeDeadline.C:
+			return fail("qualification_drain_deadline")
+		}
+	case <-publication.failed:
+		return publication.failure()
 	}
 }
 
@@ -249,16 +282,17 @@ func ownedChild(binary string, env []string, uid uint32, groups []uint32) *exec.
 	return c
 }
 
-func startRuntime(s settings, drained chan struct{}) (*exec.Cmd, error) {
+func startRuntime(s settings) (*exec.Cmd, *childDiagnostics, error) {
+	started := false
 	read, write, err := os.Pipe()
 	if err != nil {
-		return nil, fail("runtime_barrier")
+		return nil, nil, fail("runtime_barrier")
 	}
 	defer read.Close()
 	defer write.Close()
 	diagnostics, status, err := os.Pipe()
 	if err != nil {
-		return nil, fail("runtime_status")
+		return nil, nil, fail("runtime_status")
 	}
 	defer status.Close()
 	statusDone := make(chan struct{})
@@ -270,6 +304,13 @@ func startRuntime(s settings, drained chan struct{}) (*exec.Cmd, error) {
 			os.Stderr.Write(body)
 		}
 	}()
+	// Failure before the log facility is created still owns this reader.
+	defer func() {
+		if !started {
+			diagnostics.Close()
+			<-statusDone
+		}
+	}()
 	c := exec.Command(RuntimeInitBinary)
 	c.Env, c.Dir = s.runtimeEnvironment(), "/"
 	c.ExtraFiles = []*os.File{read, status}
@@ -277,13 +318,13 @@ func startRuntime(s settings, drained chan struct{}) (*exec.Cmd, error) {
 	// never enter normal container logs or the structural measurement report.
 	logs, logWriter, err := os.Pipe()
 	if err != nil {
-		return nil, fail("runtime_diagnostics")
+		return nil, nil, fail("runtime_diagnostics")
 	}
 	defer logWriter.Close()
 	privateLog, err := openPrivateLog(filepath.Join(filepath.Dir(QualificationPath), "runtime-private.log"), 0)
 	if err != nil {
 		logs.Close()
-		return nil, fail("runtime_diagnostics")
+		return nil, nil, fail("runtime_diagnostics")
 	}
 	logsDone := make(chan struct{})
 	go func() {
@@ -292,7 +333,15 @@ func startRuntime(s settings, drained chan struct{}) (*exec.Cmd, error) {
 		defer privateLog.Close()
 		io.Copy(privateLog, io.LimitReader(logs, 64<<10))
 	}()
+	drained := make(chan struct{})
 	go func() { <-statusDone; <-logsDone; close(drained) }()
+	drain := &childDiagnostics{done: drained, close: diagnosticsCloser(diagnostics, logs, privateLog)}
+	defer func() {
+		if !started {
+			drain.close()
+			<-drained
+		}
+	}()
 	c.Stdout, c.Stderr = logWriter, logWriter
 	c.SysProcAttr = &syscall.SysProcAttr{
 		Cloneflags:                 syscall.CLONE_NEWUSER | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS,
@@ -302,19 +351,20 @@ func startRuntime(s settings, drained chan struct{}) (*exec.Cmd, error) {
 		Credential:                 &syscall.Credential{Uid: 0, Gid: 0}, Pdeathsig: syscall.SIGKILL,
 	}
 	if c.Start() != nil {
-		return nil, fail("runtime_start")
+		return nil, nil, fail("runtime_start")
 	}
 	if os.WriteFile("/sys/fs/cgroup/cgroup.procs", []byte(strconv.Itoa(c.Process.Pid)), 0) != nil {
 		c.Process.Kill()
 		c.Wait()
-		return nil, fail("runtime_delegation")
+		return nil, nil, fail("runtime_delegation")
 	}
 	if _, err = write.Write([]byte{1}); err != nil {
 		c.Process.Kill()
 		c.Wait()
-		return nil, fail("runtime_barrier")
+		return nil, nil, fail("runtime_barrier")
 	}
-	return c, nil
+	started = true
+	return c, drain, nil
 }
 
 func prepareDirectories() error {

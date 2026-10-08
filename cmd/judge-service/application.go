@@ -38,10 +38,12 @@ type workerSpec struct {
 }
 
 type application struct {
-	handler http.Handler
-	probes  *dependencyProbes
-	workers []workerSpec
-	close   func()
+	handler   http.Handler
+	probes    *dependencyProbes
+	workers   []workerSpec
+	close     func()
+	fatalStop chan struct{}
+	fatalOnce sync.Once
 }
 
 // Each probe measures a real dependency. Worker liveness means its validated
@@ -196,7 +198,7 @@ func newApplication(ctx context.Context, cfg config.Config, db *sql.DB, logger *
 	problemRepository := persistenceproblems.New(db, registry)
 	importRepository := persistenceimports.New(db)
 	probes := &dependencyProbes{process: ctx, database: func(probe context.Context) bool { return databaseReady(probe, db, chain) }, storage: store.Check}
-	app := &application{probes: probes}
+	app := &application{probes: probes, fatalStop: make(chan struct{})}
 	closers := []func(){func() { store.Close() }}
 	defer func() {
 		if !complete {
@@ -218,7 +220,7 @@ func newApplication(ctx context.Context, cfg config.Config, db *sql.DB, logger *
 		app.workers = append(app.workers, workerSpec{code: "RUNTIME_INITIALIZER_STOPPED", run: controlled.Run})
 		worker, err := tasks.NewWorker(tasks.WorkerOptions{Repository: taskRepository, Executor: controlled, Source: func(readCtx context.Context, lease *tasks.Lease) ([]byte, error) {
 			return store.Read(readCtx, storage.Object{Key: lease.SourceKey, SHA256: lease.SourceSHA256, SizeBytes: lease.Frozen.SourceSizeBytes}, contract.MaxSourceBytes)
-		}, Concurrency: 2, PollInterval: time.Second, ShutdownGrace: 15 * time.Second, Report: func(error) { logger.Error("task worker retained work", "code", "TASK_WORKER_FAILURE") }})
+		}, Concurrency: 2, PollInterval: time.Second, ShutdownGrace: 15 * time.Second, FatalStop: app.fatalStop, Report: func(error) { logger.Error("task worker retained work", "code", "TASK_WORKER_FAILURE") }})
 		if err != nil {
 			return nil, err
 		}
@@ -329,7 +331,14 @@ func (app *application) startWorkers(ctx context.Context) (<-chan error, func() 
 	var firstFailure error
 	report := func(code string) {
 		failure := errors.New(code)
-		failureOnce.Do(func() { firstFailure = failure })
+		failureOnce.Do(func() {
+			firstFailure = failure
+			app.fatalOnce.Do(func() {
+				if app.fatalStop != nil {
+					close(app.fatalStop)
+				}
+			})
+		})
 		workerErrors <- failure
 	}
 	for _, worker := range app.workers {

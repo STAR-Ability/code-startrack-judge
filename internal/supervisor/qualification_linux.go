@@ -134,7 +134,7 @@ func qualificationCommand(args []string, stdin restclient.FileID, input map[stri
 	return restclient.Command{Args: args, Env: []string{"PATH=/usr/local/bin:/usr/bin:/bin", "LANG=C", "LC_ALL=C", "HOME=/w", "TMPDIR=/w"}, Files: []restclient.File{{ID: stdin}, {Collector: "stdout", LimitBytes: 4096, CollectPipe: true}, {Collector: "stderr", LimitBytes: 4096, CollectPipe: true}}, CopyIn: input, CopyOutCached: []restclient.Output{{Name: "stdout"}, {Name: "stderr"}}, CPULimitNS: uint64(time.Second), ClockLimitNS: uint64(3 * time.Second), MemoryLimitBytes: 128 << 20, StackLimitBytes: 128 << 20, ProcessLimit: 16, CopyOutMaxBytes: 4 << 20, StrictMemoryLimit: true}
 }
 
-func qualify(ctx context.Context, s settings, runtimePID int, startup bool) error {
+func qualify(ctx context.Context, s settings, runtimePID int, startup bool, publication *qualificationPublication) (result error) {
 	managerPID, err := awaitManager(ctx, runtimePID)
 	if err != nil {
 		return err
@@ -147,7 +147,9 @@ func qualify(ctx context.Context, s settings, runtimePID int, startup bool) erro
 	closed := false
 	defer func() {
 		if !closed {
-			session.Close()
+			if session.Close() != nil {
+				result = errors.Join(result, fail("qualification_cache_cleanup"))
+			}
 		}
 	}()
 	var stdin restclient.FileID
@@ -235,11 +237,14 @@ func qualify(ctx context.Context, s settings, runtimePID int, startup bool) erro
 	checks := map[string]bool{}
 	observations := []probeObservation{}
 	resources := []qualificationResourceObservation{}
+	observationsWritten := false
 	// Even a failed fixed synthetic probe retains its bounded nonsecret facts.
 	// The readiness measurement is written only after every invariant passes.
 	defer func() {
-		if len(observations) > 0 {
-			writeProbeObservations(s, managerPID, observations, resources, cleanupEvidence)
+		if len(observations) > 0 && !observationsWritten {
+			if err := writeProbeObservations(s, managerPID, observations, resources, cleanupEvidence); err != nil {
+				result = errors.Join(result, err)
+			}
 		}
 	}()
 	for _, result := range inspected {
@@ -356,7 +361,11 @@ func qualify(ctx context.Context, s settings, runtimePID int, startup bool) erro
 	if err := writeProbeObservations(s, managerPID, observations, resources, cleanupEvidence); err != nil {
 		return err
 	}
-	return writeMeasurement(s, managerPID, checks)
+	observationsWritten = true
+	if ctx.Err() != nil {
+		return fail("qualification_deadline")
+	}
+	return writeMeasurement(s, managerPID, checks, publication)
 }
 
 // This fixed synthetic re-probe preserves bounded raw infrastructure evidence
@@ -463,7 +472,7 @@ func executionCgroupsEmpty() bool {
 	return true
 }
 
-func writeMeasurement(s settings, pid int, checks map[string]bool) error {
+func writeMeasurement(s settings, pid int, checks map[string]bool, publication *qualificationPublication) error {
 	stat, err := os.ReadFile("/proc/" + strconv.Itoa(pid) + "/stat")
 	end := bytes.LastIndexByte(stat, ')')
 	if err != nil || end < 0 {
@@ -501,10 +510,10 @@ func writeMeasurement(s settings, pid int, checks map[string]bool) error {
 		err = f.Sync()
 	}
 	closeErr := f.Close()
-	if err != nil || closeErr != nil || os.Rename(temporary, QualificationPath) != nil {
+	if err != nil || closeErr != nil {
 		return fail("measurement_write")
 	}
-	return nil
+	return publication.publish(temporary)
 }
 
 func measuredProfile(pid int) (string, error) {

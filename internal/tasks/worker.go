@@ -23,6 +23,8 @@ type WorkerOptions struct {
 	Concurrency   int
 	PollInterval  time.Duration
 	ShutdownGrace time.Duration
+	// FatalStop is an application-owned abort gate. Nil preserves operator drain.
+	FatalStop <-chan struct{}
 	// Report receives fixed errors only; private inputs and raw failures never log.
 	Report func(error)
 }
@@ -67,12 +69,19 @@ func (w *Worker) Run(ctx context.Context) error {
 		})
 	}
 	finish := func() error {
+		if w.fatalStopped() {
+			fault()
+		}
 		select {
 		case <-faulted:
 			return ErrWorkerStopped
 		default:
 			return nil
 		}
+	}
+	if w.fatalStopped() {
+		fault()
+		return finish()
 	}
 	var group sync.WaitGroup
 	for range w.options.Concurrency {
@@ -94,12 +103,20 @@ func (w *Worker) Run(ctx context.Context) error {
 	select {
 	case <-done:
 		return finish()
+	case <-w.options.FatalStop:
+		fault()
+		<-done
+		return finish()
 	case <-claims.Done():
 	}
 	timer := time.NewTimer(w.options.ShutdownGrace)
 	defer timer.Stop()
 	select {
 	case <-done:
+		return finish()
+	case <-w.options.FatalStop:
+		fault()
+		<-done
 		return finish()
 	case <-timer.C:
 		cancel()
@@ -112,9 +129,21 @@ func (w *Worker) loop(claims, attempts context.Context, fault func()) {
 		if claims.Err() != nil {
 			return
 		}
+		if w.fatalStopped() {
+			fault()
+			return
+		}
 		ready := w.options.Executor.Snapshot(claims)
+		if w.fatalStopped() {
+			fault()
+			return
+		}
 		if ready.Qualified && ready.SandboxReady && ready.ToolchainReady {
 			lease, err := w.options.Repository.Claim(claims)
+			if w.fatalStopped() {
+				fault()
+				return // A reserved lease remains available only for counted recovery.
+			}
 			if err != nil {
 				w.report(ErrPersistence)
 			} else if lease != nil {
@@ -124,11 +153,23 @@ func (w *Worker) loop(claims, attempts context.Context, fault func()) {
 		}
 		timer := time.NewTimer(w.options.PollInterval)
 		select {
+		case <-w.options.FatalStop:
+			timer.Stop()
+			fault()
+			return
 		case <-claims.Done():
 			timer.Stop()
 			return
 		case <-timer.C:
 		}
+	}
+}
+func (w *Worker) fatalStopped() bool {
+	select {
+	case <-w.options.FatalStop:
+		return true
+	default:
+		return false
 	}
 }
 func (w *Worker) report(err error) {
@@ -139,6 +180,16 @@ func (w *Worker) report(err error) {
 func (w *Worker) execute(parent context.Context, l *Lease, fault func()) {
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
+	stopped := func() bool {
+		if w.fatalStopped() {
+			fault()
+			cancel()
+		}
+		return ctx.Err() != nil
+	}
+	if stopped() {
+		return
+	}
 	heartbeatDone := make(chan struct{})
 	stopHeartbeat := make(chan struct{})
 	go func() {
@@ -158,6 +209,9 @@ func (w *Worker) execute(parent context.Context, l *Lease, fault func()) {
 			case <-stopHeartbeat:
 				return
 			case <-ticker.C:
+				if stopped() {
+					return
+				}
 				if w.options.Repository.Heartbeat(ctx, l) != nil {
 					cancel()
 					return
@@ -167,28 +221,45 @@ func (w *Worker) execute(parent context.Context, l *Lease, fault func()) {
 	}()
 	defer func() { close(stopHeartbeat); <-heartbeatDone }()
 	source, err := w.options.Source(ctx, l)
+	if stopped() {
+		return
+	}
 	if err != nil || len(source) > judgeruntime.MaxSourceBytes || int64(len(source)) != l.Frozen.SourceSizeBytes {
-		if ctx.Err() == nil {
+		if !stopped() {
 			_, _ = w.options.Repository.Fail(ctx, l, "PRIVATE_SOURCE_INTEGRITY_FAILED")
 		}
 		return
 	}
 	hash := sha256.Sum256(source)
 	if hex.EncodeToString(hash[:]) != l.SourceSHA256 {
-		_, _ = w.options.Repository.Fail(ctx, l, "PRIVATE_SOURCE_INTEGRITY_FAILED")
+		if !stopped() {
+			_, _ = w.options.Repository.Fail(ctx, l, "PRIVATE_SOURCE_INTEGRITY_FAILED")
+		}
 		return
 	}
 	input := judgeruntime.TaskInput{TaskID: l.Task.JudgeTaskID, FencingToken: l.Token, LanguageID: judgeruntime.LanguageID, Identity: l.Frozen.Identity, Source: source, SourceSHA256: l.SourceSHA256, Limits: l.Frozen.Limits, Cases: l.Cases}
 	acknowledged := false
 	outcome, err := w.options.Executor.Execute(ctx, input, func(progressCtx context.Context, p judgeruntime.Progress) error {
+		if stopped() {
+			return ctx.Err()
+		}
 		if progressCtx.Err() != nil {
 			return progressCtx.Err()
+		}
+		// Runtime callbacks may supply a detached context. Preserve its deadline
+		// while ensuring an aborted attempt cancels any in-flight progress write.
+		writeCtx, cancelWrite := context.WithCancel(progressCtx)
+		stopAttemptCancel := context.AfterFunc(ctx, cancelWrite)
+		defer cancelWrite()
+		defer stopAttemptCancel()
+		if stopped() {
+			return ctx.Err()
 		}
 		if !acknowledged {
 			if p.Type != "progress" || p.Status != "Compiling" || p.Ordinal != 0 {
 				return ErrInvalid
 			}
-			if err := w.options.Repository.Running(progressCtx, l); err != nil {
+			if err := w.options.Repository.Running(writeCtx, l); err != nil {
 				return err
 			}
 			acknowledged = true
@@ -196,12 +267,12 @@ func (w *Worker) execute(parent context.Context, l *Lease, fault func()) {
 		}
 		// Before another compiler/case/checker step, prove a live fence. This renews
 		// only private lease data and never creates a public timestamp/revision.
-		return w.options.Repository.Heartbeat(progressCtx, l)
+		return w.options.Repository.Heartbeat(writeCtx, l)
 	})
+	if stopped() {
+		return
+	}
 	if err != nil {
-		if ctx.Err() != nil {
-			return
-		}
 		var failure *judgeruntime.Failure
 		if errors.As(err, &failure) && failure.Ambiguous {
 			return

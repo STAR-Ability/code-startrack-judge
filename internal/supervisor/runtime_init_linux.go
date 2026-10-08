@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -99,21 +100,70 @@ func RuntimeInit() error {
 	if manager.Start() != nil {
 		return fail("manager_exec")
 	}
-	done := make(chan error, 1)
-	go func() { done <- manager.Wait() }()
+	return superviseManager(ctx, manager, 5*time.Second)
+}
+
+// superviseManager owns the started manager's Wait. An observed unexpected
+// exit remains a fault when it races with operator cancellation. Only a normal
+// exit after the stop request is clean; forced termination always fails.
+func superviseManager(ctx context.Context, manager *exec.Cmd, allowance time.Duration) error {
+	return observeManager(manager).waitForStop(ctx, allowance, manager.Process.Signal)
+}
+
+type managerObservation struct {
+	mu            sync.Mutex
+	manager       *exec.Cmd
+	done          chan struct{}
+	stopRequested bool
+	exitErr       error // Read only after done closes, or while mu is held.
+}
+
+func observeManager(manager *exec.Cmd) *managerObservation {
+	observation := &managerObservation{manager: manager, done: make(chan struct{})}
+	go func() {
+		err := manager.Wait()
+		observation.mu.Lock()
+		if !observation.stopRequested {
+			observation.exitErr = fail("manager_stopped")
+		} else if err != nil || manager.ProcessState == nil || !manager.ProcessState.Success() {
+			observation.exitErr = fail("manager_stop_wait")
+		}
+		close(observation.done)
+		observation.mu.Unlock()
+	}()
+	return observation
+}
+
+func (observation *managerObservation) waitForStop(ctx context.Context, allowance time.Duration, sendSignal func(os.Signal) error) error {
 	select {
-	case <-done:
-		return fail("manager_stopped")
+	case <-observation.done:
+		return observation.exitErr
 	case <-ctx.Done():
 	}
-	manager.Process.Signal(syscall.SIGTERM)
+	observation.mu.Lock()
 	select {
-	case <-done:
-		return nil
-	case <-time.After(5 * time.Second):
-		manager.Process.Kill()
-		<-done
-		return nil
+	case <-observation.done:
+		observation.mu.Unlock()
+		return observation.exitErr
+	default:
+	}
+	observation.stopRequested = true
+	signalErr := sendSignal(syscall.SIGTERM)
+	observation.mu.Unlock()
+	if signalErr != nil {
+		observation.manager.Process.Kill()
+		<-observation.done
+		return fail("manager_stop_signal")
+	}
+	timer := time.NewTimer(allowance)
+	defer timer.Stop()
+	select {
+	case <-observation.done:
+		return observation.exitErr
+	case <-timer.C:
+		observation.manager.Process.Kill()
+		<-observation.done
+		return fail("manager_stop_deadline")
 	}
 }
 

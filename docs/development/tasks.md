@@ -54,8 +54,16 @@ immediately. Their uncertain leases remain available only for counted recovery;
 the healthy operator-stop grace period never delays this abort. The application
 retains a fixed worker failure even when operator cancellation occurs concurrently,
 and waits for workers before deciding its final exit status or closing resources.
-This does not establish the live supervisor drain or prompt cancellation of tasks
-after a different application component fails; those require separate validation.
+A true fault or panic in another application worker closes a private fatal-stop
+gate, which stops task acquisition and cancels detached attempts even during
+operator grace. A lease reserved before that gate closes remains for natural
+counted recovery. Guards reject late source, execution and progress responses
+before starting new persistence calls; progress writes also retain the attempt's
+cancellation when the runtime supplies a detached context. In-flight database
+work still follows context handling and the live-token/deadline fences; the gate
+does not undo committed transactions. Expected operator cancellation leaves this
+gate open and preserves healthy drain. This does not establish the live
+supervisor drain; that requires separate Linux validation.
 
 Portable verification uses mocks for runtime execution. Actual PostgreSQL suites
 require a private `JUDGE_TEST_ADMIN_DSN_FILE` and create disposable scoped databases
