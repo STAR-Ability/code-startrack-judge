@@ -8,7 +8,7 @@ import hashlib
 import importlib.util
 import json
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import shutil
 import stat
 import subprocess
@@ -16,6 +16,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = "provenance/context-inventory.json"
+PATCH_COMPONENTS = ("go-judge", "problemtools", "go-sandbox")
 
 
 def digest(body: bytes) -> str:
@@ -33,6 +34,66 @@ def copy_file(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(body)
     destination.chmod(stat.S_IMODE(source.stat().st_mode))
+
+
+def patch_inputs(root: Path, lock_path: Path) -> dict[str, tuple[bytes, int]]:
+    """Retain only the reviewed diff/series bytes used by this image build."""
+    lock = json.loads(regular(lock_path))
+    components = lock["components"] + lock["supplemental_licenses"]
+    result = {}
+
+    def read(relative: str) -> tuple[bytes, int]:
+        source = root / relative
+        if source.resolve() != source.absolute():
+            raise ValueError("Patch input and its ancestors must not be symbolic links")
+        body = regular(source)
+        return body, stat.S_IMODE(source.stat().st_mode)
+
+    for name in PATCH_COMPONENTS:
+        matching = [component for component in components if component.get("name") == name]
+        if len(matching) != 1:
+            raise ValueError("Image patch component is not uniquely locked")
+        component = matching[0]
+        descriptor = f"patches/{name}/series.json"
+        body, mode = read(descriptor)
+        series = json.loads(body)
+        if (series.get("schemaVersion") != 1 or series.get("component") != name
+                or series.get("repository") != component["repository"]
+                or series.get("baseCommit") != component["commit"]
+                or not isinstance(series.get("patches"), list) or not series["patches"]
+                or series["patches"] != component.get("patches")):
+            raise ValueError("Image patch series differs from the reviewed upstream lock")
+        if name == "go-sandbox" and (
+                series.get("module") != "github.com/criyle/go-sandbox"
+                or series.get("baseVersion") != component["version"]
+                or component.get("source_assembly") != {
+                    "policy": "verified-go-module-vendor", "descriptor": descriptor}):
+            raise ValueError("Image vendor patch series differs from the reviewed source identity")
+        result[descriptor] = (body, mode)
+        for patch in series["patches"]:
+            relative = patch["path"]
+            path = PurePosixPath(relative)
+            if (relative != path.as_posix() or len(path.parts) != 3
+                    or path.parts[:2] != ("patches", name) or path.suffix != ".patch"
+                    or ".." in path.parts or "\\" in relative or ":" in relative
+                    or any(ord(char) < 32 or ord(char) == 127 for char in relative)
+                    or relative in result):
+                raise ValueError("Image patch is outside its explicit owned file allowlist")
+            patch_body, patch_mode = read(relative)
+            if digest(patch_body) != patch["sha256"]:
+                raise ValueError("Image patch checksum differs from the reviewed series")
+            result[relative] = (patch_body, patch_mode)
+    return result
+
+
+def copy_patch_inputs(destination: Path) -> None:
+    # Validate a complete snapshot before writing any patch payload. Do not copy
+    # an unrestricted patches directory or re-read diffs after their SHA check.
+    for relative, (body, mode) in patch_inputs(ROOT, ROOT / "upstream.lock.json").items():
+        target = destination / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(body)
+        target.chmod(mode)
 
 
 def inventory(directory: Path) -> list[dict]:
@@ -99,6 +160,7 @@ def prepare(value: str, release_commit: str | None = None) -> Path:
     copy_file(ROOT / "docker/Dockerfile", destination / "Dockerfile")
     for name in ("upstream.lock.json", "toolchain.lock.json", "validation-tools.lock.json", "validation-sources.lock.json"):
         copy_file(ROOT / name, destination / "provenance" / name)
+    copy_patch_inputs(destination)
     validation_spec = importlib.util.spec_from_file_location("startrack_validation_tools", ROOT / "scripts/validation-tools.py")
     validation = importlib.util.module_from_spec(validation_spec)
     validation_spec.loader.exec_module(validation)
@@ -150,6 +212,10 @@ def verify(directory: Path) -> None:
     expected = json.loads(regular(directory / INVENTORY))
     if expected.get("schemaVersion") != 1 or expected.get("inventory") != inventory(directory):
         raise ValueError("Prepared context differs from its recorded bytes or modes")
+    patches = patch_inputs(directory, directory / "provenance/upstream.lock.json")
+    recorded = {record["path"] for record in expected["inventory"] if record["path"].startswith("patches/")}
+    if recorded != set(patches):
+        raise ValueError("Prepared context patch inventory differs from its reviewed allowlist")
 
 
 def main() -> int:

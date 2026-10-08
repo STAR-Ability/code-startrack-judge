@@ -22,13 +22,88 @@ Keep an immutable association among commit/tag, contract/API generation, migrati
 
 The workflow first publishes `ghcr.io/star-ability/code-startrack-judge-sources:git-<full-commit>` as a data-only OCI image. This carrier is never started. It includes the complete byte-inventoried build context, project/upstream/vendor source and patches, original legal evidence, and the exact archives named by [validation-sources.lock.json](../../validation-sources.lock.json). Linux `gpgv` verification of the retained Debian signatures, full signed-index matching and every archive checksum must pass. The publisher audits the carrier by streaming its actual filesystem bytes, then measures the registry digest before any service image publication.
 
-The service image is `ghcr.io/star-ability/code-startrack-judge:git-<full-commit>`, built for Linux amd64 with network disabled during build steps. Actual extracted licenses, source/context locks, installed OS/Python inventories, migrations and executable checksums are checked before push. Extracted prebuilt provenance files must match their context-entry hashes and sizes. The [wheel auditor](../../scripts/problemtools-wheel-audit.py) captures the actual problemtools wheel's checksum, complete member hashes and original RECORD before build cleanup, validates the pinned metadata and entry points, rejects excluded VIVA and nested archive payloads, and compares installed payload bytes. The publisher independently remeasures the fixed installed package, metadata and three entry-point paths against this receipt. The Dockerfile builds no sdist; the receipt records `sdistBuilt: false`.
+The service image is `ghcr.io/star-ability/code-startrack-judge:git-<full-commit>`, built for Linux amd64 with network disabled during build steps. Actual extracted licenses, source/context locks, installed OS/Python inventories, migrations and executable checksums are checked before push. Extracted prebuilt provenance files must match their context-entry hashes and sizes. The [wheel auditor](../../scripts/problemtools-wheel-audit.py) captures the actual problemtools wheel's checksum, complete member hashes and original RECORD. The original wheel is retained at `/opt/startrack/provenance/problemtools-1.20260907-py3-none-any.whl`; the publisher independently remeasures its strict ZIP32 envelope, every compressed stream and member, rejecting prefixes, trailers, unmeasured comments/extras and unused compressed data. Pinned metadata and entry points, excluded VIVA/nested archive payloads and installed bytes are checked against that raw artifact. Installation uses `--no-compile`; generated problemtools bytecode is rejected. The publisher independently remeasures the fixed installed package, metadata and three entry-point paths against this receipt. The Dockerfile builds no sdist; the receipt records `sdistBuilt: false`.
 
 The [go-judge auditor](../../scripts/check-go-judge-licenses.py) verifies the actual linked binary against the reviewed legal inventory and emits SPDX and CycloneDX records scoped to that binary. `release-artifacts.json` states the scope of measured OS/Python/executable inventories, wheel evidence, the separately installed pinned checker and original two-example qualification corpora, and `BUILD_INPUTS_ONLY` dependency inputs. Every extracted qualification-carrier byte must match its upstream context entry. The [runtime matrix](../development/runtime-adapter.md) separately records all 24 original checker vectors, the declared original-byte `hello` projection and expected unsupported examples; it never claims the full original package suite passed. Preserve the [example-content notice](../licenses/problemtools-example-notice.txt) alongside the software notices. Runtime migration payload contains exactly the numbered SQL files; `migrations/source.go` remains a source/build input. These records do not assert a complete image SBOM or inspect every distributed layer; retain separate complete-image inventory/SBOM and service/source-carrier layer-exclusion evidence before accepting the distribution gates. The service and source artifacts must share the exact build-context inventory. Existing commit tags are resolved to digests, re-audited and reused; the workflow refuses to replace an existing tag.
 
 `release-artifacts.json` binds the tested source commit, contract/API identities, migration checksums, source-manifest and context-inventory hashes, source and service registry digests, actual linked dependency records, builder identity and CI URLs. It explicitly records `UNQUALIFIED` and `NOT_DEPLOYED`. The uniquely named Actions evidence artifact contains this record, extracted provenance/legal evidence, SBOMs, checksums and, for a fresh build, the prepared build-context archive. Automatic artifact publication is implemented; its first successful official run and resulting digests must be recorded from actual GitHub evidence.
 
 Keep the corresponding-source GHCR artifact accessible to every recipient of its binary image. Preserve both immutable digests and their evidence for as long as the binaries are offered and for the applicable historical/license retention period. Grant source access before widening binary access; package visibility and organization retention policies are operator responsibilities. Actions attachments have a 90-day retention window, so the release owner must copy release evidence into durable release attachments or approved archival storage before it expires. Do not treat an expiring CI attachment or an upstream download URL as durable corresponding-source distribution. Never delete or retag an offered source/image pair.
+
+## Local candidate artifact inspection
+
+The [artifact auditor](../../scripts/release-artifacts.py) also provides
+`candidate-sources-prepare`, `candidate-sources-audit` and `candidate-audit` for
+clean candidates before the protected-main release. Each requires an explicit
+full `--source-commit` equal to the current clean Git HEAD; the auditor checks
+this again before emitting evidence. These commands never query a registry,
+push, pull, finalize an official artifact, start a container or change Git.
+Official commands retain the protected-main guard and require the published
+immutable source digest.
+
+Prepare a fresh context with `scripts/prepare-image-context.py prepare
+.local/candidate-context --release-commit <full-commit>` and verify it. On Linux,
+verify the signed corresponding-source bundle and prepare the data-only carrier:
+
+```sh
+JUDGE_CANDIDATE_COMMIT=$(git rev-parse HEAD)
+JUDGE_SOURCE_LOCK_SHA=$(sha256sum validation-sources.lock.json | cut -d ' ' -f 1)
+python3 scripts/validation-sources.py verify-signatures
+python3 scripts/validation-sources.py verify
+python3 scripts/release-artifacts.py candidate-sources-prepare \
+  --source-commit "$JUDGE_CANDIDATE_COMMIT" \
+  --context .local/candidate-context \
+  --bundle ".cache/validation-sources/$JUDGE_SOURCE_LOCK_SHA" \
+  --output .local/candidate-source-context
+```
+
+Build the service and scratch carrier offline from those contexts with explicit
+host-specific CPU, memory, process, storage and duration limits. Use dedicated
+local tags. Both images need the exact commit revision, canonical GitHub source
+URL and `Apache-2.0` OCI labels; the carrier also needs
+`io.startrack.artifact=corresponding-source`. Resolve each local tag to its full
+`sha256:` **Docker image ID** through `docker image inspect`; the candidate
+commands accept only that ID, avoiding mutable-tag races. With Docker's
+containerd image store this ID can identify an OCI index; it must not be described
+as an OCI configuration digest. Capture `--metadata-file` from each candidate
+build to record its separate `containerimage.config.digest`, when emitted, and
+build digest. Current BuildKit can omit the configuration key; the auditor also
+accepts Docker's measured `Descriptor.annotations["config.digest"]` when that
+descriptor binds the exact inspected Docker ID.
+
+```sh
+python3 scripts/release-artifacts.py candidate-sources-audit \
+  --source-commit "$JUDGE_CANDIDATE_COMMIT" \
+  --image "$JUDGE_SOURCE_DOCKER_ID" --output .local/candidate-source-evidence \
+  --build-metadata .local/candidate-source-build-metadata.json
+python3 scripts/release-artifacts.py candidate-audit \
+  --source-commit "$JUDGE_CANDIDATE_COMMIT" \
+  --image "$JUDGE_SERVICE_DOCKER_ID" --output .local/candidate-service-evidence \
+  --sources .local/candidate-source-evidence \
+  --build-metadata .local/candidate-build-metadata.json
+```
+
+Source auditing retains the official signed-index and full archive checks. Service
+auditing retains installed legal/package/wheel/executable/migration checks and the
+actual linked go-judge audit. The source and service context inventories must
+match; supplied build metadata must bind the inspected Docker image ID to its
+recorded configuration or exported build digest. The receipt keeps `imageDockerID`
+separate from `imageConfigID`, whose recorded origin is BuildKit metadata or
+Docker's descriptor; actual configuration bytes and
+the complete layer graph still require independent archive verification. Without
+build metadata or a bound Docker descriptor, the configuration digest remains
+null. The source carrier must
+still exist under its recorded local Docker image ID
+when service evidence is checked. Auditor-created containers are never started
+and only those temporary containers are removed.
+
+Receipts are `candidate-artifacts.json` plus `SHA256SUMS`, explicitly
+`LOCAL_CANDIDATE`, `UNQUALIFIED`, `NOT_DEPLOYED` and `NOT_PUBLISHED`. They contain no
+official CI-run claim or immutable registry reference and are rejected by the
+official source-evidence verifier. Complete-image SBOM, all distributed layer
+inspection, source-recipient access/retention, Linux execution and real Backend
+acceptance remain separately evidenced gates. A successful candidate artifact
+audit does not make PR #25 ready for merge.
 
 ## Trusted Linux evidence
 

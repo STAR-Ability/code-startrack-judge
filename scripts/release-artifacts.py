@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit and record official immutable image artifacts; never deploy or tag Git."""
+"""Audit local candidates or protected-main artifacts; never deploy or tag Git."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ COMMIT = re.compile(r"[0-9a-f]{40}\Z")
 SHA256 = re.compile(r"sha256:[0-9a-f]{64}\Z")
 PROVENANCE = (
     "binaries.sha256", "os-packages.tsv", "python-packages.json", "problemtools-wheel.sha256", "problemtools-wheel-audit.json",
+    "problemtools-1.20260907-py3-none-any.whl",
     "context-inventory.json", "generated-dependencies.json",
     "go-judge-sources.json", "problemtools-sources.json",
     "go-sandbox-vendor-patches.json", "upstream.lock.json",
@@ -33,7 +34,8 @@ PROVENANCE = (
     "go-judge-runtime-dependencies.json",
 )
 BUILD_OUTPUT_PROVENANCE = frozenset(("binaries.sha256", "os-packages.tsv", "python-packages.json", "problemtools-wheel.sha256",
-                                    "problemtools-wheel-audit.json", "validation-tools-installed.json", "context-inventory.json"))
+                                    "problemtools-wheel-audit.json", "problemtools-1.20260907-py3-none-any.whl",
+                                    "validation-tools-installed.json", "context-inventory.json"))
 BINARIES = ("judge-service", "startrack-judger", "supervisor", "runtime-init",
             "judge-migrate", "judge-admin", "judge-outbox", "startrack-runtime-matrix", "startrack-import-capacity", "go-judge",
             "default_validator", "startrack-checker-launcher")
@@ -79,6 +81,13 @@ def official_commit() -> str:
     commit = guard(dict(os.environ), command(["git", "rev-parse", "HEAD"]),
                    command(["git", "status", "--porcelain", "--untracked-files=all"]))
     command(["git", "merge-base", "--is-ancestor", commit, "origin/main"])
+    return commit
+
+
+def candidate_commit(commit: str) -> str:
+    require(isinstance(commit, str) and COMMIT.fullmatch(commit) is not None)
+    require(command(["git", "rev-parse", "HEAD"]) == commit)
+    require(not command(["git", "status", "--porcelain", "--untracked-files=all"]))
     return commit
 
 
@@ -147,15 +156,25 @@ def files(directory: Path) -> list[Path]:
     return sorted(result)
 
 
-def inspect_image(image: str, commit: str, repository: str = IMAGE) -> dict:
+def inspect_image(image: str, commit: str, repository: str = IMAGE, *, candidate: bool = False) -> dict:
     require(repository in (IMAGE, SOURCES))
-    require(image == repository + ":git-" + commit or
-            image.startswith(repository + "@") and SHA256.fullmatch(image[len(repository) + 1:]) is not None)
+    require(isinstance(image, str))
+    if candidate:
+        # A full local Docker image ID is immutable. Depending on its storage
+        # backend this identifies an OCI index or an image configuration.
+        # Mutable candidate tags and remote
+        # references never select the bytes inspected by this path.
+        require(SHA256.fullmatch(image) is not None)
+    else:
+        require(image == repository + ":git-" + commit or
+                image.startswith(repository + "@") and SHA256.fullmatch(image[len(repository) + 1:]) is not None)
     values = json.loads(command(["docker", "image", "inspect", image]))
     require(isinstance(values, list) and len(values) == 1)
     value = values[0]
     require(value.get("Os") == "linux" and value.get("Architecture") == "amd64")
     require(SHA256.fullmatch(value.get("Id", "")) is not None)
+    if candidate:
+        require(value["Id"] == image)
     labels = value.get("Config", {}).get("Labels", {})
     require(labels.get("org.opencontainers.image.revision") == commit)
     require(labels.get("org.opencontainers.image.source") == "https://github.com/" + REPOSITORY)
@@ -187,9 +206,12 @@ def verify_problemtools_install(directory: Path) -> dict:
     require(path.stat().st_size <= 16 << 20)
     try:
         receipt = json.loads(path.read_bytes())
-        wheel_audit_module().verify(receipt, (directory / "provenance/problemtools-wheel.sha256").read_text(),
+        module = wheel_audit_module()
+        wheel_path = directory / "provenance" / module.WHEEL_NAME
+        require(wheel_path.is_file() and not wheel_path.is_symlink() and 0 < wheel_path.stat().st_size <= 16 << 20)
+        module.verify(receipt, (directory / "provenance/problemtools-wheel.sha256").read_text(),
                                     directory / "installed", sha_file(directory / "provenance/problemtools-sources.json"),
-                                    sha_file(directory / "provenance/context-inventory.json"))
+                                    sha_file(directory / "provenance/context-inventory.json"), wheel_path.read_bytes())
     except (ValueError, TypeError, KeyError, OSError):
         raise Failure("canonical wheel/installed distribution evidence invalid") from None
     return {"problemtoolsWheelSHA256": receipt["wheelSHA256"], "problemtoolsWheelAuditSHA256": sha_file(path)}
@@ -323,8 +345,9 @@ def verify_extracted(directory: Path, commit: str) -> dict:
                                 "wholeImageSBOM": "SEPARATE_EVIDENCE_REQUIRED", "distributedLayers": "SEPARATE_EVIDENCE_REQUIRED"}}
 
 
-def write_record(directory: Path, record: dict) -> None:
-    (directory / "release-artifacts.json").write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+def write_record(directory: Path, record: dict, *, candidate: bool = False) -> None:
+    name = "candidate-artifacts.json" if candidate else "release-artifacts.json"
+    (directory / name).write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     checksums = [sha_file(path) + "  " + path.relative_to(directory).as_posix()
                  for path in files(directory) if path.name != "SHA256SUMS"]
     (directory / "SHA256SUMS").write_text("\n".join(checksums) + "\n")
@@ -351,6 +374,7 @@ def source_inputs() -> tuple[object, dict, str]:
 def context_records(context: dict, commit: str) -> dict[str, dict]:
     require(context.get("schemaVersion") == 1 and context.get("gitHead") == commit)
     require(context.get("sourceState") == "CLEAN" and context.get("workingTreeStatus") == "")
+    require(context.get("finalGitHead") == commit and context.get("finalWorkingTreeStatus") == "")
     require(context.get("releaseCommit") == commit and context.get("qualification") == "UNQUALIFIED")
     entries = context.get("inventory", [])
     require(isinstance(entries, list) and bool(entries))
@@ -367,6 +391,53 @@ def context_records(context: dict, commit: str) -> dict[str, dict]:
     return result
 
 
+def verify_context_owned_sources(records: dict[str, dict]) -> None:
+    # The clean checkout is the source authority; a self-consistent inventory
+    # and image revision label cannot establish that its source bytes match it.
+    fixed = ("go.mod", "go.sum", "scripts/problemtools-bridge.py", "scripts/problemtools-wheel-audit.py", "scripts/validation-tools.py")
+    selected = [ROOT / name for name in fixed if (ROOT / name).exists()]
+    for prefix in ("cmd", "internal", "migrations"):
+        directory = ROOT / prefix
+        if directory.exists():
+            selected.extend(path for path in files(directory) if path.suffix in (".go", ".cc", ".h", ".py", ".sql"))
+    expected = {}
+    for path in selected:
+        require(path.is_file() and not path.is_symlink())
+        name = "service/" + path.relative_to(ROOT).as_posix()
+        expected[name] = {"path": name, "sizeBytes": path.stat().st_size, "sha256": sha_file(path),
+                          "mode": format(path.stat().st_mode & 0o777, "04o")}
+    actual = {name: entry for name, entry in records.items()
+              if name.startswith("service/") and not name.startswith("service/vendor/")}
+    require(actual == expected)
+    expected = {}
+    selected = [("legal/" + name, ROOT / name) for name in ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md")]
+    if (ROOT / "docs/licenses").exists():
+        selected.extend(("legal/" + path.relative_to(ROOT).as_posix(), path) for path in files(ROOT / "docs/licenses"))
+    selected.extend(("docker/" + name, ROOT / "docker" / name) for name in
+                    ("Dockerfile", "mount.yaml", "image.lock.json", "startrack-v02.apparmor", "seccomp-source.json", "startrack-v02.seccomp.json",
+                     "security-profile.lock.json", "startrack-workload-seccomp.yaml", "workload-security-profile.lock.json")
+                    if (ROOT / "docker" / name).exists())
+    if (ROOT / "docker/Dockerfile").exists():
+        selected.append(("Dockerfile", ROOT / "docker/Dockerfile"))
+    for name, path in selected:
+        require(path.is_file() and not path.is_symlink())
+        expected[name] = {"path": name, "sizeBytes": path.stat().st_size, "sha256": sha_file(path),
+                          "mode": format(path.stat().st_mode & 0o777, "04o")}
+    actual = {name: entry for name, entry in records.items() if name == "Dockerfile" or name.startswith("docker/")
+              or name.startswith("legal/") and not name.startswith(("legal/service-vendor/", "legal/go-judge-vendor/"))}
+    require(actual == expected)
+
+
+def verify_context_patches(records: dict[str, dict]) -> None:
+    spec = importlib.util.spec_from_file_location("startrack_image_context", Path(__file__).parent / "prepare-image-context.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    expected = {name: {"path": name, "sizeBytes": len(body), "sha256": hashlib.sha256(body).hexdigest(),
+                       "mode": format(mode, "04o")}
+                for name, (body, mode) in module.patch_inputs(ROOT, ROOT / "upstream.lock.json").items()}
+    require({name: entry for name, entry in records.items() if name.startswith("patches/")} == expected)
+
+
 def prepare_sources(context_path: str, bundle_path: str, directory: Path, commit: str) -> None:
     context = output_path(context_path)
     module, lock, digest = source_inputs()
@@ -375,6 +446,8 @@ def prepare_sources(context_path: str, bundle_path: str, directory: Path, commit
     module.verify(lock, bundle, digest, ROOT)
     context_inventory = json.loads((context / "provenance/context-inventory.json").read_bytes())
     expected = context_records(context_inventory, commit)
+    verify_context_owned_sources(expected)
+    verify_context_patches(expected)
     actual = {path.relative_to(context).as_posix(): {"path": path.relative_to(context).as_posix(),
               "sha256": sha_file(path), "sizeBytes": path.stat().st_size,
               "mode": format(path.stat().st_mode & 0o777, "04o")}
@@ -443,6 +516,8 @@ def verify_source_archive(actual: dict, retained: dict, commit: str, module, loc
     require(len(expected) == len(declared) and expected == {name: entry for name, entry in actual.items() if name != "source-inventory.json"})
     context = json.loads(retained["context/provenance/context-inventory.json"])
     records = context_records(context, commit)
+    verify_context_owned_sources(records)
+    verify_context_patches(records)
     expected_context = {"context/" + name: {**entry, "path": "context/" + name} for name, entry in records.items()}
     require(expected_context == {name: entry for name, entry in actual.items() if name.startswith("context/") and name != "context/provenance/context-inventory.json"})
     expected_bundle = {"validation-sources/" + directory + "/" + entry["filename"]: (entry["sha256"], entry["sizeBytes"])
@@ -466,11 +541,11 @@ def verify_source_archive(actual: dict, retained: dict, commit: str, module, loc
             "archiveCount": len(lock["sourceArchives"])}
 
 
-def audit_sources(image: str, directory: Path, commit: str) -> None:
+def audit_sources(image: str, directory: Path, commit: str, *, candidate: bool = False, metadata: Path | None = None) -> None:
     module, lock, digest = source_inputs()
-    image_data = inspect_image(image, commit, SOURCES)
+    image_data = inspect_image(image, commit, SOURCES, candidate=candidate)
     # The scratch source carrier contains data only and is never started.
-    container = command(["docker", "create", "--network", "none", "--entrypoint", "/never-run", image])
+    container = command(["docker", "create", "--network", "none", "--entrypoint", "/never-run", image_data["Id"]])
     require(re.fullmatch(r"[0-9a-f]{64}", container) is not None)
     try:
         actual, retained = read_source_archive(container)
@@ -479,9 +554,16 @@ def audit_sources(image: str, directory: Path, commit: str) -> None:
     identities = verify_source_archive(actual, retained, commit, module, lock, digest)
     for name in ("source-inventory.json", "context/provenance/context-inventory.json"):
         (directory / PurePosixPath(name).name).write_bytes(retained[name])
-    write_record(directory, {"schemaVersion": 1, "sourceRepository": REPOSITORY, "sourceCommit": commit,
-                 "imageRepository": SOURCES, "imageConfigID": image_data["Id"],
-                 "artifactType": "corresponding-source", "imageDigest": None, **identities})
+    record = {"schemaVersion": 1, "sourceRepository": REPOSITORY, "sourceCommit": commit,
+              "imageRepository": None if candidate else SOURCES, "imageConfigID": image_data["Id"],
+              "artifactType": "corresponding-source", "imageDigest": None, **identities}
+    if candidate:
+        record.update(candidate_status())
+        record.update(candidate_image_identity(image_data, metadata, directory))
+        record["inventoryScopes"] = {"correspondingSource": "COMPLETE_BOUND_SOURCE_SUBTREE",
+                                     "distributedLayers": "SEPARATE_EVIDENCE_REQUIRED"}
+        candidate_commit(commit)
+    write_record(directory, record, candidate=candidate)
 
 
 def verified_source_record(path: str, commit: str, context_sha: str | None = None) -> dict:
@@ -498,9 +580,66 @@ def verified_source_record(path: str, commit: str, context_sha: str | None = Non
     return record
 
 
-def audit(image: str, directory: Path, commit: str, metadata: Path | None, sources: str) -> None:
-    image_data = inspect_image(image, commit)
-    container = command(["docker", "create", "--network", "none", image])
+def candidate_status() -> dict:
+    return {"evidenceType": "LOCAL_CANDIDATE", "qualification": "UNQUALIFIED",
+            "deployment": "NOT_DEPLOYED", "publication": "NOT_PUBLISHED", "sourceState": "CLEAN"}
+
+
+def candidate_image_identity(image_data: dict, metadata: Path | None, directory: Path | None) -> dict:
+    result = {"imageDockerID": image_data["Id"], "imageConfigID": None,
+              "imageConfigIdentity": "SEPARATE_LAYER_EVIDENCE_REQUIRED"}
+    descriptor = image_data.get("Descriptor")
+    descriptor_config = None
+    if descriptor is not None:
+        require(isinstance(descriptor, dict) and descriptor.get("digest") == image_data["Id"])
+        annotations = descriptor.get("annotations", {})
+        require(isinstance(annotations, dict))
+        descriptor_config = annotations.get("config.digest")
+        if descriptor_config is not None:
+            require(isinstance(descriptor_config, str) and SHA256.fullmatch(descriptor_config) is not None)
+            result.update({"imageConfigID": descriptor_config, "imageConfigIdentity": "DOCKER_DESCRIPTOR_REQUIRES_LAYER_VERIFICATION"})
+    if metadata is not None:
+        require(metadata.is_file() and not metadata.is_symlink())
+        value = json.loads(metadata.read_bytes())
+        require(isinstance(value, dict))
+        config = value.get("containerimage.config.digest")
+        build_digest = value.get("containerimage.digest")
+        for digest in (config, build_digest):
+            require(digest is None or isinstance(digest, str) and SHA256.fullmatch(digest) is not None)
+        require(image_data["Id"] == config or image_data["Id"] == build_digest)
+        if config is not None:
+            require(descriptor_config is None or descriptor_config == config)
+            result.update({"imageConfigID": config, "imageConfigIdentity": "BUILDKIT_METADATA_REQUIRES_LAYER_VERIFICATION"})
+        result["imageBuildDigest"] = build_digest
+        if directory is not None:
+            (directory / "build-metadata.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
+    return result
+
+
+def verified_candidate_source_record(path: str, commit: str, context_sha: str) -> dict:
+    directory = output_path(path)
+    files(directory)
+    record = json.loads((directory / "candidate-artifacts.json").read_bytes())
+    require(record.get("schemaVersion") == 1 and record.get("sourceRepository") == REPOSITORY)
+    require(all(record.get(name) == value for name, value in candidate_status().items()))
+    require(record.get("sourceCommit") == commit and record.get("imageRepository") is None)
+    require(record.get("artifactType") == "corresponding-source" and record.get("imageDigest") is None)
+    require("immutableImage" not in record)
+    require(record.get("sourceManifestSHA256") == sha_file(ROOT / "validation-sources.lock.json"))
+    require(sha_file(directory / "source-inventory.json") == record.get("sourceInputInventorySHA256"))
+    require(sha_file(directory / "context-inventory.json") == record.get("contextInventorySHA256") == context_sha)
+    image_data = inspect_image(record.get("imageDockerID", ""), commit, SOURCES, candidate=True)
+    metadata = directory / "build-metadata.json"
+    # Revalidate the separately typed config digest against its retained
+    # metadata, without confusing Docker's opaque ID with an OCI config hash.
+    expected = candidate_image_identity(image_data, metadata if metadata.exists() else None, None)
+    require(all(record.get(name) == value for name, value in expected.items()))
+    return record
+
+
+def audit(image: str, directory: Path, commit: str, metadata: Path | None, sources: str, *, candidate: bool = False) -> None:
+    image_data = inspect_image(image, commit, candidate=candidate)
+    container = command(["docker", "create", "--network", "none", image_data["Id"]])
     require(re.fullmatch(r"[0-9a-f]{64}", container) is not None)
     try:
         for name in ("legal", "provenance", "migrations", "qualification", *CONFIGS):
@@ -518,30 +657,36 @@ def audit(image: str, directory: Path, commit: str, metadata: Path | None, sourc
     finally:
         command(["docker", "rm", "--volumes", container])
     identities = verify_extracted(directory, commit)
-    source_record = verified_source_record(sources, commit, sha_file(directory / "provenance/context-inventory.json"))
+    source_verifier = verified_candidate_source_record if candidate else verified_source_record
+    source_record = source_verifier(sources, commit, sha_file(directory / "provenance/context-inventory.json"))
     command([sys.executable, "scripts/check-go-judge-licenses.py", "verify", "--binary", str(directory / "bin/go-judge"),
              "--legal-root", str(directory / "legal"), "--inventory", str(directory / "provenance/go-judge-runtime-dependencies.json"),
              "--output", str(directory / "provenance"), "--go", str(ROOT / ".local/toolchains/go1.26.8/go/bin/go")])
-    if metadata is not None:
+    if metadata is not None and not candidate:
         require(metadata.is_file() and not metadata.is_symlink())
         value = json.loads(metadata.read_bytes())
         (directory / "build-metadata.json").write_text(json.dumps(value, indent=2, sort_keys=True) + "\n")
     record = {"schemaVersion": 1, "sourceRepository": REPOSITORY, "sourceCommit": commit,
-              "imageRepository": IMAGE, "imageConfigID": image_data["Id"], "platform": "linux/amd64",
+              "imageRepository": None if candidate else IMAGE, "imageConfigID": image_data["Id"], "platform": "linux/amd64",
               "qualification": "UNQUALIFIED", "deployment": "NOT_DEPLOYED", **identities,
-              "ciRun": "https://github.com/" + REPOSITORY + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
-              "sourceValidationRun": os.environ.get("RELEASE_VALIDATION_RUN", ""),
-              "workflowDefinitionCommit": os.environ.get("GITHUB_SHA", ""),
+              "ciRun": None if candidate else "https://github.com/" + REPOSITORY + "/actions/runs/" + os.environ["GITHUB_RUN_ID"],
+              "sourceValidationRun": None if candidate else os.environ.get("RELEASE_VALIDATION_RUN", ""),
+              "workflowDefinitionCommit": None if candidate else os.environ.get("GITHUB_SHA", ""),
               "imageDigest": None, "correspondingSource": source_record,
               "builder": {"docker": command(["docker", "version", "--format", "{{json .}}"]),
                           "buildx": command(["docker", "buildx", "version"])}}
     shutil.copytree(output_path(sources), directory / "corresponding-source")
-    write_record(directory, record)
+    if candidate:
+        record.update(candidate_status())
+        record.update(candidate_image_identity(image_data, metadata, directory))
+        candidate_commit(commit)
+    write_record(directory, record, candidate=candidate)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("target", "audit", "push", "finalize", "sources-prepare", "sources-audit", "sources-push", "sources-finalize"))
+    parser.add_argument("command", choices=("target", "audit", "push", "finalize", "sources-prepare", "sources-audit", "sources-push", "sources-finalize",
+                                            "candidate-audit", "candidate-sources-prepare", "candidate-sources-audit"))
     parser.add_argument("--kind", choices=("image", "sources"), default="image")
     parser.add_argument("--image")
     parser.add_argument("--output")
@@ -549,7 +694,26 @@ def main() -> int:
     parser.add_argument("--context")
     parser.add_argument("--bundle")
     parser.add_argument("--sources")
+    parser.add_argument("--source-commit", help="Require a clean exact local candidate source commit")
     args = parser.parse_args()
+    if args.command.startswith("candidate-"):
+        commit = candidate_commit(args.source_commit)
+        require(bool(args.output))
+        if args.command == "candidate-sources-prepare":
+            require(bool(args.context) and bool(args.bundle))
+            prepare_sources(args.context, args.bundle, output_path(args.output, fresh=True), commit)
+        else:
+            require(bool(args.image))
+            directory = output_path(args.output, fresh=True)
+            if args.command == "candidate-sources-audit":
+                audit_sources(args.image, directory, commit, candidate=True, metadata=args.build_metadata)
+            else:
+                require(bool(args.sources))
+                audit(args.image, directory, commit, args.build_metadata, args.sources, candidate=True)
+        require(candidate_commit(commit) == commit)
+        print("local candidate bytes verified; UNQUALIFIED, NOT_DEPLOYED, NOT_PUBLISHED")
+        return 0
+    require(args.source_commit is None)
     commit = official_commit()
     repository = SOURCES if args.command.startswith("sources-") or args.command == "target" and args.kind == "sources" else IMAGE
     tag = repository + ":git-" + commit

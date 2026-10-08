@@ -15,11 +15,14 @@ from email.parser import BytesParser
 from pathlib import Path, PurePosixPath
 import re
 import stat
+import struct
 import zipfile
+import zlib
 
 VERSION = "1.20260907"
 REVISION = "6010cbaa37a1612117f49566b2fff8646d53faa2"
 DIST_INFO = f"problemtools-{VERSION}.dist-info"
+WHEEL_NAME = f"problemtools-{VERSION}-py3-none-any.whl"
 SITE = "/usr/local/lib/python3.11/site-packages"
 INSTALLED_PATHS = (f"{SITE}/problemtools", f"{SITE}/{DIST_INFO}",
                    "/usr/local/bin/verifyproblem", "/usr/local/bin/problem2html", "/usr/local/bin/problem2pdf")
@@ -54,7 +57,7 @@ def checked_body(name: str, body: bytes) -> dict:
     lowered = PurePosixPath(name.lower())
     digest = sha(body)
     require("viva" not in lowered.parts and lowered.name not in ("viva.sh", "viva user's guide.pdf")
-            and lowered.suffix not in (".jar", ".class", ".zip")
+            and lowered.suffix not in (".jar", ".class", ".zip", ".pyc", ".pyo")
             and digest not in FORBIDDEN_HASHES and len(body) <= MAX_MEMBER)
     # No nested ZIP payload is approved in this pinned Python distribution.
     require(not zipfile.is_zipfile(io.BytesIO(body)))
@@ -118,14 +121,84 @@ def installed_record(root: Path, records: dict[str, dict]) -> None:
         canonical = os.path.normpath(str(path)).lstrip("/")
         require(canonical in records and canonical not in declared and "\\" not in entry and "\x00" not in entry)
         declared[canonical] = value
-        check_record_hash(records[canonical], value, canonical == name or canonical.endswith(".pyc") and value == ("", ""))
+        check_record_hash(records[canonical], value, canonical == name)
     require(set(declared) == set(records))
 
 
+def wheel_envelope(wheel_body: bytes, archive: zipfile.ZipFile) -> dict:
+    """Account for every ZIP byte under the pinned seekable ZIP32 builder profile.
+
+    zipfile deliberately tolerates prefixes, comments and unused compressed
+    bytes. Those are additional payload carriers, so this profile rejects them
+    rather than treating the member list as a complete archive inventory.
+    """
+    require(22 <= len(wheel_body) <= MAX_MEMBER and not archive.comment)
+    ending = struct.unpack("<4s4H2IH", wheel_body[-22:])
+    signature, disk, directory_disk, disk_count, count, directory_size, directory_offset, comment_size = ending
+    members = archive.infolist()
+    require(signature == b"PK\x05\x06" and disk == directory_disk == comment_size == 0
+            and disk_count == count == len(members) and 0 < count <= 10000
+            and directory_offset + directory_size + 22 == len(wheel_body))
+    cursor, headers, compressed_members = 0, [], []
+    for member in members:
+        require(member.header_offset == cursor and cursor + 30 <= directory_offset
+                and member.orig_filename == member.filename and not member.extra and not member.comment
+                and member.flag_bits in (0, 0x800) and member.compress_type in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED)
+                and member.file_size <= MAX_MEMBER and member.compress_size <= MAX_MEMBER)
+        local = struct.unpack_from("<4s5H3I2H", wheel_body, cursor)
+        marker, version, flags, method, _, _, crc, compressed_size, size, name_size, extra_size = local
+        raw_name = member.filename.encode("utf-8" if flags & 0x800 else "cp437")
+        require(marker == b"PK\x03\x04" and version == member.extract_version and flags == member.flag_bits
+                and method == member.compress_type and crc == member.CRC
+                and compressed_size == member.compress_size and size == member.file_size
+                and name_size == len(raw_name) and extra_size == 0)
+        payload_offset = cursor + 30 + name_size
+        end = payload_offset + compressed_size
+        require(end <= directory_offset and wheel_body[cursor + 30:payload_offset] == raw_name)
+        compressed = wheel_body[payload_offset:end]
+        if method == zipfile.ZIP_DEFLATED:
+            inflater = zlib.decompressobj(-15)
+            try:
+                decoded = inflater.decompress(compressed, size + 1)
+            except zlib.error:
+                raise ValueError("Problemtools wheel/install evidence invalid") from None
+            require(inflater.eof and not inflater.unused_data and not inflater.unconsumed_tail and len(decoded) == size)
+        else:
+            decoded = compressed
+            require(compressed_size == size)
+        require(decoded == archive.read(member))
+        headers.append(wheel_body[cursor:payload_offset])
+        compressed_members.append({"path": member.filename, "sizeBytes": compressed_size, "sha256": sha(compressed)})
+        cursor = end
+    require(cursor == directory_offset)
+    for member in members:
+        require(cursor + 46 <= len(wheel_body) - 22)
+        central = struct.unpack_from("<4s6H3I5H2I", wheel_body, cursor)
+        (marker, made_by, needed, flags, method, _, _, crc, compressed_size, size,
+         name_size, extra_size, member_comment_size, start_disk, internal, external, local_offset) = central
+        raw_name = member.filename.encode("utf-8" if flags & 0x800 else "cp437")
+        end = cursor + 46 + name_size
+        require(marker == b"PK\x01\x02" and made_by == (member.create_system << 8) | member.create_version
+                and needed == member.extract_version and flags == member.flag_bits and method == member.compress_type
+                and crc == member.CRC and compressed_size == member.compress_size and size == member.file_size
+                and name_size == len(raw_name) and extra_size == member_comment_size == start_disk == 0
+                and internal == member.internal_attr and external == member.external_attr and local_offset == member.header_offset
+                and end <= len(wheel_body) - 22 and wheel_body[cursor + 46:end] == raw_name)
+        headers.append(wheel_body[cursor:end])
+        cursor = end
+    require(cursor == len(wheel_body) - 22)
+    headers.append(wheel_body[-22:])
+    envelope = b"".join(headers)
+    require(len(envelope) + sum(record["sizeBytes"] for record in compressed_members) == len(wheel_body))
+    return {"format": "STRICT_ZIP32", "sizeBytes": len(wheel_body), "headerBytes": len(envelope),
+            "headerSHA256": sha(envelope), "compressedMembers": compressed_members}
+
+
 def wheel_records(wheel_name: str, wheel_body: bytes) -> dict[str, dict]:
-    require(wheel_name == f"problemtools-{VERSION}-py3-none-any.whl")
+    require(wheel_name == WHEEL_NAME)
     records, bodies = {}, {}
     with zipfile.ZipFile(io.BytesIO(wheel_body)) as archive:
+        wheel_envelope(wheel_body, archive)
         require(len(archive.infolist()) <= 10000)
         for member in archive.infolist():
             name = member.filename
@@ -162,10 +235,6 @@ def bind_installed(wheel: dict[str, dict], distribution: dict[str, dict], root: 
     required.update(name.lstrip("/") for name in INSTALLED_PATHS[2:])
     required.add(f"{SITE.lstrip('/')}/{DIST_INFO}/INSTALLER")
     allowed = required | {f"{SITE.lstrip('/')}/{DIST_INFO}/{name}" for name in ("REQUESTED", "direct_url.json")}
-    for name in wheel:
-        if name.endswith(".py"):
-            source = PurePosixPath(SITE.lstrip("/"), name)
-            allowed.add(str(source.parent / "__pycache__" / (source.stem + ".cpython-311.pyc")))
     require(required <= set(distribution) <= allowed)
     require(regular(root / SITE.lstrip("/") / DIST_INFO / "INSTALLER") == b"pip\n")
     requested = root / SITE.lstrip("/") / DIST_INFO / "REQUESTED"
@@ -178,7 +247,7 @@ def bind_installed(wheel: dict[str, dict], distribution: dict[str, dict], root: 
                 and value.get("archive_info", {}).get("hash", "sha256=" + wheel_sha) == "sha256=" + wheel_sha)
     for name, record in wheel.items():
         if name == f"{DIST_INFO}/RECORD":
-            continue  # pip rewrites RECORD to include generated scripts and bytecode.
+            continue  # pip rewrites RECORD to include the generated scripts.
         target = f"{SITE.lstrip('/')}/{name}"
         require(target in distribution and all(distribution[target][key] == record[key] for key in ("sha256", "sizeBytes")))
 
@@ -194,10 +263,12 @@ def capture(wheel: Path, root: Path) -> dict:
     context = regular(root / "opt/startrack/provenance/context-inventory.json")
     with zipfile.ZipFile(io.BytesIO(wheel_body)) as archive:
         original_record = archive.read(f"{DIST_INFO}/RECORD")
+        envelope = wheel_envelope(wheel_body, archive)
     return {"schemaVersion": 1, "scope": "CANONICAL_WHEEL_AND_INSTALLED_DISTRIBUTION",
             "problemtoolsVersion": VERSION, "problemtoolsRevision": REVISION, "sdistBuilt": False,
             "problemtoolsSourceProvenanceSHA256": sha(source), "contextInventorySHA256": sha(context),
             "wheelFileName": wheel.name, "wheelSHA256": sha(wheel_body),
+            "wheelEnvelope": envelope,
             "wheelRecordBase64": base64.b64encode(original_record).decode(),
             "wheelMembers": sorted(wheel_members.values(), key=lambda item: item["path"]),
             "installedMembers": sorted(distribution.values(), key=lambda item: item["path"]),
@@ -214,13 +285,13 @@ def declared_records(values: list[dict]) -> dict[str, dict]:
                 and isinstance(record["sha256"], str) and SHA.fullmatch(record["sha256"]) is not None)
         require(record["sha256"] not in FORBIDDEN_HASHES and "viva" not in PurePosixPath(name.lower()).parts
                 and PurePosixPath(name.lower()).name not in ("viva.sh", "viva user's guide.pdf")
-                and PurePosixPath(name.lower()).suffix not in (".jar", ".class", ".zip"))
+                and PurePosixPath(name.lower()).suffix not in (".jar", ".class", ".zip", ".pyc", ".pyo"))
         result[name] = record
     require(sum(value["sizeBytes"] for value in result.values()) <= MAX_TOTAL)
     return result
 
 
-def verify(receipt: dict, checksum: str, root: Path, source_sha: str, context_sha: str) -> None:
+def verify(receipt: dict, checksum: str, root: Path, source_sha: str, context_sha: str, wheel_body: bytes) -> None:
     require(receipt.get("schemaVersion") == 1 and receipt.get("scope") == "CANONICAL_WHEEL_AND_INSTALLED_DISTRIBUTION"
             and receipt.get("problemtoolsVersion") == VERSION and receipt.get("problemtoolsRevision") == REVISION
             and receipt.get("sdistBuilt") is False and receipt.get("problemtoolsSourceProvenanceSHA256") == source_sha
@@ -231,7 +302,11 @@ def verify(receipt: dict, checksum: str, root: Path, source_sha: str, context_sh
     digest, name = rows[0].split(maxsplit=1)
     require(SHA.fullmatch(digest) is not None and name == f"/build/dist/problemtools-{VERSION}-py3-none-any.whl"
             and receipt.get("wheelFileName") == PurePosixPath(name).name and receipt.get("wheelSHA256") == digest)
+    require(isinstance(wheel_body, bytes) and sha(wheel_body) == digest)
     wheel = declared_records(receipt.get("wheelMembers"))
+    require(wheel_records(WHEEL_NAME, wheel_body) == wheel)
+    with zipfile.ZipFile(io.BytesIO(wheel_body)) as archive:
+        require(receipt.get("wheelEnvelope") == wheel_envelope(wheel_body, archive))
     require(all(name.split("/")[0] in ("problemtools", DIST_INFO) for name in wheel)
             and f"{DIST_INFO}/RECORD" in wheel)
     encoded_record = receipt.get("wheelRecordBase64")

@@ -57,11 +57,12 @@ RUN --network=none /usr/local/bin/python3 /build/validation-tools.py install \
     cp /build/validation-tools/installed-inventory.json /opt/startrack/provenance/validation-tools-installed.json && \
     SETUPTOOLS_SCM_PRETEND_VERSION_FOR_PROBLEMTOOLS=1.20260907 /usr/local/bin/python3 -m pip wheel \
     --no-build-isolation --no-deps --no-index --wheel-dir /build/dist /build/problemtools && \
-    /usr/local/bin/python3 -m pip install --disable-pip-version-check --no-index --no-deps /build/dist/problemtools-1.20260907-*.whl && \
+    /usr/local/bin/python3 -m pip install --disable-pip-version-check --no-compile --no-index --no-deps /build/dist/problemtools-1.20260907-*.whl && \
     sha256sum /build/dist/problemtools-1.20260907-*.whl > /opt/startrack/provenance/problemtools-wheel.sha256 && \
     /usr/local/bin/python3 /build/problemtools-wheel-audit.py \
     --wheel /build/dist/problemtools-1.20260907-py3-none-any.whl \
     --output /opt/startrack/provenance/problemtools-wheel-audit.json && \
+    cp /build/dist/problemtools-1.20260907-py3-none-any.whl /opt/startrack/provenance/ && \
     /usr/local/bin/python3 -m pip check && \
     /usr/local/bin/python3 -m pip list --format=json > /opt/startrack/provenance/python-packages.json && \
     rm -rf /build /root/.cache

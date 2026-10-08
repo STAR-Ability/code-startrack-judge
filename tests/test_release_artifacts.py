@@ -33,6 +33,186 @@ def response(body, headers=None):
 
 
 class ReleaseArtifactTests(unittest.TestCase):
+    def test_candidate_guard_checks_actual_clean_git_identity(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as temporary, patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
+            root = Path(temporary).resolve()
+            subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(root), "-c", "user.name=Candidate Test", "-c", "user.email=candidate@example.invalid",
+                            "commit", "--allow-empty", "-qm", "synthetic candidate"], check=True, capture_output=True)
+            commit = RELEASE.command(["git", "rev-parse", "HEAD"])
+            self.assertEqual(RELEASE.candidate_commit(commit), commit)
+            for value in (None, "a" * 39, "b" * 40):
+                with self.subTest(value=value), self.assertRaises(RELEASE.Failure):
+                    RELEASE.candidate_commit(value)
+            (root / "unreviewed-source").write_text("synthetic dirty input")
+            with self.assertRaises(RELEASE.Failure):
+                RELEASE.candidate_commit(commit)
+
+    def test_candidate_image_requires_exact_local_docker_id(self):
+        identity = "sha256:" + "b" * 64
+        image = {"Os": "linux", "Architecture": "amd64", "Id": identity,
+                 "Config": {"Labels": {"org.opencontainers.image.revision": COMMIT,
+                             "org.opencontainers.image.source": "https://github.com/" + RELEASE.REPOSITORY,
+                             "org.opencontainers.image.licenses": "Apache-2.0"}}}
+        with patch.object(RELEASE, "command", return_value=json.dumps([image])) as command:
+            self.assertEqual(RELEASE.inspect_image(identity, COMMIT, candidate=True)["Id"], identity)
+            command.assert_called_once_with(["docker", "image", "inspect", identity])
+        for reference in ("startrack-candidate:local", RELEASE.IMAGE + "@" + identity, identity[:-1], None):
+            with self.subTest(reference=reference), self.assertRaises(RELEASE.Failure):
+                RELEASE.inspect_image(reference, COMMIT, candidate=True)
+        for changed in ({**image, "Id": "sha256:" + "c" * 64}, {**image, "Architecture": "arm64"},
+                        {**image, "Config": {"Labels": {"org.opencontainers.image.revision": "c" * 40}}}):
+            with patch.object(RELEASE, "command", return_value=json.dumps([changed])), self.assertRaises(RELEASE.Failure):
+                RELEASE.inspect_image(identity, COMMIT, candidate=True)
+
+    def test_candidate_routing_has_no_official_or_registry_access(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            arguments = ["release-artifacts.py", "candidate-sources-prepare", "--source-commit", COMMIT,
+                         "--context", ".local/context", "--bundle", ".cache/sources", "--output", ".local/source-context"]
+            with patch.object(RELEASE.sys, "argv", arguments), patch.object(RELEASE, "candidate_commit", return_value=COMMIT) as guard, \
+                 patch.object(RELEASE, "official_commit") as official, patch.object(RELEASE, "registry_digest") as registry, \
+                 patch.object(RELEASE, "output_path", return_value=Path(temporary)), patch.object(RELEASE, "prepare_sources") as prepare:
+                self.assertEqual(RELEASE.main(), 0)
+            self.assertEqual(guard.call_count, 2)
+            official.assert_not_called()
+            registry.assert_not_called()
+            prepare.assert_called_once_with(".local/context", ".cache/sources", Path(temporary), COMMIT)
+        for operation in ("target", "audit", "push", "finalize", "sources-prepare", "sources-audit", "sources-push", "sources-finalize"):
+            with self.subTest(operation=operation), patch.object(RELEASE.sys, "argv", ["release-artifacts.py", operation]), \
+                 patch.object(RELEASE, "official_commit", side_effect=RELEASE.Failure) as official, \
+                 patch.object(RELEASE, "candidate_commit") as candidate, self.assertRaises(RELEASE.Failure):
+                RELEASE.main()
+            official.assert_called_once()
+            candidate.assert_not_called()
+
+    def test_candidate_identity_distinguishes_docker_index_from_oci_config(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            docker_id = "sha256:" + "b" * 64
+            config_id = "sha256:" + "c" * 64
+            metadata = directory / "input.json"
+            metadata.write_text(json.dumps({"containerimage.config.digest": config_id, "containerimage.digest": docker_id}))
+            result = RELEASE.candidate_image_identity({"Id": docker_id}, metadata, directory)
+            self.assertEqual(result["imageDockerID"], docker_id)
+            self.assertEqual(result["imageConfigID"], config_id)
+            self.assertEqual(result["imageBuildDigest"], docker_id)
+            self.assertEqual(result["imageConfigIdentity"], "BUILDKIT_METADATA_REQUIRES_LAYER_VERIFICATION")
+            self.assertEqual(RELEASE.candidate_image_identity({"Id": docker_id}, None, None)["imageConfigID"], None)
+            descriptor = {"digest": docker_id, "annotations": {"config.digest": config_id}}
+            metadata.write_text(json.dumps({"containerimage.digest": docker_id}))
+            result = RELEASE.candidate_image_identity({"Id": docker_id, "Descriptor": descriptor}, metadata, directory)
+            self.assertEqual(result["imageConfigID"], config_id)
+            self.assertEqual(result["imageConfigIdentity"], "DOCKER_DESCRIPTOR_REQUIRES_LAYER_VERIFICATION")
+            with self.assertRaises(RELEASE.Failure):
+                RELEASE.candidate_image_identity({"Id": docker_id, "Descriptor": {"digest": "sha256:" + "d" * 64}}, metadata, None)
+            for value in ({"containerimage.config.digest": config_id},
+                          {"containerimage.config.digest": config_id, "containerimage.digest": "sha256:" + "d" * 64},
+                          {"containerimage.config.digest": config_id, "containerimage.digest": "unmeasured"}):
+                metadata.write_text(json.dumps(value))
+                with self.subTest(value=value), self.assertRaises(RELEASE.Failure):
+                    RELEASE.candidate_image_identity({"Id": docker_id}, metadata, None)
+
+    def test_candidate_source_evidence_cannot_be_promoted_or_mixed(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
+            root = Path(temporary).resolve()
+            directory = root / ".local/sources"
+            directory.mkdir(parents=True)
+            (root / "validation-sources.lock.json").write_bytes(b"{}")
+            (directory / "source-inventory.json").write_bytes(b"synthetic source inventory")
+            (directory / "context-inventory.json").write_bytes(b"synthetic context inventory")
+            context_sha = RELEASE.sha_file(directory / "context-inventory.json")
+            record = {"schemaVersion": 1, "sourceRepository": RELEASE.REPOSITORY, "sourceCommit": COMMIT,
+                      "imageRepository": None, "imageDockerID": "sha256:" + "b" * 64,
+                      "imageConfigID": None, "imageConfigIdentity": "SEPARATE_LAYER_EVIDENCE_REQUIRED",
+                      "artifactType": "corresponding-source", "imageDigest": None,
+                      "sourceManifestSHA256": RELEASE.sha_file(root / "validation-sources.lock.json"),
+                      "sourceInputInventorySHA256": RELEASE.sha_file(directory / "source-inventory.json"),
+                      "contextInventorySHA256": context_sha, **RELEASE.candidate_status()}
+            path = directory / "candidate-artifacts.json"
+            path.write_text(json.dumps(record))
+            with patch.object(RELEASE, "inspect_image", return_value={"Id": record["imageDockerID"]}) as inspect:
+                self.assertEqual(RELEASE.verified_candidate_source_record(".local/sources", COMMIT, context_sha), record)
+                inspect.assert_called_once_with(record["imageDockerID"], COMMIT, RELEASE.SOURCES, candidate=True)
+            for name, value in (("sourceCommit", "c" * 40), ("imageRepository", RELEASE.SOURCES),
+                                ("imageDigest", "sha256:" + "d" * 64), ("immutableImage", "synthetic"),
+                                ("evidenceType", "OFFICIAL"), ("qualification", "QUALIFIED"),
+                                ("deployment", "DEPLOYED"), ("publication", "PUBLISHED"),
+                                ("artifactType", "service"), ("sourceManifestSHA256", "0" * 64),
+                                ("contextInventorySHA256", "0" * 64), ("sourceInputInventorySHA256", "0" * 64)):
+                path.write_text(json.dumps({**record, name: value}))
+                with self.subTest(name=name), self.assertRaises(RELEASE.Failure):
+                    RELEASE.verified_candidate_source_record(".local/sources", COMMIT, context_sha)
+            path.write_text(json.dumps(record))
+            with patch.object(RELEASE, "inspect_image", side_effect=RELEASE.Failure), self.assertRaises(RELEASE.Failure):
+                RELEASE.verified_candidate_source_record(".local/sources", COMMIT, context_sha)
+            (directory / "release-artifacts.json").write_text(json.dumps(record))
+            with self.assertRaises(RELEASE.Failure):
+                RELEASE.verified_source_record(".local/sources", COMMIT, context_sha)
+
+    def test_candidate_source_audit_never_starts_or_publishes_carrier(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
+            root = Path(temporary).resolve()
+            directory = root / ".local/evidence"
+            directory.mkdir(parents=True)
+            actual, retained, module, lock, digest = self.source_fixture(root)
+            image = "sha256:" + "b" * 64
+            container = "c" * 64
+            with patch.object(RELEASE, "source_inputs", return_value=(module, lock, digest)), \
+                 patch.object(RELEASE, "inspect_image", return_value={"Id": image}), \
+                 patch.object(RELEASE, "command", side_effect=[container, ""]) as commands, \
+                 patch.object(RELEASE, "read_source_archive", return_value=(actual, retained)), \
+                 patch.object(RELEASE, "candidate_commit", return_value=COMMIT):
+                RELEASE.audit_sources(image, directory, COMMIT, candidate=True)
+            self.assertEqual(commands.call_args_list[0].args[0], ["docker", "create", "--network", "none", "--entrypoint", "/never-run", image])
+            self.assertEqual(commands.call_args_list[1].args[0], ["docker", "rm", "--volumes", container])
+            record = json.loads((directory / "candidate-artifacts.json").read_bytes())
+            self.assertTrue(all(record[name] == value for name, value in RELEASE.candidate_status().items()))
+            self.assertEqual(record["imageDockerID"], image)
+            self.assertIsNone(record["imageConfigID"])
+            self.assertIsNone(record["imageDigest"])
+            self.assertFalse((directory / "release-artifacts.json").exists())
+            self.assertIn("candidate-artifacts.json", (directory / "SHA256SUMS").read_text())
+
+    def test_candidate_service_audit_binds_metadata_and_emits_no_ci_claim(self):
+        for variant in ("valid", "metadata_drift", "source_changed"):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temporary, \
+                 patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
+                root = Path(temporary).resolve()
+                directory = self.image_fixture(root)
+                sources = root / ".local/sources"
+                sources.mkdir()
+                source_record = {"imageConfigID": "sha256:" + "c" * 64, **RELEASE.candidate_status()}
+                image = "sha256:" + "b" * 64
+                metadata = root / ".local/build.json"
+                metadata.write_text(json.dumps({"containerimage.config.digest": image if variant != "metadata_drift" else "sha256:" + "d" * 64}))
+                def command(arguments, **kwargs):
+                    if arguments[:2] == ["docker", "create"]:
+                        return "e" * 64
+                    return "synthetic build observation"
+                with patch.object(RELEASE, "inspect_image", return_value={"Id": image}), \
+                     patch.object(RELEASE, "command", side_effect=command), \
+                     patch.object(RELEASE, "verified_candidate_source_record", return_value=source_record) as verifier, \
+                     patch.object(RELEASE, "candidate_commit", side_effect=RELEASE.Failure if variant == "source_changed" else None, return_value=COMMIT), \
+                     patch.dict(os.environ, {"GITHUB_RUN_ID": "synthetic-ci", "RELEASE_VALIDATION_RUN": "synthetic-validation", "GITHUB_SHA": "f" * 40}):
+                    if variant == "valid":
+                        RELEASE.audit(image, directory, COMMIT, metadata, ".local/sources", candidate=True)
+                    else:
+                        with self.assertRaises(RELEASE.Failure):
+                            RELEASE.audit(image, directory, COMMIT, metadata, ".local/sources", candidate=True)
+                if variant != "valid":
+                    self.assertFalse((directory / "candidate-artifacts.json").exists())
+                    continue
+                verifier.assert_called_once_with(".local/sources", COMMIT, RELEASE.sha_file(directory / "provenance/context-inventory.json"))
+                record = json.loads((directory / "candidate-artifacts.json").read_bytes())
+                self.assertTrue(all(record[name] == value for name, value in RELEASE.candidate_status().items()))
+                self.assertIsNone(record["ciRun"])
+                self.assertIsNone(record["sourceValidationRun"])
+                self.assertIsNone(record["workflowDefinitionCommit"])
+                self.assertEqual(record["correspondingSource"], source_record)
+                self.assertEqual(record["inventoryScopes"]["wholeImageSBOM"], "SEPARATE_EVIDENCE_REQUIRED")
+                self.assertFalse((directory / "release-artifacts.json").exists())
+
     def test_official_guard_requires_clean_exact_protected_main(self):
         valid = {"GITHUB_ACTIONS": "true", "GITHUB_REPOSITORY": RELEASE.REPOSITORY,
                  "GITHUB_REF": "refs/heads/main", "GITHUB_REF_PROTECTED": "true",
@@ -121,7 +301,31 @@ class ReleaseArtifactTests(unittest.TestCase):
         bodies = {}
         def add(name, body):
             bodies[name] = body
-        for name in ("upstream.lock.json", "toolchain.lock.json", "validation-tools.lock.json", "validation-sources.lock.json"):
+        lock = {"components": [], "supplemental_licenses": []}
+        for name in ("go-judge", "problemtools", "go-sandbox"):
+            patch_path = f"patches/{name}/0001-inert.patch"
+            descriptor = f"patches/{name}/series.json"
+            patch_body = ("synthetic inert " + name + " diff\n").encode()
+            patch = {"path": patch_path, "sha256": checksum(patch_body)}
+            component = {"name": name, "repository": "https://example.invalid/" + name,
+                         "commit": "a" * 40, "patches": [patch]}
+            series = {"schemaVersion": 1, "component": name, "repository": component["repository"],
+                      "baseCommit": component["commit"], "patches": component["patches"]}
+            if name == "go-sandbox":
+                component.update({"version": "v0.0.1", "source_assembly": {"policy": "verified-go-module-vendor", "descriptor": descriptor}})
+                series.update({"module": "github.com/criyle/go-sandbox", "baseVersion": component["version"]})
+                lock["supplemental_licenses"].append(component)
+            else:
+                lock["components"].append(component)
+            for relative, body in ((patch_path, patch_body), (descriptor, json.dumps(series).encode())):
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(body)
+                path.chmod(0o644)
+                add("context/" + relative, body)
+        (root / "upstream.lock.json").write_bytes(json.dumps(lock).encode())
+        add("context/provenance/upstream.lock.json", (root / "upstream.lock.json").read_bytes())
+        for name in ("toolchain.lock.json", "validation-tools.lock.json", "validation-sources.lock.json"):
             (root / name).write_bytes(b"{}")
             add("context/provenance/" + name, b"{}")
         for name in ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"):
@@ -130,6 +334,7 @@ class ReleaseArtifactTests(unittest.TestCase):
         def records(values):
             return [{"path": name, "sizeBytes": len(body), "sha256": checksum(body), "mode": "0644"} for name, body in sorted(values.items())]
         context = {"schemaVersion": 1, "gitHead": COMMIT, "releaseCommit": COMMIT, "sourceState": "CLEAN", "workingTreeStatus": "", "qualification": "UNQUALIFIED",
+                   "finalGitHead": COMMIT, "finalWorkingTreeStatus": "",
                    "inventory": records({name.removeprefix("context/"): body for name, body in bodies.items()})}
         add("context/provenance/context-inventory.json", json.dumps(context).encode())
         source_lock_digest = checksum(b"{}")
@@ -144,11 +349,11 @@ class ReleaseArtifactTests(unittest.TestCase):
         return actual, retained, module, lock, source_lock_digest
 
     def test_source_archive_requires_complete_exact_bound_inventories(self):
-        with tempfile.TemporaryDirectory() as temporary, patch.object(RELEASE, "ROOT", Path(temporary)):
-            actual, retained, module, lock, digest = self.source_fixture(Path(temporary))
+        with tempfile.TemporaryDirectory() as temporary, patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
+            actual, retained, module, lock, digest = self.source_fixture(Path(temporary).resolve())
             verified = RELEASE.verify_source_archive(actual, retained, COMMIT, module, lock, digest)
             self.assertEqual(verified["archiveCount"], 1)
-            for variant in ("missing", "tampered", "extra", "dirty", "wrong_commit", "wrong_lock"):
+            for variant in ("missing", "tampered", "extra", "dirty", "wrong_commit", "wrong_lock", "missing_patch", "changed_patch_descriptor"):
                 changed, held = copy.deepcopy(actual), copy.deepcopy(retained)
                 if variant == "missing":
                     del changed["validation-sources/archives/fixture.tar.gz"]
@@ -158,12 +363,69 @@ class ReleaseArtifactTests(unittest.TestCase):
                     changed["unexpected"] = {"path": "unexpected", "sha256": "0" * 64, "sizeBytes": 0, "mode": "0644"}
                 elif variant == "wrong_lock":
                     digest = "0" * 64
+                elif variant in ("missing_patch", "changed_patch_descriptor"):
+                    context = json.loads(held["context/provenance/context-inventory.json"])
+                    name = "patches/problemtools/series.json"
+                    if variant == "missing_patch":
+                        context["inventory"] = [entry for entry in context["inventory"] if entry["path"] != name]
+                        del changed["context/" + name]
+                    else:
+                        for entry in context["inventory"]:
+                            if entry["path"] == name:
+                                entry["sha256"] = "0" * 64
+                        changed["context/" + name]["sha256"] = "0" * 64
+                    held["context/provenance/context-inventory.json"] = json.dumps(context).encode()
+                    # Keep the outer source inventory internally consistent;
+                    # only the independently reviewed ROOT patch set can reject it.
+                    changed["context/provenance/context-inventory.json"].update({"sha256": checksum(held["context/provenance/context-inventory.json"]),
+                                                                             "sizeBytes": len(held["context/provenance/context-inventory.json"])})
+                    source_inventory = json.loads(held["source-inventory.json"])
+                    source_inventory["inventory"] = [entry for key, entry in sorted(changed.items()) if key != "source-inventory.json"]
+                    held["source-inventory.json"] = json.dumps(source_inventory).encode()
                 else:
                     context = json.loads(held["context/provenance/context-inventory.json"])
                     context["sourceState" if variant == "dirty" else "gitHead"] = "DIRTY" if variant == "dirty" else "b" * 40
                     held["context/provenance/context-inventory.json"] = json.dumps(context).encode()
                 with self.subTest(variant=variant), self.assertRaises(RELEASE.Failure):
                     RELEASE.verify_source_archive(changed, held, COMMIT, module, lock, digest)
+
+    def test_source_archive_rejects_self_consistent_forged_owned_source(self):
+        for variant in ("valid", "changed", "missing", "extra", "wrong_final_head", "dirty_final_tree"):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temporary, \
+                 patch.object(RELEASE, "ROOT", Path(temporary).resolve()):
+                root = Path(temporary).resolve()
+                actual, retained, module, lock, digest = self.source_fixture(root)
+                source = root / "cmd/judge-service/main.go"
+                source.parent.mkdir(parents=True)
+                source.write_bytes(b"synthetic reviewed source")
+                source.chmod(0o644)
+                name = "service/cmd/judge-service/main.go"
+                body = b"synthetic forged source" if variant == "changed" else source.read_bytes()
+                context = json.loads(retained["context/provenance/context-inventory.json"])
+                if variant != "missing":
+                    entry = {"path": name, "sha256": checksum(body), "sizeBytes": len(body), "mode": "0644"}
+                    context["inventory"].append(entry)
+                    actual["context/" + name] = {**entry, "path": "context/" + name}
+                if variant == "extra":
+                    entry = {"path": "service/unreviewed.go", "sha256": checksum(b"extra"), "sizeBytes": 5, "mode": "0644"}
+                    context["inventory"].append(entry)
+                    actual["context/" + entry["path"]] = {**entry, "path": "context/" + entry["path"]}
+                if variant == "wrong_final_head":
+                    context["finalGitHead"] = "b" * 40
+                if variant == "dirty_final_tree":
+                    context["finalWorkingTreeStatus"] = " M synthetic.go"
+                retained["context/provenance/context-inventory.json"] = json.dumps(context).encode()
+                actual["context/provenance/context-inventory.json"].update({"sha256": checksum(retained["context/provenance/context-inventory.json"]),
+                                                                         "sizeBytes": len(retained["context/provenance/context-inventory.json"])})
+                inventory = json.loads(retained["source-inventory.json"])
+                inventory["inventory"] = [entry for key, entry in sorted(actual.items()) if key != "source-inventory.json"]
+                retained["source-inventory.json"] = json.dumps(inventory).encode()
+                actual["source-inventory.json"].update({"sha256": checksum(retained["source-inventory.json"]), "sizeBytes": len(retained["source-inventory.json"])})
+                if variant == "valid":
+                    self.assertEqual(RELEASE.verify_source_archive(actual, retained, COMMIT, module, lock, digest)["archiveCount"], 1)
+                else:
+                    with self.assertRaises(RELEASE.Failure):
+                        RELEASE.verify_source_archive(actual, retained, COMMIT, module, lock, digest)
 
     def test_signature_failure_stops_official_source_preparation(self):
         module = types.SimpleNamespace(read_lock=lambda path: ({}, "a" * 64), check=lambda *args: None,
@@ -214,11 +476,13 @@ class ReleaseArtifactTests(unittest.TestCase):
             write(directory / "qualification/upstream_examples" / package / "problem.yaml", body)
             entries.append({"path": "upstream/problemtools/examples/" + package + "/problem.yaml",
                             "sizeBytes": len(body), "sha256": checksum(body), "mode": "0644"})
-        context = {"schemaVersion": 1, "gitHead": COMMIT, "releaseCommit": COMMIT, "sourceState": "CLEAN", "workingTreeStatus": "", "qualification": "UNQUALIFIED", "inventory": entries}
+        context = {"schemaVersion": 1, "gitHead": COMMIT, "releaseCommit": COMMIT, "sourceState": "CLEAN", "workingTreeStatus": "", "qualification": "UNQUALIFIED", "inventory": entries,
+                   "finalGitHead": COMMIT, "finalWorkingTreeStatus": ""}
         write(directory / "provenance/context-inventory.json", json.dumps(context).encode())
         write(root / "opt/startrack/provenance/context-inventory.json", json.dumps(context).encode())
         write(directory / "provenance/problemtools-wheel.sha256", (checksum(wheel.read_bytes()) + "  /build/dist/" + wheel.name + "\n").encode())
         write(directory / "provenance/problemtools-wheel-audit.json", json.dumps(RELEASE.wheel_audit_module().capture(wheel, root)).encode())
+        write(directory / "provenance" / RELEASE.wheel_audit_module().WHEEL_NAME, wheel.read_bytes())
         shutil.copytree(root / "usr", directory / "installed/usr")
         write(directory / "provenance/validation-tools-installed.json", json.dumps({"schemaVersion": 1, "lockSha256": RELEASE.sha_file(root / "validation-tools.lock.json"), "platform": "linux/amd64", "pythonVersion": "3.11.15", "debianPackages": tools["baselineAnchors"], "pythonPackages": tools["wheels"] + tools["baselinePythonPackages"]}).encode())
         write(directory / "provenance/python-packages.json", json.dumps([{"name": "fixture_lib", "version": "2"}, {"name": "pip", "version": "3"}, {"name": "problemtools", "version": "1.20260907"}]).encode())
