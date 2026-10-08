@@ -25,6 +25,10 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 
 - Adopted owner-approved Apache-2.0 for Code Startrack-owned source; retained independent third-party terms and problem license approval.
 
+### Fixed
+
+- Allow namespace-init to collect checker feedback and remove its files during reset across sandbox identities, within the private execution workspace.
+
 ### Security
 
 - Explicit separation of portable development from Linux sandbox qualification; isolation failures must stop execution.

@@ -14,7 +14,10 @@ int main(int argc, char **argv) {
         std::strcmp(argv[4], "/w/feedback") != 0) {
         return 125;
     }
-    if (mkdir("/w/feedback", 0700) != 0) return 125;
+    // The checker and namespace-init use different identities. Init needs to
+    // read feedback and enumerate/unlink its files during reset without DAC
+    // capabilities. This directory is confined to this execution's private /w.
+    if (mkdir("/w/feedback", 0777) != 0) return 125;
     execv("/w/default_validator", argv + 1);
     return 125;
 }
