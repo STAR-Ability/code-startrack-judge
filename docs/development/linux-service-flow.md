@@ -18,7 +18,7 @@ acceptance. Its public report always retains `qualified:false` and
 ```sh
 sudo python3 scripts/qualify-linux-service-flow.py \
   --image "$QUALIFIED_IMAGE" --expected-commit "$QUALIFIED_COMMIT" \
-  --docker-context colima-startrack-v02 \
+  --docker-context default \
   --capacity-evidence /root/startrack-capacity/evidence \
   --runtime-dsn-file /root/startrack-capacity/secrets/runtime.dsn \
   --database-ca-file /root/startrack-capacity/secrets/db-ca.crt \
@@ -26,7 +26,14 @@ sudo python3 scripts/qualify-linux-service-flow.py \
 ```
 
 The source checkout and image source inventory must be clean and match the
-expected commit. Capacity receipts must record success, cleanup and the retained
+expected commit. `default` selects the reviewed Linux host's local Docker daemon
+and accepts only the official repository's immutable image reference. The dedicated
+`colima-startrack-v02` diagnostic context also accepts `startrack-qualified-candidate`;
+both contexts require the same clean source, exact image, cgroup v2, four CPUs and
+at least 15 GiB daemon memory. A context selection supplies no host eligibility
+or security approval. The fixed `startrack-v02-integration_default` network,
+retained capacity database and private bridge port 8081 must already belong to
+the isolated qualification facility. Capacity receipts must record success, cleanup and the retained
 root-owned 2 GiB ext4 backing file. The harness copies and verifies that detached
 file into its new private facility before mounting it with `nosuid,nodev,noexec`;
 the original capacity filesystem remains unchanged. It continues the same
@@ -59,7 +66,7 @@ authenticated HTTP, then explicitly publishes that version and obtains its full
 snapshot. Offline ADMIN rights approval remains the separate preceding capacity
 operator action; publication supplies no new legal rights.
 
-Thirteen persistent tasks exercise these finite cases:
+Fourteen persistent tasks exercise these finite cases:
 
 | Cases | Required observed facts |
 | --- | --- |
@@ -67,6 +74,7 @@ Thirteen persistent tasks exercise these finite cases:
 | Three concurrent bounded AC programs | Exactly two RUNNING tasks and one QUEUED task at the production two-slot worker boundary, followed by three complete results. This is a scoped worker observation, not four-service host-capacity qualification. |
 | One interrupted AC program | Stable actual contestant-process observation, abrupt whole-container stop, original process generations gone, retained source and nonterminal task without partial result/cases, natural lease expiry, new counted fence, unchanged source/version/configuration/first start, actual recovered execution and one terminal result. |
 | Four interrupted attempts | The initial reservation and exactly three recovery executions receive distinct observed fences and greater revisions. After the last natural expiry, the unchanged worker finalizes FAILED/IE with nonretryable `JUDGE_INTERRUPTED`, without a fifth dispatch. All original case rows are SKIPPED. |
+| One task during graceful stop | A stable native contestant and live unchanged task fence are observed before `SIGTERM`. The normal supervisor must exit0 within the 120-second external stop budget, revoke qualification and settle all observed original process generations and the held original cgroup. The task either completes AC during drain or retains its unchanged nonterminal fence/source for one natural counted recovery. A seventh normal start must preserve the original frozen task facts and deliver the retained event identities. |
 
 CPU, wall, memory and output limits stay frozen at the authored package profile.
 The memory fixture commits shared file mappings in three separate 128 MiB files,
@@ -104,8 +112,8 @@ memory budgets with zero swap, then records bounded before/after current/peak
 memory, hierarchical and local event counters and nonnegative event deltas through
 those same descriptors. Service OOM events and parent local OOM events fail the
 run; hierarchical runtime/outer events may contain the authored contestant MLE.
-Each of the six container generations ends with a live sample before its authored
-kill or final completion and a hashed private memory receipt. Per-process HWM is
+Each of the seven container generations ends with a live sample before its authored
+kill or graceful stop and a hashed private memory receipt. Per-process HWM is
 per generation; kernel peaks cover the original cgroup lifetime, including
 startup. Sampled RSS/PSS maxima describe the observed load and are not absolute
 peaks or four-service co-location evidence.
@@ -114,8 +122,11 @@ For each task, a duplicate POST and by-request lookup preserve the one accepted
 identity. The AC terminal callback loses one ACK; the WA terminal callback receives
 one invalid correlated ACK. Both must retry the exact event/hash and become
 DELIVERED through the real dispatcher. Every revision has the expected persisted
-state sequence and a matching acknowledged event. Success has exactly 13 tasks,
-13 original results and 60 retained delivered events. Original result/case
+state sequence and a matching acknowledged event. Success has exactly 14 tasks,
+14 original results and 64 retained delivered events when the live task completes
+during drain, or 66 when it uses one fresh counted recovery. The recovery path
+uses the authoritative post-stop lease expiry; healthy drain may have renewed its
+private heartbeat without changing the visible revision. Original result/case
 transaction IDs match; accepted database constraints and the reused failure tests
 establish the atomic outbox boundary rather than a new destructive SQL fault.
 Judger spool directories must be empty after completed groups.
@@ -124,6 +135,32 @@ The normal withdrawal endpoint then rejects fresh admission without creating a
 task, preserves complete historical statement/samples/license content, and permits
 accepted-request replay. A normal fresh publication restores the unchanged
 approved version for later external integration. No immutable facts are rewritten.
+
+The sixth normal generation receives the live task and stops through Docker's
+fixed `SIGTERM`/120-second budget. A trusted host witness positively binds the
+supervisor, runtime manager, API and judger process generations before signalling,
+and holds the original outer cgroup directory until settlement. Exit status must
+be exactly0, with no OOM flag; both the qualification record and its temporary
+record must be absent, including symlinks. All observed generations must be gone
+and the original cgroup empty or removed. A forced stop, deadline, denied kernel
+read or retained process fails the gate. Forced resource removal in final cleanup
+cannot supply successful shutdown evidence.
+
+After restart, the completed task's terminal revision/result/cases cannot change.
+An incomplete task retains its original source and fence until natural lease
+expiry, then requires one fresh recovery fence and actual contestant execution.
+Both outcomes finish AC under the unchanged limits. Post-stop outbox identities,
+hashes and statuses are retained, then checked against delivered events after
+restart. `pendingEventsObserved` reports whether any delivery was actually pending
+across stop; a zero count supplies no such pending-delivery claim. The seventh
+generation then performs a separate quiescent graceful stop with the same exit,
+revocation and cleanup proof. Neither shutdown fixture claims a positively
+witnessed in-flight recurring qualification probe; that overlap remains a
+separate Linux acceptance gate.
+
+These fixtures are authored requirements, pending execution against an eligible
+Linux host and the exact final image. Portable receipt/refusal tests provide no
+evidence that the 120-second budget, live drain or natural recovery has passed.
 
 Combined acceptance reuses all five actual-PostgreSQL
 [portable acceptance fixtures](acceptance.md), including lost POST/by-request,

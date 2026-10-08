@@ -1,8 +1,10 @@
 """Portable refusal/receipt tests; these do not execute or qualify a sandbox."""
 
 import copy
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -65,6 +67,196 @@ EVENTS = "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
 
 
 class LinuxServiceFlowTests(unittest.TestCase):
+    def test_graceful_exit_requires_clean_wait_and_both_records_revoked(self):
+        state = {"Running": False, "Status": "exited", "ExitCode": 0, "Pid": 0, "OOMKilled": False}
+        with tempfile.TemporaryDirectory() as temporary:
+            measurement = Path(temporary) / "runtime-measurement.json"
+            FLOW.require_graceful_exit(state, measurement)
+            for key, value in (("Running", True), ("Status", "dead"), ("ExitCode", 137), ("ExitCode", False),
+                               ("Pid", False), ("Pid", 1), ("OOMKilled", True), ("OOMKilled", None)):
+                with self.subTest(key=key, value=value), self.assertRaisesRegex(ValueError, "graceful_container_exit_invalid"):
+                    FLOW.require_graceful_exit(dict(state, **{key: value}), measurement)
+            for path in (measurement, Path(str(measurement) + ".tmp")):
+                for symlink in (False, True):
+                    path.symlink_to(Path(temporary) / "absent") if symlink else path.write_text("{}")
+                    with self.subTest(path=path.name, symlink=symlink), self.assertRaisesRegex(ValueError, "graceful_qualification_not_revoked"):
+                        FLOW.require_graceful_exit(state, measurement)
+                    path.unlink()
+
+    def test_graceful_stop_keeps_original_witness_and_rejects_failed_settlement(self):
+        for outcome in ("clean", "forced", "retained", "role_missing", "contestant_changed", "stop_error"):
+            with self.subTest(outcome=outcome), tempfile.TemporaryDirectory() as temporary:
+                lifecycle = FLOW.Lifecycle.__new__(FLOW.Lifecycle)
+                lifecycle.prefix, lifecycle.active = ["docker", "--context", "default"], "startrack-flow-fixture"
+                lifecycle.evidence, lifecycle.digest = Path(temporary), IMAGE.split("@")[1]
+                lifecycle.containers, lifecycle.starts = [lifecycle.active], [{}]
+                measurement = {"identity": {"workerImageDigest": lifecycle.digest}, "bootId": VERSION,
+                               "checks": {key: True for key in FLOW.QUALIFY.REQUIRED_CHECKS}}
+                descriptor = os.open(temporary, os.O_RDONLY | os.O_DIRECTORY)
+                witness = {"descriptor": descriptor, "processes": {1001: "123", 1002: "456", 1003: "789"}}
+                if outcome == "role_missing":
+                    witness["processes"].pop(1002)
+                observed = []
+
+                def observe():
+                    observed.append(True)
+                    return {1003: "different" if outcome == "contestant_changed" else "789"}
+
+                def capture(*_):
+                    self.assertEqual(observed, [True], "native execution must be observed before capturing cleanup generations")
+                    return witness
+
+                def finish(reason):
+                    self.assertEqual(reason, "BEFORE_AUTHORED_GRACEFUL_STOP")
+                    lifecycle.starts[-1]["serviceMemory"] = {"roles": [{"role": "api", "hostPID": 1001, "startTicks": 123},
+                                                                         {"role": "judger", "hostPID": 1002, "startTicks": 456}]}
+
+                state = {"Running": False, "Status": "exited", "ExitCode": 137 if outcome == "forced" else 0, "Pid": 0, "OOMKilled": False}
+
+                def docker(_prefix, arguments, **options):
+                    if arguments[0] == "stop":
+                        self.assertEqual(arguments, ["stop", "--signal", "SIGTERM", "--timeout", "120", lifecycle.active])
+                        self.assertEqual(options["timeout"], 150)
+                        if outcome == "stop_error":
+                            raise subprocess.TimeoutExpired("synthetic-stop", 150)
+                        return SimpleNamespace(stdout="")
+                    self.assertEqual(arguments[0], "inspect")
+                    return SimpleNamespace(stdout=json.dumps(state))
+
+                with patch.object(lifecycle, "finish_memory", side_effect=finish), \
+                        patch.object(FLOW.QUALIFY, "regular_json", return_value=measurement), \
+                        patch.object(FLOW.QUALIFY, "capture_execution_drain", side_effect=capture), \
+                        patch.object(FLOW.QUALIFY, "execution_drained", return_value=outcome != "retained"), \
+                        patch.object(FLOW.QUALIFY, "run", side_effect=docker), \
+                        patch.object(Path, "read_text", return_value=VERSION), \
+                        patch.object(FLOW.time, "monotonic", side_effect=[0, 1, 2, 20] if outcome == "retained" else [0, 1, 2, 3]):
+                    if outcome == "clean":
+                        receipt = lifecycle.graceful_stop(observe)
+                        self.assertTrue(receipt["passed"])
+                        self.assertEqual(receipt["scope"], "LIVE_NORMAL_SERVICE_TASK_DRAIN")
+                        self.assertEqual(receipt["stableContestantProcessesBeforeTERM"], 1)
+                        self.assertFalse(receipt["inFlightQualificationProbeWitnessed"])
+                    else:
+                        with self.assertRaises((ValueError, subprocess.TimeoutExpired)):
+                            lifecycle.graceful_stop(observe)
+                        self.assertNotIn("gracefulShutdown", lifecycle.starts[-1])
+                with self.assertRaises(OSError):
+                    os.fstat(descriptor)
+
+    def live_drain_fixture(self, completed, failure=None):
+        original = FLOW.request({"problemId": "7", "problemVersionId": VERSION}, FLOW.SLEEP_SUM, 7)
+        original["requestId"] = REQUEST
+        frozen = {"limits": {"cpuTimeNS": 2_000_000_000, "wallTimeNS": 4_000_000_000, "memoryBytes": 256 << 20,
+                              "outputBytes": 8 << 20, "processes": 32}, "sourceSizeBytes": len(original["sourceCode"].encode()),
+                  "sourceFilename": "main.cpp", "identity": {"workerImageDigest": IMAGE.split("@")[1]}}
+        running = {"taskId": TASK, "versionId": VERSION, "problemId": "7", "sourceHash": original["sourceSha256"],
+                   "frozen": frozen, "image": IMAGE.split("@")[1], "startedAt": "2026-10-08T00:00:00Z",
+                   "sourceRetained": True, "status": "RUNNING", "revision": 3, "attempt": 0, "lease": EVENT,
+                   "result": None, "cases": [], "databaseNow": "2026-10-08T00:00:00+00:00",
+                   "leaseExpiresAt": "2026-10-08T00:03:00+00:00"}
+        states = ["QUEUED", "DISPATCHING", "RUNNING"] + ([] if completed else ["DISPATCHING", "RUNNING"]) + ["COMPLETED"]
+        public = task("AC")
+        public["revision"] = len(states)
+        final = dict(running, **facts(public), status="COMPLETED", attempt=0 if completed else 1, lease=None)
+        final["events"] = [{"eventId": "00000000-0000-4000-8000-%012x" % revision, "revision": revision,
+                             "hash": "%064x" % revision, "status": "DELIVERED",
+                             "terminal": status == "COMPLETED", "payload": public if status == "COMPLETED" else {"status": status}}
+                            for revision, status in enumerate(states, 1)]
+        after = copy.deepcopy(final if completed else running)
+        if not completed:
+            after["leaseExpiresAt"] = "2026-10-08T00:03:30+00:00"
+            after["events"] = copy.deepcopy(final["events"][:3])
+        after["events"][-1]["status"] = "PENDING"
+        recovered = dict(running, attempt=1, revision=5, lease=VERSION,
+                         databaseNow="2026-10-08T00:03:30+00:00")
+        if failure == "clock":
+            recovered["databaseNow"] = "2026-10-08T00:03:29+00:00"
+        elif failure == "fence":
+            recovered["lease"] = EVENT
+        live = copy.deepcopy(running)
+        if failure == "expired":
+            live["databaseNow"] = live["leaseExpiresAt"]
+        snapshots = [running, live, after] + ([] if completed else [recovered])
+        return original, public, final, snapshots
+
+    def test_live_drain_preserves_completed_or_naturally_recovered_task_and_events(self):
+        for completed, failure in ((True, None), (False, None), (False, "clock"), (False, "fence"), (False, "expired")):
+            with self.subTest(completed=completed, failure=failure):
+                original, public, final, snapshots = self.live_drain_fixture(completed, failure)
+                service, lifecycle, database, receiver = (unittest.mock.Mock() for _ in range(4))
+                lifecycle.digest = IMAGE.split("@")[1]
+                lifecycle.executing.side_effect = lambda identities=False: {1003: "789"} if identities else 1
+                lifecycle.start.return_value = service
+                lifecycle.graceful_stop.side_effect = lambda observer: {"passed": True, "stableContestantProcessesBeforeTERM": len(observer())}
+                service.accepted.return_value = {"judgeTaskId": TASK}
+                service.wait.return_value = public
+                database.task.side_effect = snapshots
+                report = {"cases": []}
+                with patch.object(FLOW, "request", return_value=original), \
+                        patch.object(FLOW, "all_delivered", return_value=final), \
+                        patch.object(FLOW, "replay_checks") as replay:
+                    if failure is not None:
+                        with self.assertRaisesRegex(ValueError, "graceful_task_lease_not_live" if failure == "expired" else "graceful_recovery_fence_or_clock_invalid"):
+                            FLOW.graceful_live_drain(service, lifecycle, database, receiver, {}, 7, report)
+                        self.assertEqual(report["cases"], [])
+                        replay.assert_not_called()
+                    else:
+                        restarted, count = FLOW.graceful_live_drain(service, lifecycle, database, receiver, {}, 7, report)
+                        self.assertIs(restarted, service)
+                        self.assertEqual(count, 64 if completed else 66)
+                        self.assertEqual(report["cases"][0]["recoveryCount"], 0 if completed else 1)
+                        self.assertTrue(report["gracefulShutdown"]["pendingEventsObserved"])
+                        self.assertTrue(report["gracefulShutdown"]["retainedEventIdentitiesDeliveredAfterRestart"])
+                        self.assertEqual(report["gracefulShutdown"]["sameTaskRecoveredAfterNaturalLeaseExpiry"], not completed)
+                        replay.assert_called_once_with(service, original, TASK)
+
+    def launcher_arguments(self, context, image):
+        return ["qualify-linux-service-flow.py", "--image", image, "--expected-commit", COMMIT,
+                "--docker-context", context, "--capacity-evidence", "/synthetic/capacity",
+                "--runtime-dsn-file", "/synthetic/runtime.dsn", "--database-ca-file", "/synthetic/ca.crt",
+                "--evidence", "/synthetic/evidence"]
+
+    def test_supported_contexts_keep_dirty_source_refusal_before_credentials_or_docker(self):
+        official = FLOW.QUALIFY.OFFICIAL + "@sha256:" + "a" * 64
+        for context, image in (("default", official), ("colima-startrack-v02", official),
+                               ("colima-startrack-v02", IMAGE)):
+            with self.subTest(context=context, image=image), \
+                    patch.object(sys, "argv", self.launcher_arguments(context, image)), \
+                    patch.object(FLOW.platform, "system", return_value="Linux"), \
+                    patch.object(FLOW.platform, "machine", return_value="amd64"), \
+                    patch.object(FLOW.os, "geteuid", return_value=0), \
+                    patch.object(FLOW.signal, "signal"), \
+                    patch.object(FLOW.CAPACITY, "host", side_effect=[COMMIT, " M synthetic-file"]), \
+                    patch.object(FLOW.CAPACITY, "trusted_dsn") as credentials, \
+                    patch.object(FLOW.QUALIFY, "run") as docker:
+                with self.assertRaisesRegex(ValueError, "^clean_host_source_required$"):
+                    FLOW.main()
+                credentials.assert_not_called()
+                docker.assert_not_called()
+
+    def test_default_context_refuses_diagnostic_image_before_host_or_docker_access(self):
+        with patch.object(sys, "argv", self.launcher_arguments("default", IMAGE)), \
+                patch.object(FLOW.platform, "system", return_value="Linux"), \
+                patch.object(FLOW.platform, "machine", return_value="amd64"), \
+                patch.object(FLOW.os, "geteuid", return_value=0), \
+                patch.object(FLOW.signal, "signal"), \
+                patch.object(FLOW.CAPACITY, "host") as host, \
+                patch.object(FLOW.QUALIFY, "run") as docker:
+            with self.assertRaisesRegex(ValueError, "^image_repository_not_allowed$"):
+                FLOW.main()
+            host.assert_not_called()
+            docker.assert_not_called()
+
+    def test_arbitrary_docker_context_is_refused_before_any_host_action(self):
+        with patch.object(sys, "argv", self.launcher_arguments("production", IMAGE)), \
+                patch.object(FLOW.CAPACITY, "host") as host, \
+                patch.object(FLOW.QUALIFY, "run") as docker, contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as refused:
+                FLOW.main()
+            self.assertEqual(refused.exception.code, 2)
+            host.assert_not_called()
+            docker.assert_not_called()
+
     def receiver(self):
         receiver = FLOW.FixtureReceiver("synthetic-fixed-outbound-token")
         receiver.expect({"requestId": REQUEST, "submissionId": "7"})

@@ -91,6 +91,15 @@ def remove_container(prefix, name):
     return removed.returncode == 0 and listed.returncode == 0 and name not in listed.stdout.splitlines()
 
 
+def require_graceful_exit(state, measurement_path):
+    require(state.get("Running") is False and state.get("Status") == "exited"
+            and type(state.get("ExitCode")) is int and state["ExitCode"] == 0
+            and type(state.get("Pid")) is int and state["Pid"] == 0
+            and state.get("OOMKilled") is False, "graceful_container_exit_invalid")
+    for path in (measurement_path, Path(str(measurement_path) + ".tmp")):
+        require(not path.exists() and not path.is_symlink(), "graceful_qualification_not_revoked")
+
+
 def strict_json(raw, limit=MAX_PUBLIC):
     require(len(raw) <= limit and PRIVATE_CANARY.encode() not in raw, "public_response_bounds_or_privacy_failed")
 
@@ -709,7 +718,54 @@ class Lifecycle:
             time.sleep(0.1)
         raise ValueError("interrupted_process_cleanup_failed")
 
-    def executing(self):
+    def graceful_stop(self, before_signal=None):
+        current = self.evidence / ("normal-" + str(len(self.containers)))
+        measurement_path = current / "runtime-measurement.json"
+        measurement = QUALIFY.regular_json(measurement_path)
+        require(measurement.get("identity", {}).get("workerImageDigest") == self.digest
+                and all(measurement.get("checks", {}).get(key) is True for key in QUALIFY.REQUIRED_CHECKS)
+                and measurement.get("bootId") == Path("/proc/sys/kernel/random/boot_id").read_text().strip(),
+                "graceful_live_measurement_invalid")
+        # RUNNING first acknowledges compilation. Wait for the actual contestant
+        # before capturing its generation, then require that same generation in
+        # the supervisor/manager/role roster whose cleanup is observed below.
+        live = before_signal() if before_signal is not None else None
+        witness = QUALIFY.capture_execution_drain(self.prefix, self.active, measurement)
+        try:
+            self.finish_memory("BEFORE_AUTHORED_GRACEFUL_STOP")
+            roles = self.starts[-1]["serviceMemory"]["roles"]
+            require({role["role"] for role in roles} == {"api", "judger"}
+                    and all(witness["processes"].get(role["hostPID"]) == str(role["startTicks"]) for role in roles),
+                    "graceful_service_process_witness_missing")
+            if live is not None:
+                require(isinstance(live, dict) and bool(live)
+                        and all(witness["processes"].get(pid) == ticks for pid, ticks in live.items()),
+                        "graceful_contestant_generation_not_bound")
+            started = time.monotonic()
+            QUALIFY.run(self.prefix, ["stop", "--signal", "SIGTERM", "--timeout", "120", self.active], timeout=150)
+            stopped = time.monotonic()
+            require(stopped - started <= 120, "graceful_external_stop_budget_exceeded")
+            state = strict_json(QUALIFY.run(self.prefix, ["inspect", self.active, "--format", "{{json .State}}"], timeout=15).stdout.encode(), 4096)
+            require_graceful_exit(state, measurement_path)
+            deadline = time.monotonic() + 15
+            while not QUALIFY.execution_drained(witness):
+                require(time.monotonic() < deadline, "graceful_original_execution_retained")
+                time.sleep(0.1)
+            receipt = {"scope": "LIVE_NORMAL_SERVICE_TASK_DRAIN" if before_signal is not None else "QUIESCENT_NORMAL_SERVICE_SHUTDOWN",
+                       "passed": True, "generation": len(self.containers), "imageDigest": self.digest,
+                       "signal": "SIGTERM", "externalStopBudgetSeconds": 120, "exitCode": 0,
+                       "stopElapsedMs": int((stopped - started) * 1000), "settlementElapsedMs": int((time.monotonic() - stopped) * 1000),
+                       "originalProcessesObserved": len(witness["processes"]), "normalRolesPositivelyWitnessed": True,
+                       "qualificationAndTemporaryRecordRevoked": True, "originalProcessGenerationsGone": True,
+                       "originalCgroupHeldAndDrained": True, "inFlightQualificationProbeWitnessed": False}
+            if live is not None:
+                receipt["stableContestantProcessesBeforeTERM"] = len(live)
+            self.starts[-1]["gracefulShutdown"] = receipt
+            return receipt
+        finally:
+            os.close(witness["descriptor"])
+
+    def executing(self, identities=False):
         # RUNNING starts at the compile acknowledgement. Require a stable real
         # contestant executable witness before the authored interruption.
         deadline = time.monotonic() + 5
@@ -719,7 +775,7 @@ class Lifecycle:
             if witnesses and all(value is not None for value in witnesses.values()):
                 time.sleep(0.15)
                 if all(process_identity(pid) == identity for pid, identity in witnesses.items()):
-                    return len(witnesses)
+                    return witnesses if identities else len(witnesses)
             time.sleep(0.05)
         raise ValueError("actual_contestant_process_witness_missing")
 
@@ -852,11 +908,91 @@ def recovery(service, lifecycle, db, receiver, problem_ref, submission, kills, r
     return service
 
 
+def graceful_live_drain(service, lifecycle, db, receiver, problem_ref, submission, report):
+    original = request(problem_ref, SLEEP_SUM, submission)
+    receiver.expect(original)
+    task_id = service.accepted("POST", "/internal/v2/judge-tasks", original, (202,))["judgeTaskId"]
+    service.wait(task_id, lambda task: task.get("status") == "RUNNING", timeout=180)
+    before = db.task(task_id)
+    assert_frozen(before, original, lifecycle.digest)
+    require(before.get("attempt") == 0 and UUID.fullmatch(before.get("lease") or ""), "graceful_initial_task_fence_invalid")
+    frozen = (before["versionId"], before["sourceHash"], canonical_fixture(before["frozen"]), before["startedAt"])
+    preterm = {}
+
+    def observe_live():
+        executing = lifecycle.executing(identities=True)
+        current = db.task(task_id)
+        require(current.get("status") == "RUNNING" and current.get("attempt") == 0
+                and current.get("lease") == before["lease"] and current.get("revision") == before["revision"]
+                and current.get("result") is None and not current.get("cases") and current.get("sourceRetained") is True,
+                "graceful_task_not_live_before_term")
+        require((current["versionId"], current["sourceHash"], canonical_fixture(current["frozen"]), current["startedAt"]) == frozen,
+                "graceful_task_identity_changed")
+        remaining = (datetime.fromisoformat(current["leaseExpiresAt"]) - datetime.fromisoformat(current["databaseNow"])).total_seconds()
+        require(0 < remaining <= 180, "graceful_task_lease_not_live")
+        preterm["leaseExpiresAt"] = current["leaseExpiresAt"]
+        return executing
+
+    stopped = lifecycle.graceful_stop(observe_live)
+    after = db.task(task_id)
+    assert_frozen(after, original, lifecycle.digest)
+    require((after["versionId"], after["sourceHash"], canonical_fixture(after["frozen"]), after["startedAt"]) == frozen,
+            "graceful_stopped_task_identity_changed")
+    completed = after.get("status") == "COMPLETED"
+    if completed:
+        require(after.get("attempt") == 0 and after.get("events"), "graceful_completed_task_invalid")
+        assert_terminal(after["events"][-1]["payload"], after, "AC")
+        assert_event_sequence(after, 0)
+    else:
+        require(after.get("status") == "RUNNING" and after.get("attempt") == 0
+                and after.get("lease") == before["lease"] and after.get("revision") == before["revision"]
+                and after.get("result") is None and not after.get("cases") and after.get("sourceRetained") is True
+                and datetime.fromisoformat(after["leaseExpiresAt"]) >= datetime.fromisoformat(preterm["leaseExpiresAt"]),
+                "graceful_incomplete_task_not_recoverable")
+    retained_events = [{key: event[key] for key in ("eventId", "revision", "hash", "status")} for event in after["events"]]
+    require(all(event["status"] in ("PENDING", "SENDING", "DELIVERED") for event in retained_events), "graceful_callback_outbox_invalid")
+    service = lifecycle.start()
+    if not completed:
+        service.wait(task_id, lambda task: task.get("status") == "RUNNING" and task.get("revision", 0) > after["revision"], timeout=260)
+        recovered = db.task(task_id)
+        require(recovered.get("attempt") == 1 and UUID.fullmatch(recovered.get("lease") or "")
+                and recovered["lease"] != after["lease"]
+                and datetime.fromisoformat(recovered["databaseNow"]) >= datetime.fromisoformat(after["leaseExpiresAt"])
+                and (recovered["versionId"], recovered["sourceHash"], canonical_fixture(recovered["frozen"]), recovered["startedAt"]) == frozen,
+                "graceful_recovery_fence_or_clock_invalid")
+        require(lifecycle.executing() > 0, "graceful_recovered_execution_witness_missing")
+    final = service.wait(task_id, lambda task: task.get("status") == "COMPLETED", timeout=180)
+    facts = all_delivered(db, receiver, task_id)
+    require(facts.get("attempt") == (0 if completed else 1)
+            and (facts["versionId"], facts["sourceHash"], canonical_fixture(facts["frozen"]), facts["startedAt"]) == frozen,
+            "graceful_final_task_identity_invalid")
+    if completed:
+        require(facts["revision"] == after["revision"] and facts["result"] == after["result"] and facts["cases"] == after["cases"],
+                "graceful_terminal_facts_changed_after_restart")
+    originals = {event["eventId"]: (event["revision"], event["hash"]) for event in facts["events"]}
+    require(all(originals.get(event["eventId"]) == (event["revision"], event["hash"]) for event in retained_events),
+            "graceful_retained_outbox_identity_changed")
+    assert_event_sequence(facts, 0 if completed else 1)
+    assert_frozen(facts, original, lifecycle.digest)
+    replay_checks(service, original, task_id)
+    lifecycle.spool_empty()
+    record = assert_terminal(final, facts, "AC")
+    record.update({"name": "GRACEFUL_LIVE_AC", "completedBeforeStop": completed, "recoveryCount": facts["attempt"],
+                   "sourceSha256": original["sourceSha256"], "frozenInputSha256": hashlib.sha256(frozen[2]).hexdigest(),
+                   "callbackEvents": len(facts["events"]), "allEventsDelivered": True, "normalRequestReplay": True})
+    report["cases"].append(record)
+    report["gracefulShutdown"] = {"live": stopped, "postStopStatus": after["status"], "postStopOutbox": retained_events,
+                                  "pendingEventsObserved": any(event["status"] != "DELIVERED" for event in retained_events),
+                                  "retainedEventIdentitiesDeliveredAfterRestart": True, "completedBeforeStop": completed,
+                                  "sameTaskRecoveredAfterNaturalLeaseExpiry": not completed}
+    return service, 64 if completed else 66
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--image", required=True)
     parser.add_argument("--expected-commit", required=True)
-    parser.add_argument("--docker-context", required=True, choices=("colima-startrack-v02",))
+    parser.add_argument("--docker-context", required=True, choices=("default", "colima-startrack-v02"))
     parser.add_argument("--capacity-evidence", type=Path, required=True)
     parser.add_argument("--runtime-dsn-file", type=Path, required=True)
     parser.add_argument("--database-ca-file", type=Path, required=True)
@@ -868,6 +1004,7 @@ def main():
     signal.signal(signal.SIGALRM, abort)
     repository, separator, digest = args.image.partition("@")
     require(separator and repository in (QUALIFY.OFFICIAL, "startrack-qualified-candidate") and QUALIFY.DIGEST.fullmatch(digest) and QUALIFY.COMMIT.fullmatch(args.expected_commit), "immutable_image_commit_required")
+    require(repository == QUALIFY.OFFICIAL or args.docker_context == "colima-startrack-v02", "image_repository_not_allowed")
     require(CAPACITY.host(["git", "-C", str(ROOT), "rev-parse", "HEAD"]) == args.expected_commit and not CAPACITY.host(["git", "-C", str(ROOT), "status", "--porcelain", "--untracked-files=all"]), "clean_host_source_required")
     dsn, database = CAPACITY.trusted_dsn(args.runtime_dsn_file, "judge_runtime")
     ca, ca_sha = CAPACITY.trusted_public_ca(args.database_ca_file)
@@ -885,7 +1022,7 @@ def main():
     private.mkdir(mode=0o700)
     prefix = ["docker", "--context", args.docker_context]
     clients, extraction, device, mounted, receiver_server, lifecycle = [], None, None, None, None, None
-    report = {"schemaVersion": 1, "scope": "DISPOSABLE_SYNTHETIC_PERSISTENT_SERVICE_FLOW", "syntheticFixture": True, "qualified": False, "serviceFlowPassed": False, "realBackendAccepted": False, "productionDeployment": "NOT_PERFORMED_FUTURE_OPERATOR_ACTION", "sourceCommit": args.expected_commit, "imageReference": args.image, "capacityReceiptSha256": file_sha(capacity_path), "databaseCaSha256": ca_sha, "cases": [], "failureCode": "incomplete", "reusedEvidence": ["accepted migration5 and runtime-role ACL", "accepted PostgreSQL stale-owner and transaction-failure tests", "accepted disposable quiescent restores"], "externalGates": ["Q-010 joint ACK correlation and shared Backend canonical vectors", "real Backend #23", "four-service release acceptance #24"]}
+    report = {"schemaVersion": 1, "scope": "DISPOSABLE_SYNTHETIC_PERSISTENT_SERVICE_FLOW", "syntheticFixture": True, "qualified": False, "serviceFlowPassed": False, "gracefulShutdownPassed": False, "realBackendAccepted": False, "productionDeployment": "NOT_PERFORMED_FUTURE_OPERATOR_ACTION", "sourceCommit": args.expected_commit, "imageReference": args.image, "capacityReceiptSha256": file_sha(capacity_path), "databaseCaSha256": ca_sha, "cases": [], "failureCode": "incomplete", "reusedEvidence": ["accepted migration5 and runtime-role ACL", "accepted PostgreSQL stale-owner and transaction-failure tests", "accepted disposable quiescent restores"], "externalGates": ["Q-010 joint ACK correlation and shared Backend canonical vectors", "real Backend #23", "four-service release acceptance #24"]}
     report["portableAcceptance"] = {"scope": "REUSED_ACTUAL_POSTGRESQL_CONTROL_FLOW_ACCEPTANCE", "documentation": "docs/development/acceptance.md", "fixtures": ["TestPortableAcceptanceImportRightsValidationPublishAndSnapshot", "TestPortableAcceptanceLostPOSTVerdictsAndReorderedEvents", "TestPortableAcceptanceFrozenVersionWithdrawalAndFreshFenceRecovery", "TestPortableAcceptanceCallbackFaultsRestartAndReconciliation", "TestPortableAcceptanceFinalTransactionFailureRetainsRecoverableTask"], "sourceSHA256": {str(path.relative_to(ROOT)): file_sha(path) for path in sorted((ROOT / "cmd/judge-service").glob("acceptance*_test.go"))}}
     try:
         signal.alarm(60 * 60)
@@ -985,11 +1122,15 @@ def main():
         continuation = service.accepted("POST", "/internal/v2/problems/" + seed["problemId"] + "/publish", continuation_publish)
         require(continuation.get("status") == "PUBLISHED" and continuation.get("problemRef") == problem_ref, "normal_continuation_republication_failed")
         report["withdrawal"] = {"freshAdmissionRejected": True, "noRemoteTaskCreated": True, "historicalContentPreserved": True, "acceptedRequestReplayPreserved": True, "normallyRepublishedForContinuation": True}
+        completed_scope = db.scope()
+        require(completed_scope.get("tasks") == 13 and completed_scope.get("results") == 13 and completed_scope.get("outbox") == 60 and completed_scope.get("active") == 0, "fixed_thirteen_task_scope_invalid")
+        service, expected_events = graceful_live_drain(service, lifecycle, db, receiver, problem_ref, base_submission + 50, report)
         final_scope = db.scope()
-        require(final_scope.get("tasks") == 13 and final_scope.get("results") == 13 and final_scope.get("outbox") == 60 and final_scope.get("active") == 0 and final_scope.get("published") == 1 and final_scope.get("imports") == scope["imports"] and final_scope.get("versions") == scope["versions"] and receiver.failures == 0, "final_service_flow_scope_invalid")
-        lifecycle.finish_memory("COMPLETED_FIXED_THIRTEEN_TASK_LOAD")
-        require(len(lifecycle.starts) == 6 and all(start.get("serviceMemory", {}).get("passed") is True for start in lifecycle.starts), "normal_service_memory_generations_incomplete")
-        report.update({"serviceFlowPassed": True, "serviceProcessMemoryPassed": True, "failureCode": "", "normalStarts": lifecycle.starts, "mockCallbacks": {"scope": "FIXED_SYNTHETIC_ACK_ONLY", "correlation": "CURRENT_JUDGE_ECHO_PROFILE_Q010_EXTERNALLY_PENDING", "validatedEvents": len(receiver.events), "duplicates": receiver.duplicates, "validationFailures": receiver.failures}, "databaseFacts": {"tasks": 13, "results": 13, "outboxEvents": 60, "runtimeRole": True, "verifyFullTLS": True}})
+        require(final_scope.get("tasks") == 14 and final_scope.get("results") == 14 and final_scope.get("outbox") == expected_events and final_scope.get("active") == 0 and final_scope.get("published") == 1 and final_scope.get("imports") == scope["imports"] and final_scope.get("versions") == scope["versions"] and receiver.failures == 0, "final_service_flow_scope_invalid")
+        report["gracefulShutdown"]["finalQuiescent"] = lifecycle.graceful_stop()
+        require(len(lifecycle.starts) == 7 and all(start.get("serviceMemory", {}).get("passed") is True for start in lifecycle.starts)
+                and all(start.get("gracefulShutdown", {}).get("passed") is True for start in lifecycle.starts[-2:]), "normal_service_generations_incomplete")
+        report.update({"serviceFlowPassed": True, "serviceProcessMemoryPassed": True, "gracefulShutdownPassed": True, "failureCode": "", "normalStarts": lifecycle.starts, "mockCallbacks": {"scope": "FIXED_SYNTHETIC_ACK_ONLY", "correlation": "CURRENT_JUDGE_ECHO_PROFILE_Q010_EXTERNALLY_PENDING", "validatedEvents": len(receiver.events), "duplicates": receiver.duplicates, "validationFailures": receiver.failures}, "databaseFacts": {"tasks": 14, "results": 14, "outboxEvents": expected_events, "runtimeRole": True, "verifyFullTLS": True}})
     except (ValueError, OSError, KeyError, TypeError, UnicodeError, json.JSONDecodeError, http.client.HTTPException, subprocess.SubprocessError) as error:
         report["failureCode"] = str(error) if isinstance(error, ValueError) and re.fullmatch(r"[a-z0-9_]+", str(error)) else type(error).__name__
     finally:
@@ -1025,7 +1166,7 @@ def main():
                 cleanup = False
         report["cleanupPassed"] = cleanup
         if not cleanup:
-            report.update({"serviceFlowPassed": False, "failureCode": "service_flow_cleanup_failed"})
+            report.update({"serviceFlowPassed": False, "gracefulShutdownPassed": False, "failureCode": "service_flow_cleanup_failed"})
         public = json.dumps(report, indent=2).encode() + b"\n"
         require(len(public) <= 65536 and PRIVATE_CANARY.encode() not in public and dsn.encode() not in public, "service_flow_report_invalid")
         (evidence / "service-flow.json").write_bytes(public)
