@@ -357,8 +357,9 @@ func (a *Adapter) matureRunBytes(ctx context.Context, id string, argv []string, 
 		copyIn[name] = id
 	}
 	cmd := command(argv, stdin, copyIn, l)
-	if len(argv) > 0 && argv[0] == "/usr/local/bin/startrack-checker-launcher" {
-		cmd.CopyOutCached = append(cmd.CopyOutCached, restclient.Output{Name: "feedback/judgemessage.txt", Optional: true})
+	checkerRun := len(argv) > 0 && argv[0] == "/usr/local/bin/startrack-checker-launcher"
+	if checkerRun {
+		cmd.CopyOutCached = append(cmd.CopyOutCached, restclient.Output{Name: "feedback/judgemessage.txt"})
 	}
 	r, e := a.runOne(ctx, s, id, cmd)
 	if e != nil {
@@ -366,6 +367,11 @@ func (a *Adapter) matureRunBytes(ctx context.Context, id string, argv []string, 
 	}
 	if infrastructure(r) {
 		return response, failure("MATURE_SANDBOX_INFRASTRUCTURE_FAILED", false)
+	}
+	// Native checker exits 42/43 are NonzeroExit, for which the REST projection
+	// permits absent outputs. A captured empty file is valid; a missing file is not.
+	if _, exists := r.CachedFiles["feedback/judgemessage.txt"]; checkerRun && !exists {
+		return response, failure("MATURE_CHECKER_FEEDBACK_MISSING", false)
 	}
 	response.OK, response.Compiled, response.WaitStatus, response.CPUNS = true, true, matureWaitStatus(r), r.CPUTimeNS
 	for name, target := range map[string]*string{"stdout": &response.StdoutBase64, "stderr": &response.StderrBase64} {
