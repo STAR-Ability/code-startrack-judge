@@ -20,6 +20,8 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 - C++17 task admission, live capability checks, fenced scheduling with three counted recoveries, atomic results/case history and transactional callback snapshots.
 - Fixed-target callback delivery, durable retry/dead letters and explicit audited manual redelivery.
 - Five forward schema migrations and actual PostgreSQL integrity, concurrency, privilege and SQL-log redaction checks.
+- Clean-candidate source/service artifact audits, complete physical layer inventories for Docker 29 archives, and bounded gzip coverage measurements that retain unresolved gaps.
+- Live task-drain and fenced shutdown-recovery qualification fixtures; real final-image execution remains pending.
 
 ### Changed
 
@@ -28,6 +30,7 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 ### Fixed
 
 - Allow namespace-init to collect checker feedback and remove its files during reset across sandbox identities, within the private execution workspace.
+- Preserve committed service module inputs during image preparation and retain generated dependency sums as separate build evidence.
 
 ### Security
 
