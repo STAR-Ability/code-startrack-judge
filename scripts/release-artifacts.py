@@ -200,12 +200,18 @@ def verify_checker_fixture_carrier(directory: Path, records: dict[str, dict]) ->
     installed_prefix = "qualification/default_validator_tests/"
     expected = {installed_prefix + name.removeprefix(source_prefix): (record["sha256"], record["sizeBytes"])
                 for name, record in records.items() if name.startswith(source_prefix)}
+    examples = {"qualification/upstream_examples/" + name.removeprefix("upstream/problemtools/examples/"): (record["sha256"], record["sizeBytes"])
+                for name, record in records.items()
+                if name.startswith(("upstream/problemtools/examples/hello/", "upstream/problemtools/examples/different/"))}
     actual = {path.relative_to(directory).as_posix(): (sha_file(path), path.stat().st_size)
               for path in files(directory / "qualification")}
-    require(bool(expected) and actual == expected)
-    manifest = [{"path": name, "sha256": digest, "sizeBytes": size} for name, (digest, size) in sorted(actual.items())]
+    require(bool(expected) and bool(examples) and actual == expected | examples)
+    manifest = [{"path": name, "sha256": digest, "sizeBytes": size} for name, (digest, size) in sorted(expected.items())]
+    example_manifest = [{"path": name, "sha256": digest, "sizeBytes": size} for name, (digest, size) in sorted(examples.items())]
     return {"defaultCheckerCarrierInventorySHA256": hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
-            "defaultCheckerCarrierFiles": len(manifest), "defaultCheckerCarrierBytes": sum(record["sizeBytes"] for record in manifest)}
+            "defaultCheckerCarrierFiles": len(manifest), "defaultCheckerCarrierBytes": sum(record["sizeBytes"] for record in manifest),
+            "upstreamExampleCarrierInventorySHA256": hashlib.sha256(json.dumps(example_manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+            "upstreamExampleCarrierFiles": len(example_manifest), "upstreamExampleCarrierBytes": sum(record["sizeBytes"] for record in example_manifest)}
 
 
 def verify_extracted(directory: Path, commit: str) -> dict:
@@ -312,6 +318,7 @@ def verify_extracted(directory: Path, commit: str) -> dict:
             "inventoryScopes": {"osPackages": "MEASURED_LOCKED_INSTALLED_PACKAGE_SET", "pythonPackages": "MEASURED_LOCKED_INSTALLED_PACKAGE_SET",
                                 "executables": "LISTED_RUNTIME_EXECUTABLES", "problemtoolsWheel": "CANONICAL_WHEEL_AND_INSTALLED_DISTRIBUTION",
                                 "defaultCheckerQualificationFixtures": "PINNED_UPSTREAM_DATA_ONLY",
+                                "upstreamExampleQualificationFixtures": "COMPLETE_ORIGINAL_TWO_PACKAGE_DATA_SUPPORTED_PROFILE_EXECUTION_ONLY",
                                 "generatedDependencyInputs": "BUILD_INPUTS_ONLY", "goJudgeSBOM": "ACTUAL_LINKED_ELF_ONLY",
                                 "wholeImageSBOM": "SEPARATE_EVIDENCE_REQUIRED", "distributedLayers": "SEPARATE_EVIDENCE_REQUIRED"}}
 

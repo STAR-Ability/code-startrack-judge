@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
-// This fixed Linux qualification tool executes synthetic programs through the
+// This fixed Linux qualification tool executes authored and pinned upstream programs through the
 // real typed adapter. It has no user-command, path, URL, or template interface.
 package main
 
@@ -54,6 +54,7 @@ type matrixReport struct {
 	Cases                        []caseEvidence              `json:"cases"`
 	Mature                       []matureEvidence            `json:"mature"`
 	DefaultChecker               defaultCheckerEvidence      `json:"defaultChecker"`
+	UpstreamPackages             upstreamPackagesEvidence    `json:"upstreamPackages"`
 	Statement                    statementEvidence           `json:"statement"`
 	LargeStatement               largeStatementEvidence      `json:"largeStatement"`
 	Workspace                    workspaceEvidence           `json:"workspace"`
@@ -311,6 +312,9 @@ func runMatrix(ctx context.Context, control matrixControl) (report matrixReport,
 		return report, errors.New("pinned default checker matrix mismatch")
 	}
 	if e := runMatureMatrix(ctx, adapter, blobs, factory, &report); e != nil {
+		return report, e
+	}
+	if e := runUpstreamPackagesMatrix(ctx, adapter, blobs, &report); e != nil {
 		return report, e
 	}
 	if e := runWorkspaceMatrix(ctx, adapter, blobs, &report); e != nil {

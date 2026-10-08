@@ -175,7 +175,7 @@ func retainMatrixLog(name string, raw []byte) (privateLogEvidence, error) {
 	}
 	ev := privateLogEvidence{SHA256: canonical.HashBytes(raw), Bytes: len(raw), RetainedSHA256: canonical.HashBytes(retained), RetainedBytes: len(retained), Truncated: len(retained) != len(raw)}
 	switch name {
-	case "ALL_PARTS", "VALIDATOR_EXIT_ZERO", "ACCEPTED_REFERENCE_WRONG", "STATEMENT_ARTIFACTS", "LARGE_STATEMENT", "WORKSPACE", "DEFAULT_CHECKER_REGRESSIONS":
+	case "ALL_PARTS", "VALIDATOR_EXIT_ZERO", "ACCEPTED_REFERENCE_WRONG", "STATEMENT_ARTIFACTS", "LARGE_STATEMENT", "WORKSPACE", "DEFAULT_CHECKER_REGRESSIONS", "UPSTREAM_HELLO":
 	default:
 		return ev, errors.New("matrix evidence name invalid")
 	}

@@ -64,7 +64,7 @@ class CrashEvidenceTests(unittest.TestCase):
 
     def preserved(self, directory):
         names = ("ALL_PARTS", "VALIDATOR_EXIT_ZERO", "ACCEPTED_REFERENCE_WRONG", "STATEMENT_ARTIFACTS",
-                 "LARGE_STATEMENT", "WORKSPACE", "DEFAULT_CHECKER_REGRESSIONS")
+                 "LARGE_STATEMENT", "WORKSPACE", "DEFAULT_CHECKER_REGRESSIONS", "UPSTREAM_HELLO")
         facts = {}
         for name in names:
             data = ("bounded " + name).encode()
@@ -74,16 +74,17 @@ class CrashEvidenceTests(unittest.TestCase):
                   "statement": {"privateLog": facts["STATEMENT_ARTIFACTS"]},
                   "largeStatement": {"statement": {"privateLog": facts["LARGE_STATEMENT"]}},
                   "workspace": {"privateLog": facts["WORKSPACE"]},
-                  "defaultChecker": {"privateLog": facts["DEFAULT_CHECKER_REGRESSIONS"]}, "passed": True}
+                  "defaultChecker": {"privateLog": facts["DEFAULT_CHECKER_REGRESSIONS"]},
+                  "upstreamPackages": {"packages": [{"name": "different"}, {"name": "hello", "mature": {"name": "UPSTREAM_HELLO", "privateLog": facts["UPSTREAM_HELLO"]}}]}, "passed": True}
         (directory / "matrix-report-private.json").write_text(json.dumps(matrix))
         return matrix
 
-    def test_preservation_binds_all_seven_logs_and_completed_matrix(self):
+    def test_preservation_binds_all_eight_logs_and_completed_matrix(self):
         with tempfile.TemporaryDirectory() as directory:
             private = Path(directory)
             matrix = self.preserved(private)
             binding = QUALIFY.verify_preserved_matrix(private, matrix)
-            self.assertEqual(len(binding["fixtureLogs"]), 7)
+            self.assertEqual(len(binding["fixtureLogs"]), 8)
             self.assertEqual(binding["matrixReportSha256"], QUALIFY.hashlib.sha256((private / "matrix-report-private.json").read_bytes()).hexdigest())
 
     def test_missing_or_corrupt_original_log_cannot_pass_preservation(self):
@@ -100,6 +101,14 @@ class CrashEvidenceTests(unittest.TestCase):
                     target.write_bytes(b"X" * target.stat().st_size)
                 with self.assertRaises(ValueError):
                     QUALIFY.verify_preserved_matrix(private, matrix)
+
+    def test_upstream_log_is_required_before_crash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            private = Path(directory)
+            matrix = self.preserved(private)
+            (private / "matrix-UPSTREAM_HELLO-A.log").unlink()
+            with self.assertRaises(ValueError):
+                QUALIFY.verify_preserved_matrix(private, matrix)
 
     def test_private_matrix_report_must_match_completed_original(self):
         with tempfile.TemporaryDirectory() as directory:

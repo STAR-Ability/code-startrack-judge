@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the exact synthetic-only Linux image qualification profile; never deploy."""
+"""Run the fixed authored and pinned-upstream Linux qualification; never deploy."""
 
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def retain_private(runtime_evidence, evidence):
     if matrix_directory.is_dir() and not matrix_directory.is_symlink():
         entries = list(matrix_directory.iterdir())
         if len(entries) <= 8:
-            candidates.extend((path, "matrix-" + path.name) for path in entries if re.fullmatch(r"(?:ALL_PARTS|VALIDATOR_EXIT_ZERO|ACCEPTED_REFERENCE_WRONG|STATEMENT_ARTIFACTS|LARGE_STATEMENT|WORKSPACE|DEFAULT_CHECKER_REGRESSIONS)-[A-Za-z0-9]+\.log", path.name))
+            candidates.extend((path, "matrix-" + path.name) for path in entries if re.fullmatch(r"(?:ALL_PARTS|VALIDATOR_EXIT_ZERO|ACCEPTED_REFERENCE_WRONG|STATEMENT_ARTIFACTS|LARGE_STATEMENT|WORKSPACE|DEFAULT_CHECKER_REGRESSIONS|UPSTREAM_HELLO)-[A-Za-z0-9]+\.log", path.name))
     retained = 0
     for source, name in candidates:
         try:
@@ -234,6 +234,15 @@ def matrix_log_facts(matrix):
                   "LARGE_STATEMENT": matrix["largeStatement"]["statement"]["privateLog"],
                   "WORKSPACE": matrix["workspace"]["privateLog"],
                   "DEFAULT_CHECKER_REGRESSIONS": matrix["defaultChecker"]["privateLog"]})
+    upstream = matrix["upstreamPackages"].get("packages", [])
+    if len(upstream) != 2 or {entry.get("name") for entry in upstream} != {"hello", "different"}:
+        raise ValueError("matrix_private_diagnostics_invalid")
+    hello = next(entry for entry in upstream if entry["name"] == "hello")
+    if hello.get("mature", {}).get("name") != "UPSTREAM_HELLO":
+        raise ValueError("matrix_private_diagnostics_invalid")
+    facts["UPSTREAM_HELLO"] = hello["mature"]["privateLog"]
+    if len(facts) != 8:
+        raise ValueError("matrix_private_diagnostics_invalid")
     return facts
 
 
@@ -376,7 +385,7 @@ def main():
     subprocess.run(["apparmor_parser", "--replace", str(apparmor)], capture_output=True, timeout=30, check=True)
     identifier = "startrack-qualification-" + secrets.token_hex(8)
     containers = []
-    report = {"schemaVersion": 1, "scope":"LINUX_RUNTIME_SYNTHETIC", "qualified": False,"runtimeChecksPassed":False,"requiredAcceptanceGates":{"matureRolesAndStatements":False,"maximumPackageAndParallelStatements":False,"runtimeCrashRestart":False,"finalServiceProcessMemory":False,"independentSecurityReview":False},"sourceCommit": args.expected_commit,
+    report = {"schemaVersion": 1, "scope":"LINUX_RUNTIME_FIXED_QUALIFICATION", "qualified": False,"runtimeChecksPassed":False,"requiredAcceptanceGates":{"matureRolesAndStatements":False,"maximumPackageAndParallelStatements":False,"runtimeCrashRestart":False,"finalServiceProcessMemory":False,"independentSecurityReview":False},"sourceCommit": args.expected_commit,
               "imageReference": args.image, "imageID": image["Id"], "failureCode": "incomplete"}
     report["trustedHost"] = {"memoryBytes": daemon["MemTotal"], "cpuCount": daemon["NCPU"], "cgroupVersion": daemon["CgroupVersion"], "apparmorSha256": apparmor_hash, "apparmorParserVersion": parser_version}
     facilities = runtime_evidence = None

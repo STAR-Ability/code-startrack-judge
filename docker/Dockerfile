@@ -35,6 +35,8 @@ COPY --from=native-build /out/startrack-checker-launcher /usr/local/bin/startrac
 COPY upstream/problemtools/support/default_grader/default_grader /opt/startrack/libexec/default_grader
 COPY service/scripts/problemtools-bridge.py /opt/startrack/libexec/problemtools-bridge.py
 COPY upstream/problemtools/tests/default_validator_tests/ /opt/startrack/qualification/default_validator_tests/
+COPY upstream/problemtools/examples/hello/ /opt/startrack/qualification/upstream_examples/hello/
+COPY upstream/problemtools/examples/different/ /opt/startrack/qualification/upstream_examples/different/
 COPY legal/ /opt/startrack/legal/
 COPY provenance/ /opt/startrack/provenance/
 COPY docker/mount.yaml /opt/startrack/mount.yaml
@@ -44,7 +46,7 @@ COPY docker/startrack-v02.seccomp.json /opt/startrack/startrack-v02.seccomp.json
 COPY docker/startrack-v02.apparmor /opt/startrack/startrack-v02.apparmor
 COPY docker/startrack-workload-seccomp.yaml /opt/startrack/startrack-workload-seccomp.yaml
 COPY docker/workload-security-profile.lock.json /opt/startrack/workload-security-profile.lock.json
-COPY service/migrations/ /opt/startrack/migrations/
+COPY service/migrations/*.up.sql /opt/startrack/migrations/
 COPY service/scripts/validation-tools.py /build/validation-tools.py
 COPY service/scripts/problemtools-wheel-audit.py /build/problemtools-wheel-audit.py
 COPY validation-tools/ /build/validation-tools/

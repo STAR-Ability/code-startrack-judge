@@ -209,6 +209,11 @@ class ReleaseArtifactTests(unittest.TestCase):
         write(directory / "qualification/default_validator_tests" / fixture_name, fixture_body)
         entries.append({"path": "upstream/problemtools/tests/default_validator_tests/" + fixture_name,
                         "sizeBytes": len(fixture_body), "sha256": checksum(fixture_body), "mode": "0644"})
+        for package in ("hello", "different"):
+            body = ("inert original " + package + " metadata\n").encode()
+            write(directory / "qualification/upstream_examples" / package / "problem.yaml", body)
+            entries.append({"path": "upstream/problemtools/examples/" + package + "/problem.yaml",
+                            "sizeBytes": len(body), "sha256": checksum(body), "mode": "0644"})
         context = {"schemaVersion": 1, "gitHead": COMMIT, "releaseCommit": COMMIT, "sourceState": "CLEAN", "workingTreeStatus": "", "qualification": "UNQUALIFIED", "inventory": entries}
         write(directory / "provenance/context-inventory.json", json.dumps(context).encode())
         write(root / "opt/startrack/provenance/context-inventory.json", json.dumps(context).encode())
