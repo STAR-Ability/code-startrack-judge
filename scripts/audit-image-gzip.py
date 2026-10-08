@@ -57,7 +57,7 @@ class Budget:
 
 
 def regular_file(path, maximum):
-    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
     stream = os.fdopen(descriptor, "rb")
     info = os.fstat(stream.fileno())
     if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_size > maximum:

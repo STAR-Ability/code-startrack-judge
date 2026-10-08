@@ -5,7 +5,10 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -33,6 +36,69 @@ def compressed(body, filename=""):
 
 
 class ImageGzipTests(unittest.TestCase):
+    def test_regular_file_preserves_size_and_link_boundaries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "regular"
+            body = b"inert fixture"
+            path.write_bytes(body)
+            with GZIP.regular_file(path, len(body)) as stream:
+                self.assertEqual(stream.read(), body)
+            with self.assertRaisesRegex(GZIP.LAYERS.Failure, "bounded regular single-link input required"):
+                GZIP.regular_file(path, len(body) - 1)
+            alias = root / "hardlink"
+            os.link(path, alias)
+            for candidate in (path, alias):
+                with self.subTest(path=candidate), self.assertRaisesRegex(
+                        GZIP.LAYERS.Failure, "bounded regular single-link input required"):
+                    GZIP.regular_file(candidate, len(body))
+            alias.unlink()
+            alias.symlink_to(path)
+            with self.assertRaises(OSError):
+                GZIP.regular_file(alias, len(body))
+
+    @unittest.skipUnless(hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"), "requires POSIX FIFO")
+    def test_writerless_fifo_is_rejected_without_waiting_and_descriptor_is_closed(self):
+        probe = """import errno, importlib.util, os, sys
+from pathlib import Path
+from unittest.mock import patch
+spec = importlib.util.spec_from_file_location("fifo_gzip", sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+opened = []
+real_open = os.open
+def tracked_open(*args, **kwargs):
+    descriptor = real_open(*args, **kwargs)
+    opened.append(descriptor)
+    return descriptor
+with patch.object(module.os, "open", side_effect=tracked_open):
+    try:
+        stream = module.regular_file(Path(sys.argv[2]), 1)
+    except module.LAYERS.Failure as error:
+        if str(error) != "bounded regular single-link input required":
+            raise AssertionError("unexpected FIFO rejection") from error
+    else:
+        stream.close()
+        raise AssertionError("FIFO input accepted")
+if len(opened) != 1:
+    raise AssertionError("FIFO open descriptor not observed")
+try:
+    os.fstat(opened[0])
+except OSError as error:
+    if error.errno != errno.EBADF:
+        raise AssertionError("unexpected rejected-descriptor error") from error
+else:
+    raise AssertionError("rejected FIFO descriptor remains open")
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            fifo = Path(directory) / "writerless"
+            os.mkfifo(fifo, 0o600)
+            # A parent timeout also kills and reaps the child if open blocks.
+            result = subprocess.run([sys.executable, "-c", probe,
+                                     str(ROOT / "scripts/audit-image-gzip.py"), str(fifo)],
+                                    stdin=subprocess.DEVNULL, capture_output=True, timeout=3)
+            self.assertEqual(result.returncode, 0, result.stderr.decode(errors="replace"))
+
     def report(self, entries, *, oci=False, receipt_change=None, call_change=None):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
