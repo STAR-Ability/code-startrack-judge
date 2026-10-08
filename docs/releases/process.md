@@ -105,6 +105,41 @@ inspection, source-recipient access/retention, Linux execution and real Backend
 acceptance remain separately evidenced gates. A successful candidate artifact
 audit does not make PR #25 ready for merge.
 
+## Bounded static archive companions
+
+The [gzip companion](../../scripts/audit-image-gzip.py) measures selected compressed
+documentation, man and info payloads. The [Rust source companion](../../scripts/audit-image-crates.py)
+measures the gzip/TAR contents of locked `.crate` archives shared by the service
+and source-carrier physical inventories. These are separate static measurements;
+they preserve the original receipts and do not grant legal, distribution or
+sandbox qualification approval.
+
+The Rust companion requires explicit hashes for the source archive, both physical
+receipts, image configurations/manifests and validation-tool lock. It remeasures the
+source archive and affected layer, then associates identical service payloads
+through their existing physical name/size/content-hash evidence. This is not a
+new measurement of the service archive. Every supported gzip/TAR header,
+metadata value, member and padding byte is inspected or structurally verified;
+unsupported profiles and nested gaps remain unresolved. Use `--help` for the
+complete input interface.
+
+Run these tools in dedicated, bounded static-audit processes with read-only
+inputs, disabled networking, explicit CPU/memory/PID/time limits and private
+output directories. They never extract or execute the archived files. Preserve
+each exact helper/input/output hash and actual limits/cleanup evidence. When
+combining supplements, derive the union of their resolved original gap locations
+against the same immutable physical receipt; do not subtract counts without
+checking the location sets and retained nested gaps.
+Carry forward new companion gaps and excluded-payload findings; successful static
+measurement does not close the exclusion gate.
+
+An additional content association may bind unresolved original locations to
+previously measured identical compressed bytes. Require the unchanged receipt
+hashes, unique original gap locations, regular-file types, sizes and content
+hashes, and a complete measured origin without retained findings or gaps.
+Preserve the location-set union and describe this as receipt association;
+it does not remeasure the target image or decide its license terms.
+
 ## Trusted Linux evidence
 
 [Trusted Linux image qualification](../../.github/workflows/linux-qualification.yml) is a manual protected-main workflow on the dedicated `judge-sandbox-qualification` Linux runner/environment. It accepts only a fixed-repository manifest digest and checks the image's source commit against the checked-out `main` commit. Operators must first configure the reviewed dedicated runner, noninteractive root launcher and the profiles in the [production runbook](../deployment/production.md). The workflow authenticates job-scoped registry read access through a temporary private Docker configuration, pulls the exact digest through the trusted root Docker context, and removes the credentials after the job. The launcher verifies the actual local `RepoDigest` rather than accepting a mutable tag.
