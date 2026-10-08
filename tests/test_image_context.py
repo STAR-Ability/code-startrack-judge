@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -16,6 +17,119 @@ SPEC = importlib.util.spec_from_file_location("image_context", ROOT / "scripts/p
 CONTEXT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CONTEXT)
 COMPONENTS = ("go-judge", "problemtools", "go-sandbox")
+
+
+class ImageContextModuleTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix="image-context-modules-")
+        self.addCleanup(temporary.cleanup)
+        self.context = Path(temporary.name).resolve() / "context"
+        self.service = self.context / "service"
+        self.service.mkdir(parents=True)
+        self.original = {"go.mod": (b"module example.test/service\n\ngo 1.26.0\n", 0o644),
+                         "go.sum": (b"example.test/module v1.0.0 h1:original\n", 0o640)}
+        for name, (body, mode) in self.original.items():
+            (self.service / name).write_bytes(body)
+            (self.service / name).chmod(mode)
+        self.download_sum = self.original["go.sum"][0] + b"example.test/module v1.0.0/go.mod h1:download\n"
+        self.final_sum = self.download_sum + b"example.test/transitive v1.0.0/go.mod h1:list\n"
+        self.go = Path("/reviewed/go1.26.8/bin/go")
+
+    def prepare(self, fail=None, change_module=False, sum_symlink=None):
+        def output(arguments, **kwargs):
+            if arguments[1:] == ["version"]:
+                return "go version go1.26.8 test/host\n"
+            self.assertEqual(arguments[1:], ["list", "-m", "-mod=mod", "-json", "all"])
+            self.assertEqual(kwargs["cwd"], self.service)
+            if fail == "list":
+                raise subprocess.CalledProcessError(1, arguments)
+            if sum_symlink:
+                (self.service / "go.sum").unlink()
+                (self.service / "go.sum").symlink_to(sum_symlink)
+            else:
+                (self.service / "go.sum").write_bytes(self.final_sum)
+            return '{"Path":"example.test/service","Main":true}\n'
+
+        def run(arguments, **kwargs):
+            self.assertEqual(arguments[:2], [str(self.go), "mod"])
+            command = arguments[2]
+            self.assertIn(command, ("download", "verify", "vendor"))
+            self.assertEqual(kwargs["cwd"], self.service)
+            if command == "download":
+                (self.service / "go.sum").write_bytes(self.download_sum)
+                (self.service / "go.sum").chmod(0o644)
+                if change_module:
+                    (self.service / "go.mod").write_bytes(b"module substituted.test/service\n")
+            if command == fail:
+                raise subprocess.CalledProcessError(1, arguments)
+            if command == "vendor":
+                vendor = self.service / "vendor"
+                vendor.mkdir()
+                (vendor / "modules.txt").write_bytes(b"# example.test/module v1.0.0\n")
+
+        with patch.object(CONTEXT.subprocess, "check_output", side_effect=output), patch.object(
+                CONTEXT.subprocess, "run", side_effect=run):
+            return CONTEXT.service_go_inputs(self.service, self.go)
+
+    def assert_original_sources(self):
+        for name, (body, mode) in self.original.items():
+            self.assertEqual((self.service / name).read_bytes(), body)
+            self.assertEqual((self.service / name).stat().st_mode & 0o777, mode)
+        self.assertEqual(list(self.service.glob(".startrack-module-*")), [])
+
+    def test_resolution_retains_final_generated_checksums_without_rewriting_owned_sources(self):
+        generated = self.prepare()
+        self.assert_original_sources()
+        retained = self.context / "provenance/service-generated.go.sum"
+        self.assertEqual(retained.read_bytes(), self.final_sum)
+        records = {entry["path"]: entry for entry in CONTEXT.inventory(self.context)}
+        self.assertEqual(generated["generatedGoSum"], records["provenance/service-generated.go.sum"])
+        self.assertEqual(generated["vendorInventory"], CONTEXT.inventory(self.service / "vendor"))
+        retained.write_bytes(b"rewritten checksum evidence")
+        self.assertNotEqual(generated["generatedGoSum"],
+                            next(entry for entry in CONTEXT.inventory(self.context)
+                                 if entry["path"] == "provenance/service-generated.go.sum"))
+
+    def test_preserved_context_passes_unchanged_owned_source_auditor(self):
+        self.prepare()
+        authority = self.context.parent / "authority"
+        authority.mkdir()
+        for name, (body, mode) in self.original.items():
+            (authority / name).write_bytes(body)
+            (authority / name).chmod(mode)
+        for name in ("LICENSE", "NOTICE", "THIRD_PARTY_NOTICES.md"):
+            (authority / name).write_bytes(b"owned legal evidence\n")
+            CONTEXT.copy_file(authority / name, self.context / "legal" / name)
+        spec = importlib.util.spec_from_file_location("image_context_release", ROOT / "scripts/release-artifacts.py")
+        release = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(release)
+        with patch.object(release, "ROOT", authority):
+            release.verify_context_owned_sources({entry["path"]: entry for entry in CONTEXT.inventory(self.context)})
+            (self.service / "go.sum").write_bytes(self.final_sum)
+            with self.assertRaises(release.Failure):
+                release.verify_context_owned_sources({entry["path"]: entry for entry in CONTEXT.inventory(self.context)})
+
+    def test_failed_go_command_restores_original_bytes_and_modes(self):
+        for command in ("download", "verify", "vendor", "list"):
+            with self.subTest(command=command), self.assertRaises(subprocess.CalledProcessError):
+                self.prepare(fail=command)
+            self.assert_original_sources()
+            self.assertFalse((self.context / "provenance/service-generated.go.sum").exists())
+
+    def test_resolution_cannot_silently_change_owned_module_requirements(self):
+        with self.assertRaisesRegex(ValueError, "module requirements"):
+            self.prepare(change_module=True)
+        self.assert_original_sources()
+        self.assertFalse((self.context / "provenance/service-generated.go.sum").exists())
+
+    def test_generated_checksum_symlink_is_rejected_without_touching_its_target(self):
+        outside = self.context.parent / "outside"
+        outside.write_bytes(b"external file canary")
+        with self.assertRaisesRegex(ValueError, "regular file"):
+            self.prepare(sum_symlink=outside)
+        self.assert_original_sources()
+        self.assertEqual(outside.read_bytes(), b"external file canary")
+        self.assertFalse((self.context / "provenance/service-generated.go.sum").exists())
 
 
 class ImageContextPatchTests(unittest.TestCase):

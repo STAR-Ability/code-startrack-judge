@@ -13,6 +13,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY = "provenance/context-inventory.json"
@@ -128,6 +129,36 @@ def go_inputs(directory: Path, go: Path) -> dict:
             "vendorInventory": inventory(directory / "vendor")}
 
 
+def service_go_inputs(directory: Path, go: Path) -> dict:
+    # Module resolution may expand go.sum. Preserve the original owned source
+    # and retain the generated checksums as a separate, inventoried build input.
+    original = {name: (regular(directory / name), stat.S_IMODE((directory / name).stat().st_mode))
+                for name in ("go.mod", "go.sum")}
+    try:
+        generated = go_inputs(directory, go)
+        if regular(directory / "go.mod") != original["go.mod"][0]:
+            raise ValueError("Image preparation must not change owned module requirements")
+        destination = directory.parent / "provenance/service-generated.go.sum"
+        copy_file(directory / "go.sum", destination)
+        body = regular(destination)
+        generated["generatedGoSum"] = {"path": "provenance/service-generated.go.sum",
+            "sizeBytes": len(body), "sha256": digest(body),
+            "mode": f"{stat.S_IMODE(destination.stat().st_mode):04o}"}
+        return generated
+    finally:
+        for name, (body, mode) in original.items():
+            # Atomic replacement also avoids following a replaced module-file
+            # symlink when restoring after a failed preparation command.
+            descriptor, temporary = tempfile.mkstemp(prefix=".startrack-module-", dir=directory)
+            try:
+                with os.fdopen(descriptor, "wb") as output:
+                    output.write(body)
+                    os.fchmod(output.fileno(), mode)
+                os.replace(temporary, directory / name)
+            finally:
+                Path(temporary).unlink(missing_ok=True)
+
+
 def prepare(value: str, release_commit: str | None = None) -> Path:
     spec = importlib.util.spec_from_file_location("startrack_patches", ROOT / "scripts/apply-upstream-patches.py")
     module = importlib.util.module_from_spec(spec)
@@ -172,7 +203,7 @@ def prepare(value: str, release_commit: str | None = None) -> Path:
         copy_file(bundle / directory / entry["filename"], destination / "validation-tools" / directory / entry["filename"])
     for name in ("requirements.txt", "inventory.json"):
         copy_file(bundle / name, destination / "validation-tools" / name)
-    generated = {"service": go_inputs(destination / "service", go)}
+    generated = {"service": service_go_inputs(destination / "service", go)}
     for name in ("go-judge", "problemtools"):
         prepared = module.prepare(name, str(destination / "upstream" / name))
         copy_file(prepared / module.PROVENANCE_NAME, destination / "provenance" / f"{name}-sources.json")
