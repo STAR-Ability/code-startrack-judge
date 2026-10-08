@@ -61,6 +61,14 @@ def boundary():
     return {"version": 1, "imageDigest": IMAGE.split("@")[1], "bootId": VERSION, "measuredAt": "2026-10-08T00:00:00Z", "observations": [{"role": role, "uid": uid, "pid": pid, "startTicks": 123, "controlMem": "allowed", "controlVMRead": "permission_denied", "controlPtrace": "allowed", "denied": True} for role, uid, pid in (("api", 20000, 25), ("judger", 20001, 26))]}
 
 
+def worker_snapshot():
+    return {"databaseNow": "2026-10-08T00:00:00+00:00", "active": 2, "tasks": [
+        {"taskId": TASK, "status": "RUNNING", "lease": REQUEST, "leaseExpiresAt": "2026-10-08T00:03:00+00:00"},
+        {"taskId": EVENT, "status": "RUNNING", "lease": VERSION, "leaseExpiresAt": "2026-10-08T00:03:00+00:00"},
+        {"taskId": VERSION, "status": "QUEUED", "lease": None, "leaseExpiresAt": None},
+    ]}
+
+
 STATUS = "Uid:\t20000\t20000\t20000\t20000\nGid:\t20000\t20000\t20000\t20000\nGroups:\t20002\nCapEff:\t0000000000000000\nCapPrm:\t0000000000000000\nCapInh:\t0000000000000000\nCapAmb:\t0000000000000000\nNoNewPrivs:\t1\nNSpid:\t1025\t25\nVmRSS:\t80 kB\nVmHWM:\t100 kB\nVmSwap:\t0 kB\n"
 STAT = "1025 (judge-service) S " + "0 " * 18 + "123 0\n"
 EVENTS = "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
@@ -375,7 +383,145 @@ class LinuxServiceFlowTests(unittest.TestCase):
                     database.query(sql)
             with self.assertRaises(ValueError):
                 database.task(TASK + "' OR true")
+            for identifiers in ([TASK, EVENT, TASK], [TASK, EVENT], [TASK, EVENT, VERSION + "' OR true"],
+                                [TASK, EVENT, None], TASK):
+                with self.subTest(identifiers=identifiers), self.assertRaises(ValueError):
+                    database.concurrency_snapshot(identifiers)
             run.assert_not_called()
+
+    def test_concurrency_query_reads_exact_tasks_and_clock_in_one_statement(self):
+        database = FLOW.Database([], "synthetic-not-real", Path("synthetic-ca"), [])
+        snapshots, queries = worker_snapshot(), []
+
+        def query(sql):
+            queries.append(sql)
+            return snapshots
+
+        with patch.object(database, "query", side_effect=query):
+            self.assertIs(database.concurrency_snapshot([VERSION, TASK, EVENT]), snapshots)
+        self.assertEqual(len(queries), 1)
+        self.assertTrue(queries[0].startswith("SELECT "))
+        self.assertNotIn(";", queries[0])
+        self.assertEqual(queries[0].count("statement_timestamp()"), 1)
+        for identifier in (TASK, EVENT, VERSION):
+            self.assertEqual(queries[0].count("'" + identifier + "'"), 1)
+
+    def test_concurrency_witness_requires_coexisting_states_and_live_exact_fences(self):
+        identifiers = [TASK, EVENT, VERSION]
+        self.assertTrue(FLOW.concurrent_worker_witness(worker_snapshot(), identifiers))
+        pending = worker_snapshot()
+        pending["tasks"][1]["status"] = "DISPATCHING"
+        self.assertFalse(FLOW.concurrent_worker_witness(pending, identifiers))
+        changes = (
+            lambda value: value["tasks"].pop(),
+            lambda value: value["tasks"][2].update(taskId=REQUEST),
+            lambda value: value["tasks"][2].update(taskId=TASK),
+            lambda value: value["tasks"][0].update(lease=None),
+            lambda value: value["tasks"][1].update(lease=REQUEST),
+            lambda value: value["tasks"][0].update(leaseExpiresAt="2026-10-08T00:00:00+00:00"),
+            lambda value: value["tasks"][0].update(leaseExpiresAt="2026-10-07T23:59:59+00:00"),
+            lambda value: value["tasks"][0].update(leaseExpiresAt="2026-10-08T00:03:00"),
+            lambda value: value["tasks"][2].update(lease=REQUEST),
+            lambda value: value["tasks"][2].pop("leaseExpiresAt"),
+            lambda value: value.update(databaseNow="2026-10-08T00:00:00"),
+            lambda value: value.update(databaseNow="invalid"),
+            lambda value: value.update(active=1),
+            lambda value: value.update(active=3),
+            lambda value: value.update(active=True),
+        )
+        for index, change in enumerate(changes):
+            invalid = worker_snapshot()
+            change(invalid)
+            with self.subTest(case=index), self.assertRaises(ValueError):
+                FLOW.concurrent_worker_witness(invalid, identifiers)
+
+    def test_concurrency_rejects_cross_time_http_states_and_unrelated_active_count(self):
+        # A finishes before B starts; C is claimed after its earlier QUEUED read.
+        # Old sequential HTTP observations look like two RUNNING plus one QUEUED,
+        # while the later aggregate counts B and C. No snapshot has that roster.
+        identifiers = [TASK, EVENT, VERSION]
+        http_states = dict(zip(identifiers, ("RUNNING", "RUNNING", "QUEUED")))
+        snapshot = worker_snapshot()
+        snapshot["tasks"][0].update(status="COMPLETED", lease=None, leaseExpiresAt=None)
+        snapshot["tasks"][2].update(status="DISPATCHING", lease=EVENT,
+                                    leaseExpiresAt="2026-10-08T00:03:00+00:00")
+        admissions, gets, reads, aggregates = [], [], [], []
+
+        def accepted(method, path, *_):
+            if method == "POST":
+                identifier = identifiers[len(admissions)]
+                admissions.append(identifier)
+                return {"judgeTaskId": identifier}
+            gets.append(path)
+            return {"status": http_states[path.rsplit("/", 1)[-1]]}
+
+        def read(selected):
+            reads.append(list(selected))
+            return snapshot
+
+        def scope():
+            aggregates.append(True)
+            return {"active": 2}
+
+        service = SimpleNamespace(accepted=accepted, wait=lambda *_args, **_kwargs: self.fail("skew reached finalization"))
+        database = SimpleNamespace(concurrency_snapshot=read, scope=scope)
+        receiver = SimpleNamespace(expect=lambda *_: None)
+        report = {"cases": []}
+        with patch.object(FLOW.time, "monotonic", side_effect=(0, 0, 16)), \
+                patch.object(FLOW.time, "sleep"), self.assertRaisesRegex(ValueError, "bounded_concurrent_execution_witness_missing"):
+            FLOW.concurrency(service, None, database, receiver, {}, 7, report)
+        self.assertEqual(reads, [identifiers])
+        self.assertEqual(gets, [])
+        self.assertEqual(aggregates, [])
+        self.assertNotIn("concurrency", report)
+
+    def test_concurrency_keeps_terminal_checks_and_emits_only_bounded_witness(self):
+        identifiers, admitted, final_rows = [TASK, EVENT, VERSION], {}, {}
+        digest = IMAGE.split("@")[1]
+
+        def accepted(method, path, original, *_):
+            self.assertEqual(method, "POST", "worker coexistence must come from the database snapshot")
+            if path.endswith("/by-request"):
+                return {"tasks": [{"judgeTaskId": admitted[original["requestIds"][0]]}], "missingRequestIds": []}
+            if original["requestId"] not in admitted:
+                identifier = identifiers[len(admitted)]
+                admitted[original["requestId"]] = identifier
+                public = dict(task("AC"), judgeTaskId=identifier, requestId=original["requestId"],
+                              submissionId=original["submissionId"])
+                stored = dict(facts(public), taskId=identifier, attempt=0, image=digest,
+                              sourceHash=original["sourceSha256"], versionId=VERSION, problemId="7",
+                              frozen={"limits": {"cpuTimeNS": 2_000_000_000, "wallTimeNS": 4_000_000_000,
+                                                 "memoryBytes": 256 << 20, "outputBytes": 8 << 20, "processes": 32},
+                                      "sourceSizeBytes": len(original["sourceCode"].encode()),
+                                      "sourceFilename": "main.cpp", "identity": {"workerImageDigest": digest}})
+                stored["events"] = [{"revision": revision, "terminal": status == "COMPLETED",
+                                      "payload": public if status == "COMPLETED" else {"status": status}}
+                                     for revision, status in enumerate(("QUEUED", "DISPATCHING", "RUNNING", "COMPLETED"), 1)]
+                final_rows[identifier] = (public, stored)
+            return {"judgeTaskId": admitted[original["requestId"]]}
+
+        def wait(identifier, predicate, **_):
+            public = final_rows[identifier][0]
+            self.assertTrue(predicate(public))
+            return public
+
+        service = SimpleNamespace(accepted=accepted, wait=wait)
+        database = SimpleNamespace(concurrency_snapshot=lambda selected: worker_snapshot())
+        receiver = SimpleNamespace(expect=lambda *_: None)
+        lifecycle = SimpleNamespace(digest=digest, spool_empty=lambda: None)
+        report = {"cases": []}
+        with patch.object(FLOW, "all_delivered", side_effect=lambda _db, _receiver, identifier: final_rows[identifier][1]):
+            FLOW.concurrency(service, lifecycle, database, receiver,
+                             {"problemId": "7", "problemVersionId": VERSION}, 7, report)
+        witness = report["concurrency"]
+        self.assertEqual((witness["observedRunning"], witness["observedQueued"], witness["productionWorkerSlots"]), (2, 1, 2))
+        self.assertTrue(witness["atomicDatabaseSnapshot"])
+        self.assertEqual(witness["liveRunningLeases"], 2)
+        self.assertLess(len(json.dumps(witness)), 256)
+        self.assertEqual({record["taskId"] for record in report["cases"]}, set(identifiers))
+        self.assertTrue(all(record["verdict"] == "AC" and record["resultCaseTransactionMatched"]
+                            and record["terminalEventMatched"] for record in report["cases"]))
+        self.assertFalse(any(key in json.dumps(report) for key in ("leaseExpiresAt", '"lease"', "sourceCode", "frozen")))
 
     def test_libpq_environment_preserves_uri_password_without_secret_arguments(self):
         password = "EXAMPLE_FIXTURE :#%\\ Unicode-雪"

@@ -71,7 +71,7 @@ Fourteen persistent tasks exercise these finite cases:
 | Cases | Required observed facts |
 | --- | --- |
 | AC, WA, CE, CPU TLE, wall TLE, MLE, OLE, RE | Normal HTTP admission, production task worker/scheduler/judger execution, expected actual verdict, frozen image/source/version, two ordered original case rows with stopping/SKIPPED semantics, resource aggregation, result hash, terminal task/result/case transaction and matching terminal event. |
-| Three concurrent bounded AC programs | Exactly two RUNNING tasks and one QUEUED task at the production two-slot worker boundary, followed by three complete results. This is a scoped worker observation, not four-service host-capacity qualification. |
+| Three concurrent bounded AC programs | One PostgreSQL statement observes the exact three admitted tasks: two RUNNING with distinct unexpired leases and one QUEUED without a lease, with the total active task count bounded at two. Three complete results follow. This is a scoped worker observation, not four-service host-capacity qualification. |
 | One interrupted AC program | Stable actual contestant-process observation, abrupt whole-container stop, original process generations gone, retained source and nonterminal task without partial result/cases, natural lease expiry, new counted fence, unchanged source/version/configuration/first start, actual recovered execution and one terminal result. |
 | Four interrupted attempts | The initial reservation and exactly three recovery executions receive distinct observed fences and greater revisions. After the last natural expiry, the unchanged worker finalizes FAILED/IE with nonretryable `JUDGE_INTERRUPTED`, without a fifth dispatch. All original case rows are SKIPPED. |
 | One task during graceful stop | A stable native contestant and live unchanged task fence are observed before `SIGTERM`. The normal supervisor must exit0 within the 120-second external stop budget, revoke qualification and settle all observed original process generations and the held original cgroup. The task either completes AC during drain or retains its unchanged nonterminal fence/source for one natural counted recovery. A seventh normal start must preserve the original frozen task facts and deliver the retained event identities. |
@@ -82,6 +82,12 @@ each below the inherited file-size ceiling; it must produce actual MLE without
 raising any limit. Every interruption follows a stable actual `main` process
 witness rather than treating the earlier Compiling/RUNNING acknowledgement as
 proof of contestant execution. Database clocks/lease deadlines are never edited.
+Sequential HTTP status reads cannot establish simultaneous task states. The
+concurrency witness uses one MVCC snapshot and database statement timestamp;
+its public receipt retains only counts and verification flags. This does not
+establish parallel native contestant execution through the scheduler's single
+execution slot. Actual image-bound Linux testing must still observe the required
+two RUNNING and one QUEUED worker states within the unchanged finite deadline.
 The one-hour harness watchdog interrupts work into cleanup; individual HTTP,
 utility, readiness and task waits also have finite limits.
 

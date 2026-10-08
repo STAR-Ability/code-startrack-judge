@@ -323,6 +323,12 @@ class Database:
         require(UUID.fullmatch(identifier), "task_query_identity_invalid")
         return self.query("SELECT json_build_object('taskId',t.id,'requestId',t.request_id,'submissionId',t.submission_id::text,'problemId',t.problem_id::text,'versionId',t.problem_version_id,'status',t.status,'revision',t.revision,'attempt',t.attempt_count,'startedAt',t.started_at,'leaseExpiresAt',t.lease_expires_at,'databaseNow',clock_timestamp(),'sourceHash',t.source_sha256,'sourceRetained',t.transient_source_key IS NOT NULL,'lease',t.lease_owner,'frozen',t.execution_limits,'image',t.worker_image_digest,'result',CASE WHEN r.judge_task_id IS NULL THEN NULL ELSE to_jsonb(r)-ARRAY['raw_execution_log_key','compile_log'] END,'sameResultCaseTransaction',r.judge_task_id IS NOT NULL AND t.xmin=r.xmin AND NOT EXISTS(SELECT 1 FROM judge.judge_case_results c WHERE c.judge_task_id=t.id AND c.xmin<>r.xmin),'cases',(SELECT coalesce(json_agg(json_build_object('ordinal',c.ordinal,'verdict',c.verdict,'cpu',c.cpu_time_ms,'wall',c.wall_time_ms,'memory',c.memory_bytes) ORDER BY c.ordinal),'[]'::json) FROM judge.judge_case_results c WHERE c.judge_task_id=t.id),'events',(SELECT coalesce(json_agg(json_build_object('eventId',o.event_id,'revision',o.revision,'status',o.status,'hash',o.payload_hash,'attempts',o.attempt_count,'terminal',o.payload->'payload'->>'status' IN('COMPLETED','FAILED'),'payload',o.payload->'payload') ORDER BY o.revision),'[]'::json) FROM judge.callback_outbox o WHERE o.judge_task_id=t.id)) FROM judge.judge_tasks t LEFT JOIN judge.judge_results r ON r.judge_task_id=t.id WHERE t.id='" + identifier + "'")
 
+    def concurrency_snapshot(self, identifiers):
+        selected = "','".join(sorted(concurrency_task_ids(identifiers)))
+        # One PostgreSQL statement supplies one MVCC snapshot and witness clock.
+        # Sequential HTTP reads cannot establish coexistence of worker states.
+        return self.query("SELECT json_build_object('databaseNow',statement_timestamp(),'active',(SELECT count(*) FROM judge.judge_tasks WHERE status IN('DISPATCHING','RUNNING')),'tasks',coalesce(json_agg(json_build_object('taskId',t.id,'status',t.status,'lease',t.lease_owner,'leaseExpiresAt',t.lease_expires_at) ORDER BY t.id),'[]'::json)) FROM judge.judge_tasks t WHERE t.id IN('" + selected + "')")
+
 
 class Service:
     def __init__(self, address, token):
@@ -824,6 +830,55 @@ def assert_event_sequence(facts, kills):
     require([event.get("revision") for event in events] == list(range(1, len(expected) + 1)) and [event.get("payload", {}).get("status") for event in events] == expected, "persistent_event_revision_sequence_invalid")
 
 
+def concurrency_task_ids(identifiers):
+    require(isinstance(identifiers, (list, tuple)) and len(identifiers) == 3
+            and all(isinstance(value, str) and UUID.fullmatch(value) for value in identifiers),
+            "concurrent_task_query_identity_invalid")
+    selected = set(identifiers)
+    require(len(selected) == 3, "concurrent_task_query_identity_invalid")
+    return selected
+
+
+def concurrent_worker_witness(snapshot, identifiers):
+    selected = concurrency_task_ids(identifiers)
+    require(isinstance(snapshot, dict) and isinstance(snapshot.get("tasks"), list)
+            and len(snapshot["tasks"]) == 3 and isinstance(snapshot.get("databaseNow"), str),
+            "concurrent_database_witness_invalid")
+    rows = snapshot["tasks"]
+    require(all(isinstance(row, dict) and isinstance(row.get("taskId"), str) for row in rows)
+            and {row["taskId"] for row in rows} == selected,
+            "concurrent_database_task_identity_invalid")
+    try:
+        now = datetime.fromisoformat(snapshot["databaseNow"])
+    except ValueError:
+        raise ValueError("concurrent_database_witness_invalid") from None
+    require(now.tzinfo is not None, "concurrent_database_witness_invalid")
+    states, fences = [], []
+    for row in rows:
+        state = row.get("status")
+        require(state in ("QUEUED", "DISPATCHING", "RUNNING", "COMPLETED", "FAILED", "CANCELLED"),
+                "concurrent_database_witness_invalid")
+        states.append(state)
+        if state in ("DISPATCHING", "RUNNING"):
+            require(isinstance(row.get("lease"), str) and UUID.fullmatch(row["lease"])
+                    and isinstance(row.get("leaseExpiresAt"), str), "concurrent_live_fence_missing")
+            try:
+                expires = datetime.fromisoformat(row["leaseExpiresAt"])
+            except ValueError:
+                raise ValueError("concurrent_live_fence_missing") from None
+            require(expires.tzinfo is not None and expires > now, "concurrent_live_fence_missing")
+            fences.append(row["lease"])
+        else:
+            require("lease" in row and "leaseExpiresAt" in row
+                    and row["lease"] is None and row["leaseExpiresAt"] is None,
+                    "concurrent_inactive_fence_invalid")
+    active = snapshot.get("active")
+    require(type(active) is int and len(fences) <= active <= 2,
+            "persistent_worker_concurrency_exceeded")
+    require(len(set(fences)) == len(fences), "concurrent_live_fence_missing")
+    return states.count("RUNNING") == 2 and states.count("QUEUED") == 1 and active == 2
+
+
 def concurrency(service, lifecycle, db, receiver, problem_ref, submission, report):
     originals = [request(problem_ref, SLEEP_SUM, submission + offset) for offset in range(3)]
     identifiers = []
@@ -832,11 +887,11 @@ def concurrency(service, lifecycle, db, receiver, problem_ref, submission, repor
         identifiers.append(service.accepted("POST", "/internal/v2/judge-tasks", original, (202,))["judgeTaskId"])
     deadline = time.monotonic() + 15
     while time.monotonic() < deadline:
-        states = [service.accepted("GET", "/internal/v2/judge-tasks/" + identifier)["status"] for identifier in identifiers]
-        require(sum(state in ("DISPATCHING", "RUNNING") for state in states) <= 2, "persistent_worker_concurrency_exceeded")
-        if states.count("RUNNING") == 2 and states.count("QUEUED") == 1:
-            require(db.scope().get("active") == 2, "concurrent_database_witness_missing")
-            report["concurrency"] = {"admittedTasks": 3, "observedRunning": 2, "observedQueued": 1, "productionWorkerSlots": 2}
+        if concurrent_worker_witness(db.concurrency_snapshot(identifiers), identifiers):
+            # Private task/fence rows stay out of this bounded public receipt.
+            report["concurrency"] = {"admittedTasks": 3, "observedRunning": 2, "observedQueued": 1,
+                                     "productionWorkerSlots": 2, "atomicDatabaseSnapshot": True,
+                                     "liveRunningLeases": 2}
             break
         time.sleep(0.05)
     require("concurrency" in report, "bounded_concurrent_execution_witness_missing")
