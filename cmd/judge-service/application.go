@@ -322,30 +322,44 @@ func newApplication(ctx context.Context, cfg config.Config, db *sql.DB, logger *
 	return app, nil
 }
 
-func (app *application) startWorkers(ctx context.Context) (<-chan error, func()) {
+func (app *application) startWorkers(ctx context.Context) (<-chan error, func() error) {
 	workerErrors := make(chan error, len(app.workers))
 	var group sync.WaitGroup
+	var failureOnce sync.Once
+	var firstFailure error
+	report := func(code string) {
+		failure := errors.New(code)
+		failureOnce.Do(func() { firstFailure = failure })
+		workerErrors <- failure
+	}
 	for _, worker := range app.workers {
 		group.Add(1)
 		go func() {
 			defer group.Done()
 			defer func() {
-				if recover() != nil && ctx.Err() == nil {
-					workerErrors <- errors.New(worker.code)
+				if recover() != nil {
+					report(worker.code)
 				}
 			}()
 			if worker.live != nil {
 				worker.live.Store(true)
 				defer worker.live.Store(false)
 			}
-			if err := worker.run(ctx); ctx.Err() == nil {
+			err := worker.run(ctx)
+			if stopped := ctx.Err(); stopped == nil || err != nil && err != stopped {
 				// Do not forward unknown driver/tool failures to normal diagnostics.
-				_ = err
-				workerErrors <- errors.New(worker.code)
+				// Only the worker's direct cancellation result is an expected stop;
+				// a mixed or wrapped failure must not erase a concurrent fault.
+				report(worker.code)
 			}
 		}()
 	}
-	return workerErrors, group.Wait
+	return workerErrors, func() error {
+		group.Wait()
+		// Wait synchronizes with every reporter, including one that loses a select
+		// race with operator cancellation in the HTTP coordinator.
+		return firstFailure
+	}
 }
 
 func maintenance(registry *storage.Registry, catalogService *catalog.Service, logger *slog.Logger) func(context.Context) error {

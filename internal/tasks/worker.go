@@ -57,7 +57,15 @@ func (w *Worker) Run(ctx context.Context) error {
 	defer cancel()
 	faulted := make(chan struct{})
 	var faultOnce sync.Once
-	fault := func() { faultOnce.Do(func() { close(faulted); stopClaims() }) }
+	fault := func() {
+		faultOnce.Do(func() {
+			close(faulted)
+			stopClaims()
+			// A failed worker cannot use the healthy operator-stop grace period.
+			// Its peers retain uncertain leases for counted recovery.
+			cancel()
+		})
+	}
 	finish := func() error {
 		select {
 		case <-faulted:

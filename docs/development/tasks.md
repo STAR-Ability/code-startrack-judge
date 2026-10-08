@@ -49,6 +49,13 @@ Shutdown stops acquisition immediately and drains accepted attempts for a bounde
 grace period before cancelling their runtime requests. Source cleanup is owned by
 the private-object registry: only terminal, expired copies are released; public
 task timestamps/revision and retained hashes/results/events stay unchanged.
+An internal task-worker panic instead stops acquisition and cancels peer attempts
+immediately. Their uncertain leases remain available only for counted recovery;
+the healthy operator-stop grace period never delays this abort. The application
+retains a fixed worker failure even when operator cancellation occurs concurrently,
+and waits for workers before deciding its final exit status or closing resources.
+This does not establish the live supervisor drain or prompt cancellation of tasks
+after a different application component fails; those require separate validation.
 
 Portable verification uses mocks for runtime execution. Actual PostgreSQL suites
 require a private `JUDGE_TEST_ADMIN_DSN_FILE` and create disposable scoped databases

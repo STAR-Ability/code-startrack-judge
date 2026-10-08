@@ -114,6 +114,58 @@ func TestWorkerLivenessAndBoundedFailure(t *testing.T) {
 	}
 }
 
+func TestWorkerFailureSurvivesOperatorCancellation(t *testing.T) {
+	for _, mode := range []string{"error", "panic", "mixed_cancellation", "nil", "cancellation"} {
+		t.Run(mode, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			started := make(chan struct{})
+			var live atomic.Bool
+			app := application{workers: []workerSpec{{code: "FIXED_WORKER_FAILURE", live: &live, run: func(ctx context.Context) error {
+				close(started)
+				<-ctx.Done()
+				switch mode {
+				case "error":
+					return errors.New("private concurrent worker failure")
+				case "panic":
+					panic("private concurrent worker panic")
+				case "mixed_cancellation":
+					return errors.Join(ctx.Err(), errors.New("private concurrent failure"))
+				case "cancellation":
+					return ctx.Err()
+				default:
+					return nil
+				}
+			}}}}
+			failures, wait := app.startWorkers(ctx)
+			select {
+			case <-started:
+			case <-time.After(time.Second):
+				t.Fatal("worker did not start")
+			}
+			cancel()
+			err := wait()
+			if live.Load() {
+				t.Fatal("stopped worker retained liveness")
+			}
+			if mode == "nil" || mode == "cancellation" {
+				if err != nil || len(failures) != 0 {
+					t.Fatal("healthy cancellation became a worker fault")
+				}
+				return
+			}
+			if err == nil || err.Error() != "FIXED_WORKER_FAILURE" || len(failures) != 1 || (<-failures).Error() != "FIXED_WORKER_FAILURE" {
+				t.Fatal("operator cancellation erased a true fault or exposed a private diagnostic")
+			}
+			// The final error survives consumption of the notification by an earlier
+			// select branch; the service closes resources only after this wait.
+			if retained := wait(); retained == nil || retained.Error() != "FIXED_WORKER_FAILURE" {
+				t.Fatal("consumed worker notification erased the final failure")
+			}
+		})
+	}
+}
+
 func TestStalledJudgerPreservesCatalogReadiness(t *testing.T) {
 	probes := &dependencyProbes{process: context.Background(), database: func(context.Context) bool { return true }, storage: func(context.Context) error { return nil }, runtime: func(ctx context.Context) judgeruntime.Snapshot {
 		<-ctx.Done()

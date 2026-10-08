@@ -33,7 +33,7 @@ func main() {
 	}
 }
 
-func run(ctx context.Context) error {
+func run(ctx context.Context) (runErr error) {
 	cfg, err := config.Load(os.Getenv)
 	if err != nil {
 		return err
@@ -55,7 +55,12 @@ func run(ctx context.Context) error {
 	}
 	defer app.close()
 	workerErrors, waitWorkers := app.startWorkers(workersContext)
-	defer func() { cancelWorkers(); waitWorkers() }()
+	defer func() {
+		cancelWorkers()
+		if workerErr := waitWorkers(); runErr == nil && workerErr != nil {
+			runErr = workerErr
+		}
+	}()
 	server := &http.Server{
 		Addr:              cfg.ListenAddr,
 		Handler:           app.handler,
