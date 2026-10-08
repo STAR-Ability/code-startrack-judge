@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -11,6 +12,7 @@ import tempfile
 import threading
 from types import SimpleNamespace
 import unittest
+from urllib.parse import quote
 from unittest.mock import patch
 
 
@@ -182,6 +184,37 @@ class LinuxServiceFlowTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 database.task(TASK + "' OR true")
             run.assert_not_called()
+
+    def test_libpq_environment_preserves_uri_password_without_secret_arguments(self):
+        password = "EXAMPLE_FIXTURE :#%\\ Unicode-雪"
+        dsn = "postgres://judge_runtime:" + quote(password, safe="") + "@startrack-capacity-postgres:5432/judge_capacity_fixture?sslmode=verify-full&sslrootcert=%2Fopt%2Fstartrack%2Fdb-ca.crt"
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "psql"
+            executable.write_text("#!" + sys.executable + "\nimport json,os,sys\nprint(json.dumps({'argv':sys.argv[1:],'connection':{name:os.environ[name] for name in " + repr(FLOW.DATABASE_ENVIRONMENT) + "},'sql':sys.stdin.read()}))\n")
+            executable.chmod(0o700)
+            parameters = FLOW.database_parameters(dsn)
+            sql = "BEGIN READ ONLY; SELECT 1; COMMIT;\n"
+            environment = dict(os.environ, PATH=directory + os.pathsep + os.environ.get("PATH", ""))
+            result = subprocess.run(["/bin/sh", "-c", FLOW.PSQL], input="\n".join(parameters) + "\n" + sql,
+                                    text=True, capture_output=True, check=True, timeout=10, env=environment)
+        observed = json.loads(result.stdout)
+        self.assertEqual(observed["connection"]["PGPASSWORD"], password)
+        self.assertEqual(observed["connection"]["PGDATABASE"], "judge_capacity_fixture")
+        self.assertEqual(observed["connection"]["PGHOST"], "startrack-capacity-postgres")
+        self.assertEqual(observed["connection"]["PGSSLMODE"], "verify-full")
+        self.assertEqual(observed["connection"]["PGSSLROOTCERT"], "/opt/startrack/db-ca.crt")
+        self.assertEqual(observed["sql"], sql)
+        self.assertNotIn(dsn, " ".join(observed["argv"]))
+        self.assertNotIn(password, " ".join(observed["argv"]))
+
+    def test_database_parameter_frames_and_tls_downgrades_are_refused(self):
+        base = "postgres://judge_runtime:fixture@startrack-capacity-postgres:5432/judge_capacity_fixture?sslmode=verify-full&sslrootcert=%2Fopt%2Fstartrack%2Fdb-ca.crt"
+        for changed in (base.replace("fixture@", "fixture%0Ainjected@"), base.replace("fixture@", "fixture%00@"),
+                        base.replace("verify-full", "disable"), base + "&sslmode=disable", base + "&host=elsewhere",
+                        base.replace("judge_runtime:", "admin:"), base.replace(":5432/", ":5433/"),
+                        base.replace("startrack-capacity-postgres", "elsewhere"), base.replace("%2Fopt%2Fstartrack%2Fdb-ca.crt", "other")):
+            with self.subTest(uri=changed.replace("fixture", "synthetic")), self.assertRaisesRegex(ValueError, "^database_connection_parameters_invalid$"):
+                FLOW.database_parameters(changed)
 
     def test_cleanup_requires_successful_removal_and_positive_daemon_absence(self):
         name = "startrack-flow-aabb"

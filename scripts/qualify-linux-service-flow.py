@@ -27,7 +27,7 @@ import stat
 import subprocess
 import threading
 import time
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 import uuid
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -62,7 +62,8 @@ FIXTURES = (
     ("OLE", "OLE", "#include <unistd.h>\nint main(){char p[8192]={};for(;;)if(write(1,p,sizeof(p))<0)return 0;}\n"),
     ("RE", "RE", "#include <csignal>\nint main(){std::raise(SIGSEGV);}\n"),
 )
-PSQL = 'IFS= read -r STARTRACK_FIXTURE_DSN; export PGDATABASE="$STARTRACK_FIXTURE_DSN"; unset STARTRACK_FIXTURE_DSN; exec psql -X -qAt --no-password -v ON_ERROR_STOP=1'
+DATABASE_ENVIRONMENT = ("PGHOST", "PGPORT", "PGUSER", "PGPASSWORD", "PGDATABASE", "PGSSLMODE", "PGSSLROOTCERT")
+PSQL = " && ".join("IFS= read -r " + name for name in DATABASE_ENVIRONMENT) + " && export " + " ".join(DATABASE_ENVIRONMENT) + " && exec psql -X -qAt --no-password -v ON_ERROR_STOP=1"
 SPOOL = 'import json,os; p="/run/startrack-judger/tmp"; print(json.dumps({"entries":len(os.listdir(p))}))'
 
 
@@ -268,6 +269,28 @@ class FixtureReceiver:
         return Handler
 
 
+def database_parameters(dsn):
+    # PGDATABASE alone does not expand a URI in psql's default connection path.
+    # Explicit libpq environment fields keep credentials out of command argv.
+    try:
+        uri = urlparse(dsn)
+        options = parse_qs(uri.query, strict_parsing=True)
+        require(uri.scheme == "postgres" and uri.hostname == "startrack-capacity-postgres"
+                and uri.port == 5432 and uri.username == "judge_runtime"
+                and uri.password is not None and not uri.fragment
+                and re.fullmatch(r"/judge_capacity_[a-z0-9_]+", uri.path)
+                and options == {"sslmode": ["verify-full"], "sslrootcert": [CAPACITY.DATABASE_CA_PATH]},
+                "database_connection_parameters_invalid")
+        values = [uri.hostname, str(uri.port), uri.username,
+                  unquote(uri.password, encoding="utf-8", errors="strict"), uri.path[1:],
+                  "verify-full", CAPACITY.DATABASE_CA_PATH]
+        require(all(value and len(value) <= 1024 and not any(ord(char) < 32 or ord(char) == 127 for char in value)
+                    for value in values), "database_connection_parameters_invalid")
+        return values
+    except (ValueError, UnicodeError):
+        raise ValueError("database_connection_parameters_invalid") from None
+
+
 class Database:
     def __init__(self, prefix, dsn, ca, clients):
         self.prefix, self.dsn, self.ca, self.clients = prefix, dsn, ca, clients
@@ -275,10 +298,11 @@ class Database:
     def query(self, sql):
         # The only SQL callers are fixed read-only expressions in this module.
         require(sql.startswith("SELECT ") and ";" not in sql, "fixed_read_only_query_required")
+        parameters = database_parameters(self.dsn)
         name = "startrack-flow-db-" + secrets.token_hex(8)
         self.clients.append(name)
         command = ["run", "--name", name, "--rm", "--interactive", "--network", NETWORK, "--read-only", "--user", "65534:65534", "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--memory", "128m", "--memory-swap", "128m", "--pids-limit", "16", "--cpus", "0.5", "--mount", "type=bind,source=" + str(self.ca) + ",target=/opt/startrack/db-ca.crt,readonly", "--entrypoint", "/bin/sh", POSTGRES, "-c", PSQL]
-        result = QUALIFY.run(self.prefix, command, stdin=self.dsn + "\nBEGIN READ ONLY; SET LOCAL statement_timeout='10s'; " + sql + "; COMMIT;\n", timeout=30)
+        result = QUALIFY.run(self.prefix, command, stdin="\n".join(parameters) + "\nBEGIN READ ONLY; SET LOCAL statement_timeout='10s'; " + sql + "; COMMIT;\n", timeout=30)
         self.clients.remove(name)  # --rm completed; only uncertain clients need cleanup.
         require(len(result.stdout.encode()) <= 1 << 20, "database_fact_bounds_invalid")
         return strict_json(result.stdout.encode(), 1 << 20)
