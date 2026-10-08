@@ -101,7 +101,7 @@ func sampleCgroups(ctx context.Context, observation *cgroupObservation) {
 				if argsErr == nil && mode != "" {
 					id, parseErr := strconv.Atoi(pid)
 					if parseErr != nil {
-						observation.cleanup.failed = true
+						observation.cleanup.rejectObservation("root_pid")
 					} else {
 						stable = observation.cleanup.observe(path, id, args)
 					}
@@ -325,11 +325,13 @@ func qualify(ctx context.Context, s settings, runtimePID int, startup bool) erro
 	}
 	cleaned, e := session.Run(ctx, restclient.Request{RequestID: "supervisor-qualification-cleanup", Commands: []restclient.Command{command("inspect")}})
 	if e != nil || len(cleaned) != 1 || cleaned[0].Status != restclient.Accepted || cleaned[0].ExitStatus != 0 {
+		cleanupEvidence.FailureStage = "inspect_execution"
 		return fail("qualification_cleanup")
 	}
 	data, e := session.Download(ctx, cleaned[0].CachedFiles["stdout"], 4096)
 	var clean probeObservation
 	if e != nil || json.Unmarshal(data, &clean) != nil || !clean.Filesystem {
+		cleanupEvidence.FailureStage = "inspect_observation"
 		return fail("qualification_cleanup")
 	}
 	if err = session.Close(); err != nil {

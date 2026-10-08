@@ -3,6 +3,8 @@
 package supervisor
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -195,6 +197,7 @@ func (f *cleanupTestFixture) drain(t *testing.T, keep ...*cleanupTestChild) {
 func cleanupTestClone(original *qualificationCleanup) *qualificationCleanup {
 	copy := newQualificationCleanup(original.nonce)
 	copy.forkPeak, copy.failed = original.forkPeak, original.failed
+	copy.failure, copy.errorClass = original.failure, original.errorClass
 	copy.cpu, copy.memory, copy.pids = original.cpu, original.memory, original.pids
 	copy.compiler = original.compiler
 	for key, value := range original.processes {
@@ -283,7 +286,7 @@ func TestQualificationCleanupRejectsOwnedLiveProcesses(t *testing.T) {
 			}
 			f.drain(t, live)
 			evidence, passed := f.q.proof(3, false)
-			if passed || evidence.OwnedProcessesReaped {
+			if passed || evidence.OwnedProcessesReaped || evidence.FailureStage != "process_reap" {
 				t.Fatalf("original live owned process accepted despite empty group facts: %+v", evidence)
 			}
 		})
@@ -328,7 +331,7 @@ func TestQualificationCleanupRejectsLateUnobservedGroupMember(t *testing.T) {
 	cleanupTestWrite(t, filepath.Join(f.groups[0], "cgroup.procs"), strconv.Itoa(late.cmd.Process.Pid)+"\n")
 	cleanupTestWrite(t, filepath.Join(f.groups[0], "pids.current"), "1\n")
 	evidence, passed := f.q.proof(3, false)
-	if passed || !evidence.OwnedProcessesReaped || evidence.OwnedGroupsDrained {
+	if passed || !evidence.OwnedProcessesReaped || evidence.OwnedGroupsDrained || evidence.FailureStage != "group_drain" {
 		t.Fatalf("late group member accepted after original roster exited: %+v", evidence)
 	}
 }
@@ -340,8 +343,9 @@ func TestQualificationCleanupRequiresCompleteModeAndForkWitnesses(t *testing.T) 
 		t.Run("missing-"+mode, func(t *testing.T) {
 			q := cleanupTestClone(f.q)
 			delete(q.modes, mode)
-			if _, passed := q.proof(3, false); passed {
-				t.Fatalf("absent %s observation accepted", mode)
+			evidence, passed := q.proof(3, false)
+			if passed || evidence.FailureStage != "coverage" || len(evidence.MissingModes) != 1 || evidence.MissingModes[0] != mode || evidence.OwnedProcessesReaped || evidence.OwnedGroupsDrained {
+				t.Fatalf("absent %s observation accepted or misclassified: %+v", mode, evidence)
 			}
 		})
 	}
@@ -360,6 +364,29 @@ func TestQualificationCleanupRequiresCompleteModeAndForkWitnesses(t *testing.T) 
 	evidence, passed := failed.proof(3, true)
 	if passed || evidence.StartupGlobalIdle {
 		t.Fatal("failed startup proof claimed an observed global idle state")
+	}
+}
+
+func TestQualificationCleanupDiagnosticFailureRemainsBoundedAndRejects(t *testing.T) {
+	f := cleanupTestObserved(t)
+	f.drain(t)
+	privatePath := "/private/kernel-fact-" + cleanupTestNonce
+	wrapped := &os.PathError{Op: "read", Path: privatePath, Err: syscall.ESRCH}
+	readFailure := &qualificationReadFailure{class: qualificationErrorClass(wrapped)}
+	if errors.Is(readFailure, syscall.ESRCH) || errors.Is(readFailure, os.ErrNotExist) || strings.Contains(readFailure.Error(), privatePath) {
+		t.Fatal("diagnostic classification changed disappearance predicates or exposed a path")
+	}
+	if f.q.rejectObservation("member_identity", readFailure) {
+		t.Fatal("failed observation accepted")
+	}
+	f.q.rejectObservation("resource_facts", syscall.EACCES)
+	evidence, passed := f.q.proof(3, false)
+	if passed || evidence.FailureStage != "sampler" || evidence.SamplerFailure != "member_identity" || evidence.SamplerErrorClass != "process_gone" || evidence.OwnedProcessesReaped || evidence.OwnedGroupsDrained {
+		t.Fatalf("failed sampler accepted or first failure overwritten: %+v", evidence)
+	}
+	data, err := json.Marshal(evidence)
+	if err != nil || len(data) > 1024 || strings.Contains(string(data), privatePath) || strings.Contains(string(data), cleanupTestNonce) || strings.Contains(string(data), "read ") {
+		t.Fatalf("diagnostic included private kernel details: %v", err)
 	}
 }
 

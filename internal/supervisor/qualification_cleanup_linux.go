@@ -24,13 +24,17 @@ type qualificationProcess struct {
 type qualificationGroup struct{ device, inode uint64 }
 
 type qualificationCleanupObservation struct {
-	StartupGlobalIdle      bool `json:"startupGlobalIdle"`
-	OwnedModesObserved     int  `json:"ownedModesObserved"`
-	OwnedGroupsObserved    int  `json:"ownedGroupsObserved"`
-	OwnedProcessesObserved int  `json:"ownedProcessesObserved"`
-	ForkWitnessProcesses   int  `json:"forkWitnessProcesses"`
-	OwnedProcessesReaped   bool `json:"ownedProcessesReaped"`
-	OwnedGroupsDrained     bool `json:"ownedGroupsDrained"`
+	StartupGlobalIdle      bool     `json:"startupGlobalIdle"`
+	OwnedModesObserved     int      `json:"ownedModesObserved"`
+	OwnedGroupsObserved    int      `json:"ownedGroupsObserved"`
+	OwnedProcessesObserved int      `json:"ownedProcessesObserved"`
+	ForkWitnessProcesses   int      `json:"forkWitnessProcesses"`
+	OwnedProcessesReaped   bool     `json:"ownedProcessesReaped"`
+	OwnedGroupsDrained     bool     `json:"ownedGroupsDrained"`
+	FailureStage           string   `json:"failureStage,omitempty"`
+	SamplerFailure         string   `json:"samplerFailure,omitempty"`
+	SamplerErrorClass      string   `json:"samplerErrorClass,omitempty"`
+	MissingModes           []string `json:"missingModes,omitempty"`
 }
 
 // A fresh supervisor-generated nonce binds observations to this fixed probe.
@@ -44,6 +48,50 @@ type qualificationCleanup struct {
 	modes                       map[string]bool
 	forkPeak                    int
 	failed                      bool
+	failure                     string
+	errorClass                  string
+}
+
+// These fixed stage names contain no kernel paths, identities, nonce or errors.
+// Retaining the first stage distinguishes missing coverage from a failed drain
+// without treating either as successful cleanup.
+func (q *qualificationCleanup) rejectObservation(stage string, causes ...error) bool {
+	q.failed = true
+	if q.failure == "" {
+		q.failure = stage
+		for _, err := range causes {
+			if err != nil {
+				q.errorClass = qualificationErrorClass(err)
+				break
+			}
+		}
+	}
+	return false
+}
+
+func qualificationErrorClass(err error) string {
+	var readFailure *qualificationReadFailure
+	if errors.As(err, &readFailure) {
+		return readFailure.class
+	}
+	for _, known := range []struct {
+		err  error
+		name string
+	}{{syscall.ENOENT, "not_found"}, {syscall.ESRCH, "process_gone"}, {syscall.ENODEV, "device_gone"}, {syscall.EACCES, "access_denied"}, {syscall.EPERM, "permission_denied"}} {
+		if errors.Is(err, known.err) {
+			return known.name
+		}
+	}
+	return "invalid_or_other"
+}
+
+// A read failure retains only its fixed diagnostic class. It intentionally has
+// no Unwrap method: the existing disappearance predicates still reject errors
+// encountered after open, exactly as they did for qualification_cleanup_fact.
+type qualificationReadFailure struct{ class string }
+
+func (*qualificationReadFailure) Error() string {
+	return "supervisor qualification_cleanup_fact failure"
 }
 
 func newQualificationCleanup(nonce string) *qualificationCleanup {
@@ -70,7 +118,10 @@ func qualificationRead(path string) ([]byte, error) {
 	f := os.NewFile(uintptr(fd), "qualification-kernel-fact")
 	defer f.Close()
 	data, err := io.ReadAll(io.LimitReader(f, 4097))
-	if err != nil || len(data) > 4096 {
+	if err != nil {
+		return nil, &qualificationReadFailure{class: qualificationErrorClass(err)}
+	}
+	if len(data) > 4096 {
 		return nil, fail("qualification_cleanup_fact")
 	}
 	return data, nil
@@ -125,16 +176,14 @@ func (q *qualificationCleanup) observe(path string, pid int, args []byte) bool {
 		return false
 	}
 	if err != nil || groupErr != nil {
-		q.failed = true
-		return false
+		return q.rejectObservation("root_or_group_identity", err, groupErr)
 	}
 	fd, openErr := syscall.Open(path, syscall.O_RDONLY|syscall.O_DIRECTORY|syscall.O_CLOEXEC|syscall.O_NOFOLLOW, 0)
 	if errors.Is(openErr, os.ErrNotExist) {
 		return false
 	}
 	if openErr != nil {
-		q.failed = true
-		return false
+		return q.rejectObservation("group_open", openErr)
 	}
 	directory := os.NewFile(uintptr(fd), "qualification-owned-group")
 	defer func() {
@@ -145,8 +194,7 @@ func (q *qualificationCleanup) observe(path string, pid int, args []byte) bool {
 	pinned, pinnedErr := directory.Stat()
 	pinnedStat, pinnedOK := pinnedSys(pinned)
 	if pinnedErr != nil || !pinnedOK || (qualificationGroup{uint64(pinnedStat.Dev), pinnedStat.Ino}) != group {
-		q.failed = true
-		return false
+		return q.rejectObservation("group_pin", pinnedErr)
 	}
 	data, err := qualificationReadAt(directory, "cgroup.procs")
 	if errors.Is(err, os.ErrNotExist) {
@@ -156,16 +204,14 @@ func (q *qualificationCleanup) observe(path string, pid int, args []byte) bool {
 	for _, value := range strings.Fields(string(data)) {
 		member, parseErr := strconv.Atoi(value)
 		if parseErr != nil || member <= 1 || len(members) >= 256 {
-			q.failed = true
-			return false
+			return q.rejectObservation("group_members")
 		}
 		identity, readErr := qualificationIdentity(member)
 		if errors.Is(readErr, os.ErrNotExist) {
 			continue
 		}
 		if readErr != nil {
-			q.failed = true
-			return false
+			return q.rejectObservation("member_identity", readErr)
 		}
 		members[identity] = true
 	}
@@ -186,8 +232,7 @@ func (q *qualificationCleanup) observe(path string, pid int, args []byte) bool {
 		return false
 	}
 	if err != nil || afterErr != nil || groupAfterErr != nil || argsErr != nil {
-		q.failed = true
-		return false
+		return q.rejectObservation("ownership_recheck", err, afterErr, groupAfterErr, argsErr)
 	}
 	if after != root || groupAfter != group || !bytes.Equal(argsAfter, args) || !members[root] {
 		return false
@@ -195,16 +240,13 @@ func (q *qualificationCleanup) observe(path string, pid int, args []byte) bool {
 	// A normal teardown can remove interfaces during sampling. Only a stable
 	// still-owned snapshot may turn read/parse errors into a sticky failure.
 	if memoryErr != nil || pidsErr != nil || cpuErr != nil || memoryParseErr != nil || pidsParseErr != nil || compilerErr != nil {
-		q.failed = true
-		return false
+		return q.rejectObservation("resource_facts", memoryErr, pidsErr, cpuErr, memoryParseErr, pidsParseErr, compilerErr)
 	}
 	if len(q.groups) >= 32 && q.groups[path] != group || len(q.processes)+len(members) > maxQualificationProcesses {
-		q.failed = true
-		return false
+		return q.rejectObservation("observation_bounds")
 	}
 	if previous, exists := q.groups[path]; exists && previous != group {
-		q.failed = true
-		return false
+		return q.rejectObservation("group_generation_changed")
 	}
 	if q.descriptors[path] == nil {
 		q.descriptors[path] = directory
@@ -231,14 +273,24 @@ func (q *qualificationCleanup) proof(forkPeak uint64, startup bool) (qualificati
 // narrow seam permits a regression that proves refresh never consults global
 // activity and startup rejects it before the admission gate can succeed.
 func (q *qualificationCleanup) proofWithIdle(forkPeak uint64, startup bool, globalIdle func() bool) (qualificationCleanupObservation, bool) {
-	ev := qualificationCleanupObservation{OwnedModesObserved: len(q.modes), OwnedGroupsObserved: len(q.groups), OwnedProcessesObserved: len(q.processes), ForkWitnessProcesses: q.forkPeak}
-	if q.failed || len(q.groups) < 10 || len(q.processes) < 10 || forkPeak <= 1 || forkPeak > 8 || uint64(q.forkPeak) < forkPeak || !q.modes["compiler"] {
+	ev := qualificationCleanupObservation{OwnedModesObserved: len(q.modes), OwnedGroupsObserved: len(q.groups), OwnedProcessesObserved: len(q.processes), ForkWitnessProcesses: q.forkPeak, SamplerFailure: q.failure, SamplerErrorClass: q.errorClass}
+	for _, mode := range append([]string{"compiler"}, qualificationProbeModes...) {
+		if !q.modes[mode] {
+			ev.MissingModes = append(ev.MissingModes, mode)
+		}
+	}
+	reject := func(stage string) (qualificationCleanupObservation, bool) {
+		ev.FailureStage = stage
 		return ev, false
 	}
-	for _, mode := range qualificationProbeModes {
-		if !q.modes[mode] {
-			return ev, false
-		}
+	if q.failed {
+		return reject("sampler")
+	}
+	if len(q.groups) < 10 || len(q.processes) < 10 || len(ev.MissingModes) != 0 {
+		return reject("coverage")
+	}
+	if forkPeak <= 1 || forkPeak > 8 || uint64(q.forkPeak) < forkPeak {
+		return reject("fork_witness")
 	}
 	for identity := range q.processes {
 		current, err := qualificationIdentity(identity.pid)
@@ -246,19 +298,19 @@ func (q *qualificationCleanup) proofWithIdle(forkPeak uint64, startup bool, glob
 			continue
 		}
 		if err != nil || current == identity {
-			return ev, false
+			return reject("process_reap")
 		}
 	}
 	ev.OwnedProcessesReaped = true
 	for path, group := range q.groups {
 		directory := q.descriptors[path]
 		if directory == nil {
-			return ev, false
+			return reject("group_descriptor")
 		}
 		facts, statErr := directory.Stat()
 		pinned, ok := pinnedSys(facts)
 		if statErr != nil || !ok || (qualificationGroup{uint64(pinned.Dev), pinned.Ino}) != group {
-			return ev, false
+			return reject("group_identity")
 		}
 		members, membersErr := qualificationReadAt(directory, "cgroup.procs")
 		pids, pidsErr := qualificationReadAt(directory, "pids.current")
@@ -269,18 +321,18 @@ func (q *qualificationCleanup) proofWithIdle(forkPeak uint64, startup bool, glob
 			continue
 		}
 		if membersErr != nil || pidsErr != nil || len(bytes.TrimSpace(members)) != 0 || strings.TrimSpace(string(pids)) != "0" {
-			return ev, false
+			return reject("group_drain")
 		}
 		after, afterErr := directory.Stat()
 		afterStat, afterOK := pinnedSys(after)
 		if afterErr != nil || !afterOK || (qualificationGroup{uint64(afterStat.Dev), afterStat.Ino}) != group {
-			return ev, false
+			return reject("group_identity_recheck")
 		}
 	}
 	ev.OwnedGroupsDrained = true
 	if startup {
 		if globalIdle == nil || !globalIdle() {
-			return ev, false
+			return reject("startup_global_idle")
 		}
 		ev.StartupGlobalIdle = true
 	}
@@ -302,7 +354,10 @@ func qualificationReadAt(directory *os.File, name string) ([]byte, error) {
 	f := os.NewFile(uintptr(fd), "qualification-owned-fact")
 	defer f.Close()
 	data, err := io.ReadAll(io.LimitReader(f, 4097))
-	if err != nil || len(data) > 4096 {
+	if err != nil {
+		return nil, &qualificationReadFailure{class: qualificationErrorClass(err)}
+	}
+	if len(data) > 4096 {
 		return nil, fail("qualification_cleanup_fact")
 	}
 	return data, nil
