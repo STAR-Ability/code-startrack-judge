@@ -1,6 +1,7 @@
 """Measure physical image evidence, including historic and nested payloads."""
 
 import hashlib
+import gzip
 from contextlib import nullcontext
 import importlib.util
 import io
@@ -58,7 +59,137 @@ def saved_image(root, layer_bodies, config_change=None, layer_change=None):
     return path, config_id
 
 
+def saved_oci_image(root, layer_bodies, *, stored_layers=None, filename=None,
+                    config_change=None, manifest_change=None, index_change=None,
+                    legacy_change=None, extra_entries=()):
+    """Docker 29 containerd export: content-addressed gzip and both graph views."""
+    if stored_layers is None:
+        stored_layers = []
+        for body in layer_bodies:
+            output = io.BytesIO()
+            with gzip.GzipFile(filename=filename or "", fileobj=output, mode="wb", mtime=0) as encoded:
+                encoded.write(body)
+            stored_layers.append(output.getvalue())
+    config = {"os": "linux", "architecture": "amd64", "rootfs": {
+        "type": "layers", "diff_ids": ["sha256:" + sha(body) for body in layer_bodies]}}
+    if config_change:
+        config_change(config)
+    config_body = json.dumps(config).encode()
+    config_id = "sha256:" + sha(config_body)
+    config_path = "blobs/sha256/" + sha(config_body)
+    paths = ["blobs/sha256/" + sha(body) for body in stored_layers]
+    manifest = {"schemaVersion": 2, "mediaType": LAYERS.OCI_MANIFEST,
+                "config": {"mediaType": LAYERS.OCI_CONFIG, "digest": config_id, "size": len(config_body)},
+                "layers": [{"mediaType": LAYERS.OCI_GZIP_LAYER, "digest": "sha256:" + sha(body), "size": len(body)}
+                           for body in stored_layers]}
+    if manifest_change:
+        manifest_change(manifest)
+    manifest_body = json.dumps(manifest).encode()
+    manifest_id = "sha256:" + sha(manifest_body)
+    index = {"schemaVersion": 2, "mediaType": LAYERS.OCI_INDEX,
+             "manifests": [{"mediaType": LAYERS.OCI_MANIFEST, "digest": manifest_id, "size": len(manifest_body)}]}
+    if index_change:
+        index_change(index)
+    legacy = {"Config": config_path, "RepoTags": None, "Layers": list(paths)}
+    if legacy_change:
+        legacy_change(legacy)
+    entries = [("oci-layout", b'{"imageLayoutVersion":"1.0.0"}'), ("index.json", json.dumps(index).encode()),
+               ("manifest.json", json.dumps([legacy]).encode()),
+               ("blobs/sha256/" + sha(manifest_body), manifest_body), (config_path, config_body)]
+    entries.extend(zip(paths, stored_layers))
+    entries.extend(extra_entries)
+    path = root / "image.tar"
+    path.write_bytes(tar_bytes(entries))
+    return path, config_id, manifest_id
+
+
 class ImageLayerTests(unittest.TestCase):
+    def test_docker29_gzip_binds_stored_blob_expanded_diffid_and_oci_manifest(self):
+        body = tar_bytes([("usr/file", b"measured")])
+        for filename in (None, "rootfs.tar"):
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as temporary:
+                path, identity, manifest = saved_oci_image(Path(temporary), [body], filename=filename)
+                report = LAYERS.audit(path, identity)
+                self.assertEqual(report["ociImageManifestID"], manifest)
+                self.assertIn("CALLER_DOCKER_ID_RECONCILIATION_REQUIRED", report["ociImageManifestIDBinding"])
+                self.assertEqual(report["layers"][0]["tarSizeBytes"], len(body))
+                self.assertEqual(report["layers"][0]["diffID"], "sha256:" + sha(body))
+                self.assertEqual(report["layers"][0]["inventory"][0]["sha256"], sha(b"measured"))
+                self.assertEqual(report["layers"][0]["compression"], "gzip")
+                self.assertEqual(report["measurement"]["expandedLayerBytes"], len(body))
+                self.assertEqual(report["layers"][0]["gzipEnvelope"]["headerSizeBytes"], 10 if filename is None else 21)
+                self.assertFalse(report["qualified"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity, _ = saved_oci_image(Path(temporary), [body], stored_layers=[body],
+                                              manifest_change=lambda m: m["layers"][0].update(mediaType=LAYERS.OCI_LAYER))
+            self.assertEqual(LAYERS.audit(path, identity)["layers"][0]["compression"], "none")
+
+    def test_docker29_rehashed_forged_graphs_and_external_payloads_are_refused(self):
+        cases = [
+            {"manifest_change": lambda m: m["layers"][0].update(size=m["layers"][0]["size"] + 1)},
+            {"manifest_change": lambda m: m["config"].update(size=m["config"]["size"] + 1)},
+            {"manifest_change": lambda m: m["layers"][0].update(mediaType=LAYERS.OCI_LAYER + "+zstd")},
+            {"manifest_change": lambda m: m["layers"][0].update(urls=["https://invalid.example/payload"])},
+            {"manifest_change": lambda m: m["config"].update(digest=m["layers"][0]["digest"], size=m["layers"][0]["size"])},
+            {"manifest_change": lambda m: m.update(schemaVersion=2.0)},
+            {"index_change": lambda m: m["manifests"][0].update(size=m["manifests"][0]["size"] + 1)},
+            {"index_change": lambda m: m["manifests"][0].update(mediaType=LAYERS.OCI_INDEX)},
+            {"index_change": lambda m: m["manifests"].append(m["manifests"][0])},
+            {"index_change": lambda m: m.update(schemaVersion=2.0)},
+            {"index_change": lambda m: m.update(artifactType="unsupported")},
+            {"index_change": lambda m: m.update(subject={"digest": "sha256:" + "0" * 64})},
+            {"legacy_change": lambda m: m["Layers"].reverse()},
+            {"config_change": lambda c: c["rootfs"]["diff_ids"].__setitem__(0, "sha256:" + "0" * 64)},
+            {"extra_entries": [("blobs/sha256/" + sha(b"unreferenced"), b"unreferenced")]},
+        ]
+        bodies = [tar_bytes([("usr/first", b"first")]), tar_bytes([("usr/second", b"second")])]
+        for index, options in enumerate(cases):
+            with self.subTest(case=index), tempfile.TemporaryDirectory() as temporary:
+                path, identity, _ = saved_oci_image(Path(temporary), bodies, **options)
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity)
+
+    def test_docker29_stored_digest_and_manifest_content_forgery_are_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity, manifest = saved_oci_image(Path(temporary), [tar_bytes([("usr/file", b"safe")])])
+            with tarfile.open(path, "r:") as saved:
+                entries = [(m.name, saved.extractfile(m).read()) for m in saved]
+            for selected in ("blobs/sha256/" + manifest.removeprefix("sha256:"),
+                             next(name for name, _ in entries if name.startswith("blobs/sha256/")
+                                  and name != "blobs/sha256/" + manifest.removeprefix("sha256:")
+                                  and name != "blobs/sha256/" + identity.removeprefix("sha256:"))):
+                changed = [(name, body[:-1] + bytes([body[-1] ^ 1]) if name == selected else body) for name, body in entries]
+                path.write_bytes(tar_bytes(changed))
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity)
+
+    def test_gzip_header_carriers_trailers_and_concatenated_members_are_refused(self):
+        body = tar_bytes([("usr/file", b"safe")])
+        encoded = gzip.compress(body, mtime=0)
+        corrupt_crc = encoded[:-8] + bytes([encoded[-8] ^ 1]) + encoded[-7:]
+        corrupt_size = encoded[:-4] + bytes([encoded[-4] ^ 1]) + encoded[-3:]
+        payloads = [encoded + suffix for suffix in (b"\0", b"unmeasured", gzip.compress(b"", mtime=0))]
+        payloads.extend((encoded[:-1], corrupt_crc, corrupt_size))
+        for flag in (1, 2, 4, 16, 32, 64, 128):
+            payloads.append(encoded[:3] + bytes([flag]) + encoded[4:])
+        jar = zip_bytes("org/eclipse/jdt/internal/jarinjarloader/JarRsrcLoader.class", b"class")
+        payloads.extend((encoded[:3] + b"\x10" + encoded[4:10] + jar + b"\0" + encoded[10:],
+                         encoded[:3] + b"\x08" + encoded[4:10] + b"other\0" + encoded[10:],
+                         encoded[:3] + b"\x08" + encoded[4:10] + b"rootfs"))
+        for index, payload in enumerate(payloads):
+            with self.subTest(case=index), tempfile.TemporaryDirectory() as temporary:
+                path, identity, _ = saved_oci_image(Path(temporary), [body], stored_layers=[payload])
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity)
+
+    def test_gzip_expansion_bound_counts_tar_end_padding(self):
+        body = tar_bytes([("usr/file", b"safe")]) + b"\0" * 100000
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity, _ = saved_oci_image(Path(temporary), [body])
+            with patch.object(LAYERS, "MAX_TOTAL_BYTES", 32768), self.assertRaisesRegex(LAYERS.Failure, "expanded layer size bound"):
+                LAYERS.audit(path, identity)
+
     def test_config_and_each_physical_layer_are_bound_to_content(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

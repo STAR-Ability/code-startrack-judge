@@ -39,6 +39,11 @@ MAX_ZIP_EXPANDED_BYTES = 256 << 20
 MAX_ZIP_MEMBERS = 40_000
 MAX_ZIP_DEPTH = 4
 MAX_ZIP_ENVELOPES = 32
+OCI_MANIFEST = "application/vnd.oci.image.manifest.v1+json"
+OCI_INDEX = "application/vnd.oci.image.index.v1+json"
+OCI_CONFIG = "application/vnd.oci.image.config.v1+json"
+OCI_LAYER = "application/vnd.oci.image.layer.v1.tar"
+OCI_GZIP_LAYER = OCI_LAYER + "+gzip"
 
 
 class Failure(ValueError):
@@ -428,12 +433,115 @@ def verify_source_carrier(layers: list[dict], source_inventory: Path) -> None:
     require(regular == expected, "source carrier bytes differ from source inventory")
 
 
+def oci_graph(members, metadata, selected, config_body):
+    """Bind Docker's compatibility view to one complete local OCI image graph."""
+    present = {name for name in ("oci-layout", "index.json") if name in members}
+    if not present:
+        return None, None
+    require(len(present) == 2, "incomplete OCI export metadata")
+    require(json.loads(metadata("oci-layout")) == {"imageLayoutVersion": "1.0.0"}, "unsupported OCI layout")
+    index = json.loads(metadata("index.json"))
+    require(type(index.get("schemaVersion")) is int and index["schemaVersion"] == 2
+            and index.get("mediaType") == OCI_INDEX and "subject" not in index and "artifactType" not in index
+            and isinstance(index.get("manifests"), list) and len(index["manifests"]) == 1,
+            "exactly one OCI image manifest required")
+
+    def descriptor(item, media_types):
+        require(isinstance(item, dict) and item.get("mediaType") in media_types
+                and isinstance(item.get("digest"), str) and DIGEST.fullmatch(item["digest"]) is not None
+                and type(item.get("size")) is int and 0 <= item["size"] <= MAX_TOTAL_BYTES
+                and "urls" not in item and "data" not in item and "artifactType" not in item,
+                "unsupported or invalid OCI descriptor")
+        path = "blobs/sha256/" + item["digest"].removeprefix("sha256:")
+        require(path in members, "OCI descriptor references missing blob")
+        member = members[path]
+        require(member.isfile() and member.size == item["size"], "OCI descriptor size or type mismatch")
+        return path
+
+    root = index["manifests"][0]
+    manifest_path = descriptor(root, (OCI_MANIFEST,))
+    if "platform" in root:
+        require(isinstance(root["platform"], dict) and root["platform"].get("os") == "linux" and root["platform"].get("architecture") == "amd64"
+                and not root["platform"].get("variant"), "unsupported OCI image platform")
+    manifest_body = metadata(manifest_path)
+    require("sha256:" + sha(manifest_body) == root["digest"], "OCI manifest checksum mismatch")
+    manifest = json.loads(manifest_body)
+    require(type(manifest.get("schemaVersion")) is int and manifest["schemaVersion"] == 2
+            and manifest.get("mediaType") == OCI_MANIFEST
+            and "subject" not in manifest and "artifactType" not in manifest
+            and isinstance(manifest.get("layers"), list) and 0 < len(manifest["layers"]) <= MAX_LAYERS,
+            "unsupported OCI image manifest")
+    config_path = descriptor(manifest.get("config"), (OCI_CONFIG,))
+    require(config_path == canonical(selected["Config"])
+            and "sha256:" + sha(config_body) == manifest["config"]["digest"],
+            "OCI and Docker config identities differ")
+    layer_paths = [descriptor(item, (OCI_LAYER, OCI_GZIP_LAYER)) for item in manifest["layers"]]
+    require(layer_paths == [canonical(name) for name in selected["Layers"]],
+            "OCI and Docker layer identities or order differ")
+    expected = {"oci-layout", "index.json", "manifest.json", manifest_path, config_path, *layer_paths}
+    require({name for name, member in members.items() if member.isfile()} == expected,
+            "OCI export has unreferenced or missing regular payloads")
+    require(all(member.isfile() or member.size == 0 for member in members.values()),
+            "OCI directory member contains payload")
+    return root["digest"], manifest["layers"]
+
+
+def gzip_envelope(head):
+    # Docker's reviewed export profile uses either no optional fields or the
+    # literal filename rootfs.tar. Do not discard arbitrary gzip extra/comment/name
+    # payloads as gzip.GzipFile would; unsupported profiles fail closed.
+    require(len(head) >= 10 and head[:3] == b"\x1f\x8b\x08" and head[3] in (0, 8),
+            "unsupported gzip layer header")
+    length = 10
+    if head[3] == 8:
+        require(head[10:21] == b"rootfs.tar\0", "unsupported gzip layer filename")
+        length = 21
+    return {"headerSizeBytes": length, "headerSHA256": sha(head[:length]),
+            "optionalFields": "NONE" if length == 10 else "EXACT_LITERAL_ROOTFS_TAR_FILENAME",
+            "profile": "SINGLE_MEMBER_NO_EXTRA_COMMENT_TEXT_OR_HEADER_CRC"}
+
+
+class ExpandedGzip:
+    """Bounded single-member expansion; CRC/ISIZE and every stored byte matter."""
+
+    def __init__(self, stream, counters):
+        self.stream, self.counters = stream, counters
+        self.decoder = zlib.decompressobj(16 + zlib.MAX_WBITS)
+        self.pending = b""
+        self.finished = False
+        self.digest = hashlib.sha256()
+        self.size = 0
+
+    def read(self, size):
+        require(isinstance(size, int) and 0 <= size <= 1 << 20, "bounded gzip read required")
+        output = bytearray()
+        while len(output) < size and not self.finished:
+            compressed = self.pending or self.stream.read(64 << 10)
+            require(bool(compressed), "truncated gzip layer")
+            try:
+                chunk = self.decoder.decompress(compressed, size - len(output))
+            except zlib.error as exc:
+                raise Failure("invalid gzip layer or trailer") from exc
+            self.pending = self.decoder.unconsumed_tail
+            self.size += len(chunk)
+            self.counters["expandedLayerBytes"] += len(chunk)
+            require(self.counters["expandedLayerBytes"] <= MAX_TOTAL_BYTES, "expanded layer size bound exceeded")
+            self.digest.update(chunk)
+            output.extend(chunk)
+            if self.decoder.eof:
+                require(not self.decoder.unused_data and not self.pending and not self.stream.read(1),
+                        "gzip layer has concatenated members or trailing bytes")
+                self.finished = True
+        return bytes(output)
+
+
 def audit(archive_path: Path, image_config_id: str, source_inventory: Path | None = None) -> dict:
     require(DIGEST.fullmatch(image_config_id) is not None, "explicit full image config ID required")
     require(archive_path.is_file() and not archive_path.is_symlink() and archive_path.stat().st_size <= MAX_TOTAL_BYTES,
             "bounded regular docker-save archive required")
     findings, gaps, layers = [], [], []
-    counters = {"payloadBytes": 0, "metadataBytes": 0, "layerMembers": 0, "zipArchives": 0, "zipMembers": 0, "zipExpandedBytes": 0}
+    counters = {"payloadBytes": 0, "metadataBytes": 0, "layerMembers": 0, "zipArchives": 0, "zipMembers": 0, "zipExpandedBytes": 0,
+                "expandedLayerBytes": 0}
     with tarfile.open(archive_path, mode="r:", tarinfo=BoundedMetadataInfo) as saved:
         members = {}
         for item in saved:
@@ -465,20 +573,40 @@ def audit(archive_path: Path, image_config_id: str, source_inventory: Path | Non
         require(config.get("rootfs", {}).get("type") == "layers" and isinstance(names, list)
                 and isinstance(diff_ids, list) and 0 < len(names) == len(diff_ids) <= MAX_LAYERS
                 and len(set(names)) == len(names), "invalid saved layer identity")
+        manifest_id, descriptors = oci_graph(members, metadata, selected, config_body)
         for index, (name, expected) in enumerate(zip(names, diff_ids)):
             require(isinstance(expected, str) and DIGEST.fullmatch(expected) is not None, "invalid layer diffID")
             member = members[canonical(name)]
-            require(member.isfile(), "regular uncompressed layer required")
-            digest, size = hashlib.sha256(), 0
+            require(member.isfile(), "regular layer blob required")
+            digest, size, head = hashlib.sha256(), 0, b""
             with saved.extractfile(member) as stream:
                 for chunk in iter(lambda: stream.read(1 << 20), b""):
+                    if not head:
+                        head = chunk[:32]
                     digest.update(chunk)
                     size += len(chunk)
-            require(size == member.size and "sha256:" + digest.hexdigest() == expected, "layer diffID checksum mismatch")
+            compressed = descriptors is not None and descriptors[index]["mediaType"] == OCI_GZIP_LAYER
+            stored_expected = descriptors[index]["digest"] if descriptors is not None else expected
+            require(size == member.size and "sha256:" + digest.hexdigest() == stored_expected,
+                    "layer stored blob checksum mismatch" if descriptors is not None else "layer diffID checksum mismatch")
+            envelope = gzip_envelope(head) if compressed else None
             with saved.extractfile(member) as stream:
-                records, metadata_records = layer_inventory(stream, index, findings, gaps, counters)
+                if compressed:
+                    expanded = ExpandedGzip(stream, counters)
+                    records, metadata_records = layer_inventory(expanded, index, findings, gaps, counters)
+                    require(expanded.finished and "sha256:" + expanded.digest.hexdigest() == expected,
+                            "expanded layer diffID checksum mismatch")
+                    tar_size = expanded.size
+                else:
+                    require(stored_expected == expected, "uncompressed layer diffID checksum mismatch")
+                    counters["expandedLayerBytes"] += size
+                    require(counters["expandedLayerBytes"] <= MAX_TOTAL_BYTES, "expanded layer size bound exceeded")
+                    records, metadata_records = layer_inventory(stream, index, findings, gaps, counters)
+                    tar_size = size
             encoded = json.dumps(records, sort_keys=True, separators=(",", ":")).encode()
-            layers.append({"index": index, "archivePath": name, "diffID": expected, "tarSizeBytes": size,
+            layers.append({"index": index, "archivePath": name, "diffID": expected, "tarSizeBytes": tar_size,
+                           "storedBlobSHA256": digest.hexdigest(), "storedBlobSizeBytes": size,
+                           "compression": "gzip" if compressed else "none", "gzipEnvelope": envelope,
                            "inventorySHA256": sha(encoded), "memberCount": len(records), "inventory": records,
                            "metadataPayloads": metadata_records,
                            "metadataInventorySHA256": sha(json.dumps(metadata_records, sort_keys=True, separators=(",", ":")).encode())})
@@ -489,6 +617,8 @@ def audit(archive_path: Path, image_config_id: str, source_inventory: Path | Non
         for chunk in iter(lambda: stream.read(1 << 20), b""):
             archive_digest.update(chunk)
     return {"schemaVersion": 1, "imageConfigID": image_config_id, "dockerSaveSHA256": archive_digest.hexdigest(),
+            "ociImageManifestID": manifest_id,
+            "ociImageManifestIDBinding": "OCI_GRAPH_CONTENT_BOUND_CALLER_DOCKER_ID_RECONCILIATION_REQUIRED" if manifest_id else "NO_OCI_GRAPH",
             "scope": "ALL_DISTRIBUTED_FILESYSTEM_LAYERS_INCLUDING_DELETED_PAYLOADS", "completePhysicalLayerInventory": True,
             "sourceCarrierInventoryVerified": source_inventory is not None, "layers": layers, "measurement": counters,
             "dockerSaveEnvelopeScope": "SELECTED_CONFIG_AND_LAYER_BYTES_BOUND_NONZERO_MEMBER_PADDING_AND_TRAILER_REJECTED_OUTER_PAX_NOT_PAYLOAD_AUDIT",
