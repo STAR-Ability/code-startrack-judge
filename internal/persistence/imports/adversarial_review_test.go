@@ -77,23 +77,28 @@ func TestReviewLeaseExpiryDuringRegistrationRollsBackAllFacts(t *testing.T) {
 	db := testpg.New(t)
 	r := New(db.Runtime)
 	job, lease := reviewClaim(t, r, "problems/review")
-	// Begin with a live lease, then cross the actual database deadline while
-	// registration owns the job lock. The final fence must reject the commit.
-	if _, err := db.Admin.Exec(`UPDATE judge.import_jobs SET lease_expires_at=clock_timestamp()+interval '200 milliseconds' WHERE id=$1`, job.ImportJobID); err != nil {
-		t.Fatal("cannot shorten synthetic lease")
-	}
+	// Shorten the deadline only after registration owns the live job lock.
+	// Otherwise scheduling delays can expire the lease before Apply, exercising
+	// the admission fence instead of the final fence this test must verify.
 	applied := false
+	crossedDeadline := false
 	prepared := reviewPrepared(func(ctx context.Context, tx *sql.Tx, item domain.PendingItem) (domain.ItemResult, error) {
 		applied = true
+		if _, err := tx.ExecContext(ctx, `UPDATE judge.import_jobs SET lease_expires_at=clock_timestamp()+interval '200 milliseconds' WHERE id=$1`, job.ImportJobID); err != nil {
+			return domain.ItemResult{}, err
+		}
 		if _, err := tx.ExecContext(ctx, `INSERT INTO judge.package_source_identities(id,repository_url,source_revision,package_path,source_sha256) VALUES('4d0c7889-6132-467f-9d57-915648989b8b',$1,$2,$3,repeat('a',64))`, contract.PackageRepository, lease.Revision, item.PackagePath); err != nil {
 			return domain.ItemResult{}, err
 		}
 		if _, err := tx.ExecContext(ctx, `SELECT pg_sleep(0.35)`); err != nil {
 			return domain.ItemResult{}, err
 		}
+		if err := tx.QueryRowContext(ctx, `SELECT lease_expires_at<=clock_timestamp() FROM judge.import_jobs WHERE id=$1`, job.ImportJobID).Scan(&crossedDeadline); err != nil {
+			return domain.ItemResult{}, err
+		}
 		return rejection{}.Apply(ctx, tx, item)
 	})
-	if err := r.CompleteItem(context.Background(), lease, lease.Items[0], prepared); !errors.Is(err, domain.ErrLeaseLost) || !applied {
+	if err := r.CompleteItem(context.Background(), lease, lease.Items[0], prepared); !errors.Is(err, domain.ErrLeaseLost) || !applied || !crossedDeadline {
 		t.Fatal("registration crossing its lease deadline was not fenced after Apply")
 	}
 	current, err := r.Get(context.Background(), job.ImportJobID)
@@ -103,6 +108,11 @@ func TestReviewLeaseExpiryDuringRegistrationRollsBackAllFacts(t *testing.T) {
 	var facts int
 	if db.Admin.QueryRow(`SELECT (SELECT count(*) FROM judge.package_source_identities)+(SELECT count(*) FROM judge.rejected_package_evidence)`).Scan(&facts) != nil || facts != 0 {
 		t.Fatal("expired registration leaked immutable source/evidence rows")
+	}
+	// The synthetic deadline was rolled back along with the registration. Expire
+	// the original reservation before verifying that recovery can claim the item.
+	if _, err := db.Admin.Exec(`UPDATE judge.import_jobs SET lease_expires_at=clock_timestamp()-interval '1 second' WHERE id=$1`, job.ImportJobID); err != nil {
+		t.Fatal("cannot expire rolled-back reservation")
 	}
 	recovered, err := r.Claim(context.Background())
 	if err != nil || recovered == nil || recovered.Token == lease.Token || len(recovered.Items) != 1 {
