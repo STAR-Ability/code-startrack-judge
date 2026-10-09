@@ -175,8 +175,8 @@ def other_archive(body: bytes, name: str) -> bool:
             or lower.endswith((".tar", ".tar.gz", ".tgz", ".tar.xz", ".tar.bz2", ".deb", ".7z", ".rar", ".zst")))
 
 
-def zip_envelope_gaps(body: bytes, end: int, archive, infos: list, name: str, gaps: list[dict], counters: dict) -> None:
-    """Account for raw bytes outside the central directory's member view."""
+def zip_envelope_gaps(body: bytes, end: int, archive, infos: list, name: str, gaps: list[dict], counters: dict) -> bool:
+    """Account for raw bytes and return whether member expansion is supported."""
     cursor = 0
     incomplete = end != len(body) or bool(archive.comment)
     try:
@@ -225,6 +225,7 @@ def zip_envelope_gaps(body: bytes, end: int, archive, infos: list, name: str, ga
         incomplete = True
     if incomplete:
         gaps.append({"location": name, "reason": "ZIP_ENVELOPE_BYTES_NOT_FULLY_MEMBER_BOUND"})
+    return not incomplete
 
 
 def inspect_payload(body: bytes | None, head: bytes, name: str, digest: str,
@@ -277,7 +278,7 @@ def inspect_payload(body: bytes | None, head: bytes, name: str, digest: str,
                     gaps.append({"location": name, "reason": "ZIP_MEMBER_COUNT_BOUND"})
                     continue
                 valid = True
-                zip_envelope_gaps(body, end, archive, infos, name, gaps, counters)
+                supported_envelope = zip_envelope_gaps(body, end, archive, infos, name, gaps, counters)
                 counters["zipArchives"] += 1
                 counters["zipMembers"] += len(infos)
                 seen = set()
@@ -294,6 +295,13 @@ def inspect_payload(body: bytes | None, head: bytes, name: str, digest: str,
                         findings.append({"location": location, "reason": "EXCLUDED_VIVA_OR_NESTED_CLASS_PATH"})
                     if info.flag_bits & 1 or info.file_size > MAX_ZIP_BYTES or counters["zipExpandedBytes"] + info.file_size > MAX_ZIP_EXPANDED_BYTES:
                         gaps.append({"location": location, "reason": "ZIP_ENCRYPTION_OR_EXPANSION_BOUND"})
+                        continue
+                    # Unsupported codecs can allocate beyond the declared size;
+                    # forged DEFLATE lengths make zipfile discard expanded bytes
+                    # absent from our counters. Keep name/raw findings, but open
+                    # only members whose complete envelope passed bounded checks.
+                    if not supported_envelope or info.compress_type not in (zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED):
+                        gaps.append({"location": location, "reason": "ZIP_FORMAT_UNSUPPORTED_OR_INVALID"})
                         continue
                     require(not stat.S_ISLNK(info.external_attr >> 16), "ZIP link payload unsupported")
                     with archive.open(info) as stream:

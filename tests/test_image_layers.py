@@ -13,6 +13,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import zipfile
+import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("image_layers", ROOT / "scripts/audit-image-layers.py")
@@ -35,11 +36,29 @@ def tar_bytes(entries):
     return output.getvalue()
 
 
-def zip_bytes(name, body):
+def zip_bytes(name, body, *, compression=zipfile.ZIP_STORED):
     output = io.BytesIO()
-    with zipfile.ZipFile(output, "w") as archive:
+    with zipfile.ZipFile(output, "w", compression=compression) as archive:
         archive.writestr(name, body)
     return output.getvalue()
+
+
+def forged_small_zip(body):
+    """Keep compressed streams while lying about every member's size and CRC."""
+    body = bytearray(body)
+    with zipfile.ZipFile(io.BytesIO(body)) as archive:
+        for info in archive.infolist():
+            struct.pack_into("<I", body, info.header_offset + 14, zlib.crc32(b"X"))
+            struct.pack_into("<I", body, info.header_offset + 22, 1)
+    cursor = 0
+    while True:
+        central = body.find(b"PK\x01\x02", cursor)
+        if central < 0:
+            break
+        struct.pack_into("<I", body, central + 16, zlib.crc32(b"X"))
+        struct.pack_into("<I", body, central + 24, 1)
+        cursor = central + 4
+    return bytes(body)
 
 
 def saved_image(root, layer_bodies, config_change=None, layer_change=None):
@@ -336,6 +355,45 @@ class ImageLayerTests(unittest.TestCase):
             report = LAYERS.audit(path, identity)
             self.assertTrue(report["excludedPayloadFindings"])
             self.assertEqual(report["exclusionGate"], "FAILED")
+
+    def test_unsupported_zip_codecs_do_not_expand_forged_sizes_and_keep_findings(self):
+        for compression in (zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA):
+            payload = forged_small_zip(zip_bytes("viva.jar", b"X" * (128 << 10), compression=compression))
+            with self.subTest(compression=compression), tempfile.TemporaryDirectory() as temporary:
+                path, identity = saved_image(Path(temporary), [tar_bytes([("usr/nested.zip", payload)])])
+                with patch.object(LAYERS, "BLOCKED_DIGESTS", frozenset((sha(payload),))), \
+                     patch.object(zipfile, "_get_decompressor", side_effect=AssertionError("unsupported codec invoked")):
+                    report = LAYERS.audit(path, identity)
+                self.assertEqual(report["measurement"]["zipExpandedBytes"], 0)
+                self.assertIn("ZIP_ENVELOPE_BYTES_NOT_FULLY_MEMBER_BOUND",
+                              {row["reason"] for row in report["archiveInspectionGaps"]})
+                reasons = {row["reason"] for row in report["excludedPayloadFindings"]}
+                self.assertIn("EXACT_EXCLUDED_BINARY_SHA256", reasons)
+                self.assertIn("EXCLUDED_VIVA_OR_NESTED_CLASS_PATH", reasons)
+                self.assertEqual(report["exclusionGate"], "FAILED")
+
+    def test_forged_deflate_sizes_cannot_bypass_nested_aggregate_expansion_bound(self):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for index in range(24):
+                archive.writestr(str(index), b"X" * (16 << 10))
+        inner = forged_small_zip(output.getvalue())
+        payload = zip_bytes("inner.zip", inner, compression=zipfile.ZIP_DEFLATED)
+        original = zipfile._get_decompressor
+        opened = []
+        def observe(compression):
+            opened.append(compression)
+            return original(compression)
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity = saved_image(Path(temporary), [tar_bytes([("usr/nested.zip", payload)])])
+            with patch.multiple(LAYERS, MAX_ZIP_BYTES=4 << 10, MAX_ZIP_EXPANDED_BYTES=64 << 10), \
+                 patch.object(zipfile, "_get_decompressor", side_effect=observe):
+                report = LAYERS.audit(path, identity)
+        self.assertEqual(opened, [zipfile.ZIP_DEFLATED])
+        self.assertEqual(report["measurement"]["zipExpandedBytes"], len(inner))
+        self.assertIn("ZIP_ENVELOPE_BYTES_NOT_FULLY_MEMBER_BOUND",
+                      {row["reason"] for row in report["archiveInspectionGaps"]})
+        self.assertEqual(report["exclusionGate"], "PENDING_ARCHIVE_COVERAGE")
 
     def test_false_empty_stored_directory_and_member_comment_remain_pending(self):
         stored = bytearray(zip_bytes("allowed/", b"unmeasured bytes"))

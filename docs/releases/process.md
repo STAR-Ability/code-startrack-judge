@@ -110,7 +110,17 @@ audit does not make PR #25 ready for merge.
 The [gzip companion](../../scripts/audit-image-gzip.py) measures selected compressed
 documentation, man and info payloads. The [Rust source companion](../../scripts/audit-image-crates.py)
 measures the gzip/TAR contents of locked `.crate` archives shared by the service
-and source-carrier physical inventories. These are separate static measurements;
+and source-carrier physical inventories. The [ar helper](../../scripts/audit-image-ar.py)
+provides a bounded `audit(bytes, location)` API for at most 512 bytes and eight
+physical GNU ar members with short names and an optional first GNU32 symbol
+index. Thin, BSD, GNU long-name and GNU64 profiles remain explicit gaps. It
+scans the whole raw input plus physical headers, index metadata, payloads and
+padding; index offsets must name ordinary member headers. Nested ZIP expansion requires a
+fully validated envelope and the supported STORED/DEFLATE codecs; malformed or
+unsupported archives retain explicit gaps before any member is opened. A caller must bind
+input identities and provide the hard outer process limits. This bytes API
+does not read files, extract payloads or replace a complete image audit.
+These are separate static measurements;
 they preserve the original receipts and do not grant legal, distribution or
 sandbox qualification approval.
 
