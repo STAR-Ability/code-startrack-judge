@@ -70,6 +70,48 @@ func TestRootAmbientCredentialNamesRejected(t *testing.T) {
 	}
 }
 
+func TestScopedAppArmorIdentityFailsClosed(t *testing.T) {
+	scoped := "startrack-v02-smoke-0123456789abcdef"
+	for _, selected := range []string{"", DefaultAppArmorProfile, scoped} {
+		want := selected
+		if want == "" {
+			want = DefaultAppArmorProfile
+		}
+		actual, err := selectedAppArmorProfile(selected)
+		if err != nil || actual != want || !verifiedAppArmorLabel(selected, want+" (enforce)\n") {
+			t.Fatal("reviewed profile identity rejected")
+		}
+		for _, observed := range []string{"unconfined", want + " (complain)", want + "-other (enforce)"} {
+			if verifiedAppArmorLabel(selected, observed) {
+				t.Fatal("unexpected or unenforced profile accepted")
+			}
+		}
+	}
+	for _, name := range []string{"unconfined", "docker-default", "startrack-v02-smoke-", scoped + "0", strings.ToUpper(scoped), scoped + "\n"} {
+		if _, err := selectedAppArmorProfile(name); err == nil || verifiedAppArmorLabel(name, name+" (enforce)") {
+			t.Fatal("arbitrary deployment policy identity accepted")
+		}
+		_, err := loadSettings(func(key string) string {
+			if key == "JUDGE_APPARMOR_PROFILE" {
+				return name
+			}
+			return ""
+		}, func(string) (string, error) {
+			t.Fatal("read credentials before rejecting deployment profile")
+			return "", nil
+		})
+		if err == nil {
+			t.Fatal("invalid root profile setting accepted")
+		}
+	}
+	if verifiedAppArmorLabel(scoped, DefaultAppArmorProfile+" (enforce)") || verifiedAppArmorLabel(DefaultAppArmorProfile, scoped+" (enforce)") {
+		t.Fatal("different valid profile identity accepted")
+	}
+	if got := testSettings(t).apparmorProfile; got != DefaultAppArmorProfile {
+		t.Fatal("default production policy identity changed")
+	}
+}
+
 func TestRootCredentialEnvironmentRejectedBeforeRead(t *testing.T) {
 	for _, name := range []string{"JUDGE_DATABASE_URL", "BACKEND_JUDGE_TOKEN", "JUDGE_BACKEND_TOKEN", "JUDGE_RUNTIME_TOKEN", "JUDGE_SCHEDULER_TOKEN", "JUDGE_CATALOG_CURSOR_KEY"} {
 		_, err := loadSettings(func(k string) string {

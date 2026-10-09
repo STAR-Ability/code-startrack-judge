@@ -1,5 +1,5 @@
 FROM golang:1.26.8-bookworm@sha256:26de5cf8eac40c12a1ff8de1a634971b4654fd881225eed7ace643b8c769f2f5 AS go-build
-ENV GOTOOLCHAIN=local CGO_ENABLED=0
+ENV GOTOOLCHAIN=local CGO_ENABLED=0 GOMAXPROCS=2 GOFLAGS=-p=1
 WORKDIR /src/service
 COPY service/ ./
 RUN --network=none test "$(go version)" = 'go version go1.26.8 linux/amd64' && \
@@ -73,4 +73,5 @@ RUN mkdir -p /run/secrets/startrack /var/lib/startrack/private /var/lib/startrac
     /usr/local/libexec/startrack/* > /opt/startrack/provenance/binaries.sha256 && \
     dpkg-query -W -f='${binary:Package}\t${Version}\t${Architecture}\n' > /opt/startrack/provenance/os-packages.tsv
 WORKDIR /
+HEALTHCHECK --interval=15s --timeout=5s --start-period=120s --retries=3 CMD ["/usr/local/bin/python3", "-c", "import json,urllib.request; o=urllib.request.build_opener(urllib.request.ProxyHandler({})); r=o.open('http://127.0.0.1:8082/health',timeout=3); b=r.read(4097); assert len(b)<=4096; h=json.loads(b); assert h=={'status':'ok','service':'judge-problem-service','contractVersion':'0.2.0','capabilities':{'catalog':True,'judge':True,'imports':True}}"]
 ENTRYPOINT ["/usr/local/libexec/startrack/supervisor"]

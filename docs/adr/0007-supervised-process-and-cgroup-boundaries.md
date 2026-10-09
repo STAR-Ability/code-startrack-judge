@@ -36,6 +36,18 @@ Each fresh sandbox owns a private `/w` tmpfs with mode1777 so its mapped UID1000
 
 The explicit synthetic qualification mode starts only a fixed matrix executable as UID20001 after the first fresh measurement. It inherits the supervisor's service cgroup, scoped environment and a bounded stdin credential envelope. Root keeps CLOEXEC accounting directory descriptors across the runtime bind and records actual outer/service/runtime resource maxima, peaks and events. A finite fifteen-minute matrix bound and separate root-only bounded diagnostic retention make failed qualification reviewable. The trusted launcher loads the exact reviewed AppArmor policy, verifies image equality, and records host eligibility; an enforce-mode policy name alone cannot establish loaded-policy provenance.
 
+An explicitly authorized shared-host startup/API smoke test may load a fresh
+`startrack-v02-smoke-<16 lowercase hex>` AppArmor name so it never replaces a
+profile used by another container. Its trusted launcher verifies the original
+policy against the exact image, then changes only that profile identifier and
+its two self-peer identifiers before loading. Root-only `JUDGE_APPARMOR_PROFILE`
+selects exactly `startrack-v02` (the unchanged default) or that bounded name;
+other identities fail before reading credentials. Measurement requires the
+selected actual kernel label in enforce mode and includes that label in its
+profile hash. The setting is absent from child environments and API DTOs.
+The narrower outer3GiB/one-CPU smoke cap does not change inner isolation or
+qualify maximum-package capacity, full adversarial behavior or production.
+
 An explicit fixed `reject` or `validate` capacity phase instead starts the normal judger and an API-role synthetic import executable, never the standalone matrix concurrently. Only the runtime-role database DSN and scheduling credential reach that UID20000 child. The [capacity harness](../../scripts/linux-import-capacity.py) retains a dedicated physical2GiB ext4 facility across rejection, separate offline synthetic ADMIN review and validation, without granting reviewer authority to a worker. It mounts only that dedicated storage path, with `nosuid,nodev,noexec`; no loop device enters a service container. Each phase is bounded to75minutes around the command's70minute limit, and reports actual service/runtime/outer accounting. Synthetic receipts expressly claim no upstream provenance.
 
 Normal service startup verifies the final API and judger executables using controlled same-UID peers. Positive synthetic environment/descriptor controls establish that missing paths are not being counted as isolation. Final target environment, memory, descriptor access, `process_vm_readv` and ptrace must return permission denial; process start identity and descriptor existence are checked before and after. Bounded root-owned structural evidence records the controls and final target identities. A separately inherited policy may deny synthetic memory/ptrace controls; that result is recorded rather than attributed to dumpability. Actual final-image proof remains mandatory.

@@ -486,7 +486,7 @@ func writeMeasurement(s settings, pid int, checks map[string]bool, publication *
 	if err != nil {
 		return fail("measurement_boot")
 	}
-	profile, err := measuredProfile(pid)
+	profile, err := measuredProfile(pid, s.apparmorProfile)
 	if err != nil {
 		return err
 	}
@@ -516,7 +516,7 @@ func writeMeasurement(s settings, pid int, checks map[string]bool, publication *
 	return publication.publish(temporary)
 }
 
-func measuredProfile(pid int) (string, error) {
+func measuredProfile(pid int, apparmorProfile string) (string, error) {
 	var profile bytes.Buffer
 	managerPrefix := "/proc/" + strconv.Itoa(pid)
 	managerStatus, err := os.ReadFile(managerPrefix + "/status")
@@ -545,10 +545,13 @@ func measuredProfile(pid int) (string, error) {
 				}
 			}
 		} else {
+			if path == "/proc/self/attr/current" && !verifiedAppArmorLabel(apparmorProfile, string(data)) {
+				return "", fail("measurement_profile")
+			}
 			if (path == managerPrefix+"/uid_map" || path == managerPrefix+"/gid_map") && strings.Join(strings.Fields(string(data)), " ") != "0 30000 1 1 100000 65536" {
 				return "", fail("measurement_manager_mapping")
 			}
-			expected := map[string]string{"/proc/self/attr/current": "startrack-v02 (enforce)", "/sys/fs/cgroup/memory.max": "4294967296", "/sys/fs/cgroup/pids.max": "256", "/sys/fs/cgroup/cpu.max": "200000 100000"}
+			expected := map[string]string{"/sys/fs/cgroup/memory.max": "4294967296", "/sys/fs/cgroup/pids.max": "256", "/sys/fs/cgroup/cpu.max": "200000 100000"}
 			if value, ok := expected[path]; ok && strings.TrimSpace(string(data)) != value {
 				return "", fail("measurement_profile")
 			}

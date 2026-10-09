@@ -49,6 +49,37 @@ Run the separate [synthetic API import-capacity harness](../../scripts/linux-imp
 
 ## Qualification host
 
+For explicitly authorized small tests on a shared Linux host, use the separate
+[bounded startup/API smoke launcher](../../scripts/linux-bounded-smoke.py).
+Provide a root0400 `judge_runtime` DSN for a disposable migrated `judge_capacity_*`
+database, its root0444 public CA, and its dedicated `startrack-v02-smoke-*` bridge
+network. The launcher accepts an immutable OCI reference or exact Docker image
+ID and verifies the image's clean commit and embedded security-profile bytes.
+It uses a fresh AppArmor profile name with only the profile/self-peer identifiers
+changed, leaving existing host profiles untouched.
+
+```sh
+sudo python3 scripts/linux-bounded-smoke.py \
+  --image sha256:<exact-local-image-id> \
+  --expected-commit <40-hex-reviewed-commit> \
+  --runtime-dsn-file /root/startrack-smoke/runtime-dsn \
+  --database-ca-file /root/startrack-smoke/db-ca.crt \
+  --network startrack-v02-smoke-<unique-id> \
+  --evidence /root/startrack-smoke/evidence-<fresh-run>
+```
+
+This path caps the container at3GiB/no swap/one CPU/256 processes and `/run` at
+512MiB; the ordinary supervisor's mandatory bounded startup and recurring
+isolation checks remain enabled. It verifies actual Docker limits, health,
+cpp17 availability, API authorization, an empty disposable catalog, and graceful
+stop/restart. Admission requires enough currently available memory for the cap
+plus1GiB headroom; later memory pressure aborts the run. The full matrix,
+maximum-package capacity, crash injection, task execution/recovery and real
+Backend integration are outside this scoped probe and remain explicitly unrun
+in its report. A Docker image ID is identified separately from an
+OCI manifest digest. This smoke evidence cannot qualify a production release or
+close the full sandbox/capacity gates.
+
 Use a dedicated disposable modern Linux host/VM with cgroup v2, supported namespaces/seccomp, controlled toolchain, and operator-reviewed cgroup delegation/capabilities/mounts. Record kernel, architecture, distribution, container runtime, cgroup layout, actual deployment privileges, and image digest. Run the exact pinned go-judge build and server-owned templates used in production, with `--no-fallback` and seccomp enabled. Consult the pinned source/configuration rather than obsolete README claims about defaults; see the [upstream compatibility matrix](../upstream/compatibility-matrix.md).
 
 The V0.2 deployment requires API/persistent worker, supervised judger, and go-judge inside the same judge business container. Keep the low-level service on `127.0.0.1:5050` with its own token, without a published host port. Qualify the exact restricted candidate profile through real tests. A different privileged profile provides no acceptance evidence for this candidate.

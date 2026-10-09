@@ -22,14 +22,20 @@ Versions follow the [release policy](docs/releases/process.md). No production re
 - Five forward schema migrations and actual PostgreSQL integrity, concurrency, privilege and SQL-log redaction checks.
 - Clean-candidate source/service artifact audits, complete physical layer inventories for Docker 29 archives, and bounded gzip coverage measurements that retain unresolved gaps.
 - Separate bounded gzip/TAR measurements for locked Rust source archives, with original image-receipt associations and retained nested gaps.
+- Narrow full-input GNU ar inspection with bounded symbol-index validation and retained unsupported/nested gaps.
 - Live task-drain and fenced shutdown-recovery qualification fixtures; real final-image execution remains pending.
 
 ### Changed
 
+- Cap Go image-build concurrency and add a bounded readiness health check to the service image.
+- Provide a separate 3 GiB shared-host startup/API/restart probe that retains mandatory isolation and full release gates.
 - Adopted owner-approved Apache-2.0 for Code Startrack-owned source; retained independent third-party terms and problem license approval.
 
 ### Fixed
 
+- Refuse unsupported or malformed nested ZIP envelopes before member decompression, preserving exclusion findings and resource limits.
+- Start the import registration expiry fixture inside its admitted transaction so database contention cannot test the wrong lease fence.
+- Reject writerless FIFO inputs promptly in the static gzip auditor while retaining file, link and size checks.
 - Allow namespace-init to collect checker feedback and remove its files during reset across sandbox identities, within the private execution workspace.
 - Preserve committed service module inputs during image preparation and retain generated dependency sums as separate build evidence.
 

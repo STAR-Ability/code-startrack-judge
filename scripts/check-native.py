@@ -35,11 +35,13 @@ def main() -> int:
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_image_layers.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_image_gzip.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_image_crates.py", "-v"], cwd=ROOT, env=env, check=True)
+        subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_image_ar.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_problemtools_wheel_audit.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_workload_seccomp_review.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_linux_import_capacity.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_linux_runtime_crash.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_linux_service_flow.py", "-v"], cwd=ROOT, env=env, check=True)
+        subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_linux_bounded_smoke.py", "-v"], cwd=ROOT, env=env, check=True)
         subprocess.run(["node", "scripts/verify-canonical-golden.mjs"], cwd=ROOT, env=env, check=True)
         schema_python = ROOT / ".local" / "contract-schema-tests" / "bin" / "python"
         if not schema_python.is_file():

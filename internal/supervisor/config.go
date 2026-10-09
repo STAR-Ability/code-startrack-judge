@@ -15,22 +15,23 @@ import (
 )
 
 const (
-	APIUID                = 20000
-	JudgerUID             = 20001
-	SchedulingGID         = 20002
-	RuntimeHostUID        = 30000
-	SecretsDirectory      = "/run/secrets/startrack"
-	QualificationPath     = "/run/startrack-supervisor/runtime-measurement.json"
-	PrivateDirectory      = "/var/lib/startrack/private"
-	RuntimeDirectory      = "/run/startrack-runtime/roots"
-	RuntimeCacheDirectory = "/run/startrack-runtime/cache"
-	SocketDirectory       = "/run/startrack"
-	SchedulingSocket      = "/run/startrack/judger.sock"
-	RuntimeBinary         = "/usr/local/libexec/startrack/go-judge"
-	RuntimeInitBinary     = "/usr/local/libexec/startrack/runtime-init"
-	APIBinary             = "/usr/local/libexec/startrack/judge-service"
-	JudgerBinary          = "/usr/local/libexec/startrack/startrack-judger"
-	MountProfile          = "/opt/startrack/mount.yaml"
+	APIUID                 = 20000
+	JudgerUID              = 20001
+	SchedulingGID          = 20002
+	RuntimeHostUID         = 30000
+	SecretsDirectory       = "/run/secrets/startrack"
+	QualificationPath      = "/run/startrack-supervisor/runtime-measurement.json"
+	PrivateDirectory       = "/var/lib/startrack/private"
+	RuntimeDirectory       = "/run/startrack-runtime/roots"
+	RuntimeCacheDirectory  = "/run/startrack-runtime/cache"
+	SocketDirectory        = "/run/startrack"
+	SchedulingSocket       = "/run/startrack/judger.sock"
+	RuntimeBinary          = "/usr/local/libexec/startrack/go-judge"
+	RuntimeInitBinary      = "/usr/local/libexec/startrack/runtime-init"
+	APIBinary              = "/usr/local/libexec/startrack/judge-service"
+	JudgerBinary           = "/usr/local/libexec/startrack/startrack-judger"
+	MountProfile           = "/opt/startrack/mount.yaml"
+	DefaultAppArmorProfile = "startrack-v02"
 )
 
 var digestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
@@ -40,6 +41,7 @@ type settings struct {
 	imageDigest, checkerDigest, bridgeDigest, acquisitionProxy                         string
 	qualificationOnly                                                                  bool
 	capacityPhase                                                                      string
+	apparmorProfile                                                                    string
 }
 
 func (settings) String() string     { return "supervisor settings [credentials redacted]" }
@@ -57,6 +59,11 @@ func loadSettings(getenv func(string) string, read func(string) (string, error))
 		}
 	}
 	s := settings{imageDigest: getenv("JUDGE_WORKER_IMAGE_DIGEST"), checkerDigest: getenv("JUDGE_CHECKER_SHA256"), bridgeDigest: getenv("JUDGE_MATURE_BRIDGE_SHA256"), acquisitionProxy: getenv("JUDGE_ACQUISITION_PROXY"), qualificationOnly: getenv("JUDGE_QUALIFICATION_ONLY") == "true"}
+	var err error
+	s.apparmorProfile, err = selectedAppArmorProfile(getenv("JUDGE_APPARMOR_PROFILE"))
+	if err != nil {
+		return settings{}, err
+	}
 	s.capacityPhase = getenv("JUDGE_QUALIFICATION_CAPACITY_PHASE")
 	if s.capacityPhase != "" && (!s.qualificationOnly || (s.capacityPhase != "reject" && s.capacityPhase != "validate")) {
 		return settings{}, fail("qualification_capacity_phase")
@@ -90,6 +97,24 @@ func loadSettings(getenv func(string) string, read func(string) (string, error))
 		}
 	}
 	return s, nil
+}
+
+// This root-only deployment identity permits a uniquely named copy of the
+// reviewed policy for bounded smoke tests. The trusted launcher verifies that
+// only profile/self-peer names differ; no API or child role chooses a policy.
+func selectedAppArmorProfile(name string) (string, error) {
+	if name == "" {
+		return DefaultAppArmorProfile, nil
+	}
+	if name != DefaultAppArmorProfile && !regexp.MustCompile(`^startrack-v02-smoke-[0-9a-f]{16}$`).MatchString(name) {
+		return "", fail("apparmor_profile")
+	}
+	return name, nil
+}
+
+func verifiedAppArmorLabel(profile, observed string) bool {
+	selected, err := selectedAppArmorProfile(profile)
+	return err == nil && strings.TrimSpace(observed) == selected+" (enforce)"
 }
 
 // Secret files are an operator-owned facility, not caller paths. No root
