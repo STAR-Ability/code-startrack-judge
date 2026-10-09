@@ -12,15 +12,18 @@ import argparse
 import hashlib
 import http.client
 import importlib.util
+import ipaddress
 import json
 import os
 from pathlib import Path
 import platform
 import re
 import secrets
+import selectors
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import tempfile
 import time
@@ -31,6 +34,11 @@ MEMORY_BYTES = 3 << 30
 MIN_HEADROOM_BYTES = 1 << 30
 NETWORK = re.compile(r"startrack-v02-(?:smoke-[a-z0-9-]+|integration_default)\Z")
 OWNER_LABEL = "io.startrack.bounded-smoke.owner"
+DOCKER_STREAM_BYTES = 65536
+MAX_DOCKER_DIAGNOSTIC_STREAMS = 16
+ENDPOINT_INSPECTION = ('{"Id":{{json .Id}},"Labels":{{json .Config.Labels}},"State":{{json .State}},'
+                       '"Networks":{{json .NetworkSettings.Networks}},"Ports":{{json .NetworkSettings.Ports}},'
+                       '"PortBindings":{{json .HostConfig.PortBindings}}}')
 
 
 def module(name, filename):
@@ -81,7 +89,7 @@ def image_identity(image, reference):
     return digest, "OCI_MANIFEST_DIGEST"
 
 
-def docker_limits(profile, apparmor, port):
+def docker_limits(profile, apparmor, port, internal=False):
     return ["--read-only", "--cgroupns", "private", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges", "--security-opt", "apparmor=" + apparmor,
             "--security-opt", "seccomp=" + str(profile), "--pids-limit", "256",
@@ -89,8 +97,149 @@ def docker_limits(profile, apparmor, port):
             "--tmpfs", "/run:rw,nosuid,nodev,size=512m,nr_inodes=65536,mode=755",
             "--tmpfs", "/var/lib/startrack:rw,nosuid,nodev,noexec,size=64m,mode=755",
             "--tmpfs", "/var/lib/startrack-judger:rw,nosuid,nodev,noexec,size=64m,mode=755",
-            "--publish", "127.0.0.1:" + (str(port) if port else "") + ":8082",
+            *([] if internal else ["--publish", "127.0.0.1:" + (str(port) if port else "") + ":8082"]),
             *[item for capability in QUALIFY.CAPABILITIES for item in ("--cap-add", capability)]]
+
+
+def bounded_docker(prefix, args, timeout=10):
+    """Drain both CLI streams with fixed memory and time bounds; never print them."""
+    buffers = {"stdout": bytearray(), "stderr": bytearray()}
+    truncated = {name: False for name in buffers}
+    timed_out = False
+    deadline = time.monotonic() + timeout
+    process = subprocess.Popen(prefix + args, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        with selectors.DefaultSelector() as selected:
+            for name in buffers:
+                selected.register(getattr(process, name), selectors.EVENT_READ, name)
+            while selected.get_map():
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    break
+                for key, _ in selected.select(min(1, remaining)):
+                    chunk = os.read(key.fd, 16384)
+                    if not chunk:
+                        selected.unregister(key.fileobj)
+                        continue
+                    name = key.data
+                    remaining_bytes = DOCKER_STREAM_BYTES - len(buffers[name])
+                    buffers[name].extend(chunk[:remaining_bytes])
+                    truncated[name] = truncated[name] or len(chunk) > remaining_bytes
+            if not timed_out:
+                try:
+                    process.wait(timeout=max(0.01, deadline - time.monotonic()))
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+    finally:
+        try:
+            if process.poll() is None:
+                process.kill()
+            # Do not use Popen.__exit__: it waits without a deadline if reaping
+            # fails, which could postpone cleanup of the owned container.
+            process.wait(timeout=5)
+        finally:
+            process.stdout.close()
+            process.stderr.close()
+    result = subprocess.CompletedProcess(prefix + args, process.returncode, bytes(buffers["stdout"]), bytes(buffers["stderr"]))
+    result.timed_out = timed_out
+    result.truncated = truncated
+    return result
+
+
+def retain_docker_output(evidence, name, result):
+    require(re.fullmatch(r"(?:initial|restart|failure)-(?:run|start|inspect|port|logs)", name), "docker_diagnostic_name_invalid")
+    destination = evidence / "docker-private"
+    if not destination.exists():
+        destination.mkdir(mode=0o700)
+    facts = destination.lstat()
+    require(stat.S_ISDIR(facts.st_mode) and stat.S_IMODE(facts.st_mode) == 0o700 and facts.st_uid == os.geteuid(),
+            "docker_private_directory_invalid")
+    entries = list(destination.iterdir())
+    require(len(entries) <= MAX_DOCKER_DIAGNOSTIC_STREAMS - 2, "docker_diagnostic_global_bound_exceeded")
+    for stream in ("stdout", "stderr"):
+        data = getattr(result, stream)
+        require(isinstance(data, bytes) and len(data) <= DOCKER_STREAM_BYTES, "docker_diagnostic_stream_bound_exceeded")
+        descriptor = os.open(destination / (name + "." + stream), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        with os.fdopen(descriptor, "wb") as output:
+            output.write(data)
+
+
+def observed_docker(prefix, args, evidence, report, name, timeout=10, check=True):
+    result = bounded_docker(prefix, args, timeout)
+    retained = False
+    try:
+        retain_docker_output(evidence, name, result)
+        retained = True
+    except (OSError, ValueError):
+        report["privateDockerDiagnosticsRetentionFailed"] = True
+    report.setdefault("dockerDiagnostics", []).append({"stage": name, "operation": args[0], "exitCode": result.returncode,
+        "timedOut": result.timed_out, "stdoutTruncated": result.truncated["stdout"], "stderrTruncated": result.truncated["stderr"],
+        "privateRetained": retained})
+    if check:
+        require(result.returncode == 0 and not result.timed_out, "docker_" + args[0] + "_failed")
+        require(not any(result.truncated.values()), "docker_output_bound_exceeded")
+        require(retained, "private_docker_evidence_retention_failed")
+    return result
+
+
+def sanitized_state(value):
+    require(isinstance(value, dict), "container_state_invalid")
+    status = value.get("Status")
+    require(status in ("created", "running", "paused", "restarting", "removing", "exited", "dead")
+            and type(value.get("Running")) is bool and type(value.get("OOMKilled")) is bool
+            and type(value.get("ExitCode")) is int and 0 <= value["ExitCode"] <= 255, "container_state_invalid")
+    return {"status": status, "running": value["Running"], "exitCode": value["ExitCode"], "oomKilled": value["OOMKilled"]}
+
+
+def owned_inspection(value, container_id, owner):
+    require(isinstance(value, dict) and re.fullmatch(r"[0-9a-f]{64}", value.get("Id", ""))
+            and (container_id is None or value["Id"] == container_id)
+            and isinstance(value.get("Labels"), dict) and value["Labels"].get(OWNER_LABEL) == owner,
+            "container_endpoint_ownership_invalid")
+    return value["Id"]
+
+
+def service_endpoint(prefix, container_id, network, owner, evidence, report, stage):
+    result = observed_docker(prefix, ["inspect", container_id, "--format", ENDPOINT_INSPECTION], evidence, report, stage + "-inspect")
+    value = json.loads(result.stdout)
+    owned_inspection(value, container_id, owner)
+    report[stage + "ContainerState"] = sanitized_state(value["State"])
+    require(value["State"]["Running"] is True, "service_stopped_before_readiness")
+    attached = value.get("Networks")
+    require(isinstance(attached, dict) and set(attached) == {network["Name"]}
+            and attached[network["Name"]].get("NetworkID") == network["Id"], "container_network_identity_invalid")
+    if network.get("Internal") is True:
+        address = ipaddress.IPv4Address(attached[network["Name"]].get("IPAddress", ""))
+        subnets = [ipaddress.ip_network(item["Subnet"]) for item in network.get("IPAM", {}).get("Config", []) if item.get("Subnet")]
+        require(address.is_private and not any((address.is_loopback, address.is_link_local, address.is_unspecified, address.is_reserved))
+                and any(isinstance(subnet, ipaddress.IPv4Network) and subnet.is_private and address in subnet for subnet in subnets),
+                "private_bridge_address_invalid")
+        require(value.get("PortBindings") in (None, {}) and isinstance(value.get("Ports"), dict)
+                and all(binding is None for binding in value["Ports"].values()), "internal_bridge_publication_forbidden")
+        report["endpoint"] = {"scope": "PRIVATE_BRIDGE_FROM_HOST", "port": 8082, "hostPublished": False}
+        return str(address), 8082
+    result = observed_docker(prefix, ["port", container_id, "8082/tcp"], evidence, report, stage + "-port")
+    publication = result.stdout.decode("utf-8", errors="strict").strip()
+    require(re.fullmatch(r"127\.0\.0\.1:[1-9][0-9]{0,4}", publication), "loopback_publication_invalid")
+    port = int(publication.split(":")[1])
+    require(port <= 65535, "loopback_publication_invalid")
+    report["endpoint"] = {"scope": "LOOPBACK_HOST_PUBLICATION", "port": port, "hostPublished": True}
+    return "127.0.0.1", port
+
+
+def failure_diagnostics(prefix, active, container_id, owner, evidence, report):
+    result = observed_docker(prefix, ["inspect", container_id or active, "--format", ENDPOINT_INSPECTION], evidence, report,
+                             "failure-inspect", check=False)
+    if result.returncode != 0 or result.timed_out or any(result.truncated.values()):
+        report["failureContainerDiagnosticsAvailable"] = False
+        return
+    value = json.loads(result.stdout)
+    identifier = owned_inspection(value, container_id, owner)
+    report["failureContainerState"] = sanitized_state(value["State"])
+    logs = observed_docker(prefix, ["logs", "--tail", "200", identifier], evidence, report, "failure-logs", check=False)
+    report["failureContainerDiagnosticsAvailable"] = (logs.returncode == 0 and not logs.timed_out
+                                                      and not report.get("privateDockerDiagnosticsRetentionFailed", False))
 
 
 def enforced_limits(configuration, apparmor):
@@ -107,8 +256,8 @@ def enforced_limits(configuration, apparmor):
             "nanoCPUs": configuration["NanoCpus"], "pids": configuration["PidsLimit"], "readOnlyRoot": True, "privateCgroupNamespace": True}
 
 
-def request(port, path, token=None):
-    connection = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+def request(port, path, token=None, host="127.0.0.1"):
+    connection = http.client.HTTPConnection(host, port, timeout=5)
     try:
         correlation = str(uuid.uuid4())
         headers = {"X-Request-Id": correlation}
@@ -136,7 +285,7 @@ def healthy_docker_probe(observed_state):
     return health.get("Status") == "healthy" and any(entry.get("ExitCode") == 0 for entry in health.get("Log", []))
 
 
-def wait_ready(prefix, container, directory, digest, port):
+def wait_ready(prefix, container, directory, digest, port, host="127.0.0.1"):
     deadline = time.monotonic() + 120
     startup_measurement = startup_observations = None
     while True:
@@ -154,7 +303,7 @@ def wait_ready(prefix, container, directory, digest, port):
                         "startup_global_idle_evidence_missing")
                 startup_measurement = measurement
             try:
-                status, health = request(port, "/health")
+                status, health = request(port, "/health", host=host)
                 if status == 200 and healthy_docker_probe(observed_state):
                     require(health == {"status": "ok", "service": "judge-problem-service", "contractVersion": "0.2.0",
                                        "capabilities": {"catalog": True, "judge": True, "imports": True}}, "health_response_invalid")
@@ -165,17 +314,17 @@ def wait_ready(prefix, container, directory, digest, port):
         time.sleep(1)
 
 
-def api_checks(port, token):
+def api_checks(port, token, host="127.0.0.1"):
     statuses = {}
     for description, credential, expected in (("missing", None, 401), ("wrong", secrets.token_hex(32), 401)):
-        status, _ = request(port, "/internal/v2/languages", credential)
+        status, _ = request(port, "/internal/v2/languages", credential, host)
         require(status == expected, "api_authorization_failed")
         statuses[description] = status
-    status, languages = request(port, "/internal/v2/languages", token)
+    status, languages = request(port, "/internal/v2/languages", token, host)
     require(status == 200 and isinstance(languages.get("data"), dict), "languages_probe_failed")
     values = languages["data"].get("languages", [])
     require(len(values) == 1 and values[0].get("languageId") == "cpp17", "languages_capability_invalid")
-    status, catalog = request(port, "/internal/v2/problems", token)
+    status, catalog = request(port, "/internal/v2/problems", token, host)
     require(status == 200 and catalog.get("data") == [] and catalog.get("meta", {}).get("total") == 0
             and catalog.get("meta", {}).get("hasNext") is False, "disposable_catalog_not_empty")
     return {"authorizationHTTP": statuses, "languages": languages["data"], "emptyCatalogHTTP": status}
@@ -226,8 +375,14 @@ def cleanup_owned(prefix, containers, apparmor, profile_loaded, owner):
     return cleanup
 
 
-def retain_and_cleanup(prefix, containers, apparmor, profile_loaded, runtime, evidence, report, owner):
+def retain_and_cleanup(prefix, containers, apparmor, profile_loaded, runtime, evidence, report, owner, active=None, container_id=None):
     try:
+        if not report["passed"] and active is not None:
+            try:
+                failure_diagnostics(prefix, active, container_id, owner, evidence, report)
+            except Exception as error:
+                report["failureContainerDiagnosticsAvailable"] = False
+                report["failureContainerDiagnosticErrorClass"] = type(error).__name__
         report["privateDiagnosticsRetained"] = QUALIFY.retain_private(runtime, evidence)
     except (OSError, ValueError):
         report.update({"passed": False, "failureCode": "private_evidence_retention_failed"})
@@ -243,7 +398,7 @@ def main():
     parser.add_argument("--runtime-dsn-file", type=Path, required=True)
     parser.add_argument("--database-ca-file", type=Path, required=True)
     parser.add_argument("--network", required=True)
-    parser.add_argument("--host-port", type=int, default=0, help="loopback port; default allocates an unused ephemeral port")
+    parser.add_argument("--host-port", type=int, default=0, help="non-internal bridge loopback port; default allocates an ephemeral port; omit for internal bridges")
     parser.add_argument("--evidence", type=Path, required=True)
     args = parser.parse_args()
     require(platform.system() == "Linux" and platform.machine() in ("x86_64", "amd64") and os.geteuid() == 0, "trusted_linux_root_runner_required")
@@ -251,9 +406,6 @@ def main():
             and 0 <= args.host_port <= 65535, "smoke_arguments_invalid")
     dsn, _ = CAPACITY.trusted_dsn(args.runtime_dsn_file, "judge_runtime")
     ca, ca_hash = CAPACITY.trusted_public_ca(args.database_ca_file)
-    if args.host_port:
-        with socket.socket() as probe:
-            probe.bind(("127.0.0.1", args.host_port))
     initial_headroom = check_headroom(startup=True)
     prefix = ["docker", "--context", "default"]
     daemon = json.loads(QUALIFY.run(prefix, ["info", "--format", "{{json .}}"], timeout=10).stdout)
@@ -262,7 +414,13 @@ def main():
     digest, identity_kind = image_identity(image, args.image)
     require(image.get("Config", {}).get("Healthcheck", {}).get("Test", ["NONE"])[0] != "NONE", "image_healthcheck_required")
     network = json.loads(QUALIFY.run(prefix, ["network", "inspect", args.network], timeout=10).stdout)[0]
-    require(network.get("Driver") == "bridge", "dedicated_bridge_network_required")
+    require(network.get("Driver") == "bridge" and network.get("Name") == args.network
+            and re.fullmatch(r"[0-9a-f]{64}", network.get("Id", "")) and type(network.get("Internal")) is bool,
+            "dedicated_bridge_network_required")
+    require(not (network["Internal"] and args.host_port), "host_port_not_applicable_to_internal_network")
+    if args.host_port:
+        with socket.socket() as probe:
+            probe.bind(("127.0.0.1", args.host_port))
     evidence = args.evidence.absolute()
     require(not evidence.exists() and not evidence.is_symlink(), "fresh_evidence_directory_required")
     evidence.mkdir(mode=0o755, parents=True)
@@ -270,12 +428,14 @@ def main():
     facilities = Path(tempfile.mkdtemp(prefix="facility-", dir=evidence))
     facilities.chmod(0o755)
     containers, profile_loaded = [], False
+    active = container_id = None
     profile = ROOT / "docker/startrack-v02.seccomp.json"
     apparmor = facilities / "apparmor.profile"
     runtime = facilities / "runtime"
     runtime.mkdir(mode=0o755)
     report = {"schemaVersion": 1, "scope": "SHARED_HOST_BOUNDED_STARTUP_AND_API_SMOKE", "passed": False,
               "qualified": False, "productionQualified": False, "sourceCommit": args.expected_commit,
+              "runnerSha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
               "imageReference": args.image, "imageID": image["Id"], "runtimeDigest": digest, "runtimeDigestKind": identity_kind,
               "limits": {"memoryBytes": MEMORY_BYTES, "swapBytes": 0, "cpus": 1, "pids": 256, "runTmpfsBytes": 512 << 20},
               "host": {"kernel": platform.release(), "memoryBytes": daemon.get("MemTotal"), "availableBeforeBytes": initial_headroom},
@@ -316,7 +476,7 @@ def main():
         report["ownedContainer"] = active
         containers.append(active)
         command = ["run", "--name", active, "--label", OWNER_LABEL + "=" + identifier,
-                   "--detach", "--network", args.network, *docker_limits(profile, identifier, args.host_port),
+                   "--detach", "--network", args.network, *docker_limits(profile, identifier, args.host_port, network["Internal"]),
                    "--mount", "type=bind,source=" + str(secret_directory) + ",target=/run/secrets/startrack,readonly",
                    "--mount", "type=bind,source=" + str(runtime) + ",target=/run/startrack-supervisor",
                    "--mount", "type=bind,source=" + str(ca) + ",target=" + CAPACITY.DATABASE_CA_PATH + ",readonly",
@@ -324,28 +484,26 @@ def main():
                    "--env", "JUDGE_WORKER_IMAGE_DIGEST=" + digest,
                    "--env", "JUDGE_CHECKER_SHA256=" + binaries["/opt/startrack/libexec/default_validator"],
                    "--env", "JUDGE_MATURE_BRIDGE_SHA256=" + binaries["/opt/startrack/libexec/problemtools-bridge.py"], image["Id"]]
-        QUALIFY.run(prefix, command, timeout=30)
-        configuration = json.loads(QUALIFY.run(prefix, ["inspect", active, "--format", "{{json .HostConfig}}"], timeout=10).stdout)
+        launched = observed_docker(prefix, command, evidence, report, "initial-run", timeout=30)
+        container_id = launched.stdout.decode("utf-8", errors="strict").strip()
+        require(re.fullmatch(r"[0-9a-f]{64}", container_id), "owned_container_id_invalid")
+        configuration = json.loads(QUALIFY.run(prefix, ["inspect", container_id, "--format", "{{json .HostConfig}}"], timeout=10).stdout)
         report["enforcedDockerLimits"] = enforced_limits(configuration, identifier)
-        port_output = QUALIFY.run(prefix, ["port", active, "8082/tcp"], timeout=10).stdout.strip()
-        require(re.fullmatch(r"127\.0\.0\.1:[1-9][0-9]{0,4}", port_output), "loopback_publication_invalid")
-        port = int(port_output.split(":")[1])
-        first, report["health"], report["initialIsolationObservations"] = wait_ready(prefix, active, runtime, digest, port)
+        host, port = service_endpoint(prefix, container_id, network, identifier, evidence, report, "initial")
+        first, report["health"], report["initialIsolationObservations"] = wait_ready(prefix, container_id, runtime, digest, port, host)
         report["initialMeasurement"] = first
-        report["initialDockerHealthcheckPassed"] = healthy_docker_probe(state(prefix, active))
-        report["api"] = api_checks(port, values["backend-judge-token"])
-        report["firstStop"] = stop(prefix, active, runtime)
+        report["initialDockerHealthcheckPassed"] = healthy_docker_probe(state(prefix, container_id))
+        report["api"] = api_checks(port, values["backend-judge-token"], host)
+        report["firstStop"] = stop(prefix, container_id, runtime)
         check_headroom(startup=True)
-        QUALIFY.run(prefix, ["start", active], timeout=15)
-        port_output = QUALIFY.run(prefix, ["port", active, "8082/tcp"], timeout=10).stdout.strip()
-        require(re.fullmatch(r"127\.0\.0\.1:[1-9][0-9]{0,4}", port_output), "loopback_publication_invalid")
-        port = int(port_output.split(":")[1])
-        second, _, report["restartIsolationObservations"] = wait_ready(prefix, active, runtime, digest, port)
+        observed_docker(prefix, ["start", container_id], evidence, report, "restart-start", timeout=15)
+        host, port = service_endpoint(prefix, container_id, network, identifier, evidence, report, "restart")
+        second, _, report["restartIsolationObservations"] = wait_ready(prefix, container_id, runtime, digest, port, host)
         QUALIFY.require_fresh_restart(first, second, report["restartIsolationObservations"])
         report["restartMeasurement"] = second
-        report["restartDockerHealthcheckPassed"] = healthy_docker_probe(state(prefix, active))
-        report["restartAPI"] = api_checks(port, values["backend-judge-token"])
-        report["finalStop"] = stop(prefix, active, runtime)
+        report["restartDockerHealthcheckPassed"] = healthy_docker_probe(state(prefix, container_id))
+        report["restartAPI"] = api_checks(port, values["backend-judge-token"], host)
+        report["finalStop"] = stop(prefix, container_id, runtime)
         report.update({"passed": True, "failureCode": ""})
     except (ValueError, OSError, KeyError, TypeError, json.JSONDecodeError, subprocess.SubprocessError) as error:
         report["failureCode"] = str(error) if isinstance(error, ValueError) and re.fullmatch(r"[a-z_]+", str(error)) else type(error).__name__
@@ -353,7 +511,7 @@ def main():
         signal.alarm(0)
         signal.signal(signal.SIGINT, signal.SIG_IGN)
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
-        cleanup = retain_and_cleanup(prefix, containers, apparmor, profile_loaded, runtime, evidence, report, identifier)
+        cleanup = retain_and_cleanup(prefix, containers, apparmor, profile_loaded, runtime, evidence, report, identifier, active, container_id)
         report["cleanupPassed"] = cleanup
         if not cleanup:
             report.update({"passed": False, "failureCode": "owned_resource_cleanup_failed"})
