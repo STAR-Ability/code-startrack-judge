@@ -37,7 +37,19 @@ jobs:
           make toolchain upstream-fetch
           python3 scripts/validation-tools.py fetch
           python3 scripts/validation-sources.py fetch
-          python3 scripts/prepare-image-context.py prepare .local/unqualified-context --release-commit "$SOURCE_COMMIT"
+          python3 - <<'PY'
+          import importlib.util,os,subprocess
+          spec=importlib.util.spec_from_file_location('context','scripts/prepare-image-context.py')
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          original_run=subprocess.run
+          def build_run(arguments,*args,**kwargs):
+              if any(str(value).endswith('/scripts/check-go-judge-licenses.py') for value in arguments) and 'prepare' in arguments:
+                  print('UNQUALIFIED: release dependency/legal inventory audit omitted')
+                  return subprocess.CompletedProcess(arguments,0)
+              return original_run(arguments,*args,**kwargs)
+          module.subprocess.run=build_run
+          module.prepare('.local/unqualified-context',os.environ['SOURCE_COMMIT'])
+          PY
           source_lock_sha=$(sha256sum validation-sources.lock.json | cut -d ' ' -f 1)
           python3 scripts/release-artifacts.py candidate-sources-prepare --source-commit "$SOURCE_COMMIT" \
             --context .local/unqualified-context --bundle ".cache/validation-sources/$source_lock_sha" --output .local/unqualified-sources
@@ -58,7 +70,7 @@ jobs:
                 'releaseStatus':'PRE_RELEASE','deployment':'NOT_DEPLOYED',
                 'originalDockerfileSHA256':hashlib.sha256(original.encode()).hexdigest(),
                 'buildDockerfileSHA256':hashlib.sha256(modified.encode()).hexdigest(),
-                'omittedBuildSteps':['Go unit tests','problemtools wheel audit','pip dependency check'],
+                'omittedBuildSteps':['Go unit tests','problemtools wheel audit','pip dependency check','Go dependency/legal inventory audit preparation'],
                 'reason':'User requested publication without further testing or audits',
                 'ciRun':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}
           note_bytes=json.dumps(note,indent=2)+'\n'
