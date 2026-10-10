@@ -1,81 +1,130 @@
-name: Foundation
-
+name: Publish unqualified PR25 build only
 on:
-  push:
-    branches: [dev, main]
-  pull_request:
-    branches: [dev, main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
-  group: foundation-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
+  group: unqualified-pr25-b8eb47e
+  cancel-in-progress: false
 jobs:
-  foundation:
-    name: Portable foundation
+  publish:
+    if: github.repository == 'STAR-Ability/code-startrack-judge' && github.ref == 'refs/heads/artifact/unqualified-pr25-b8eb47e'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      # v4.3.1; verified against actions/checkout's GitHub tag ref.
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          persist-credentials: false
-      - name: Test the foundation validator
-        run: python3 scripts/check-foundation.py --self-test
-      - name: Install verified Go SDK
-        run: make toolchain
-      - name: Install hash-locked contract test dependencies
-        run: make contract-test-setup
-      - name: Validate repository foundation
-        run: make check
-      - name: Verify retained corresponding-source signatures on Linux
-        run: python3 scripts/validation-sources.py verify-signatures
-      - name: Parse workflow, issue forms, and Compose YAML
-        run: ruby -rpsych -e 'ARGV.each { |path| Psych.parse_file(path) }' .github/workflows/*.yml .github/ISSUE_TEMPLATE/*.yml compose.yaml
-      - name: Validate portable Compose configuration
-        run: docker compose --env-file .env.example --file compose.yaml config --quiet
-      - name: Fetch and verify pinned upstream source
-        run: make upstream-fetch upstream-verify
-      - name: Verify upstream patch provenance and omissions
-        run: make upstream-patch-check
-
-  postgres:
-    name: PostgreSQL contracts
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    services:
-      postgres:
-        image: postgres:17.10-bookworm@sha256:9b18b78397054fce88a9552e9d5a3ad5bb7fd258c5b3cc1c5028e46373d6ea8f
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
-          # Disposable synthetic CI credential; never used by deployments.
-          POSTGRES_PASSWORD: EXAMPLE_CI_ONLY_POSTGRES_PASSWORD
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 2s
-          --health-timeout 5s
-          --health-retries 30
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
     env:
-      JUDGE_TEST_ADMIN_DATABASE_URL: postgresql://postgres:EXAMPLE_CI_ONLY_POSTGRES_PASSWORD@127.0.0.1:5432/postgres?sslmode=disable
+      SOURCE_COMMIT: b8eb47e74540ae36439636f8d2ae776f001033da
+      IMAGE_TAG: ghcr.io/star-ability/code-startrack-judge:unqualified-pr25-git-b8eb47e74540ae36439636f8d2ae776f001033da
+      SOURCE_TAG: ghcr.io/star-ability/code-startrack-judge-sources:unqualified-pr25-git-b8eb47e74540ae36439636f8d2ae776f001033da
+      DOCKER_CONFIG: /tmp/startrack-pr25-registry
       GOTOOLCHAIN: local
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
+          ref: b8eb47e74540ae36439636f8d2ae776f001033da
+          fetch-depth: 0
           persist-credentials: false
-      - name: Install verified Go SDK
-        run: make toolchain
-      - name: Exercise actual PostgreSQL service contracts and recovery
-        run: .local/toolchains/go1.26.8/go/bin/go test -mod=readonly -race -count=1 ./...
-      - name: Qualify exact operator grants and private SQL logging
+      - name: Authenticate GHCR with job-scoped credentials
         env:
-          POSTGRES_REFERENCE: postgres:17.10-bookworm@sha256:9b18b78397054fce88a9552e9d5a3ad5bb7fd258c5b3cc1c5028e46373d6ea8f
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          postgres_image_id=$(docker image inspect "$POSTGRES_REFERENCE" --format '{{.Id}}')
-          python3 scripts/test-license-review-grants.py --context default --image "$postgres_image_id"
+          install -d -m 0700 "$DOCKER_CONFIG"
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Fetch pinned build and corresponding-source inputs
+        run: |
+          make toolchain upstream-fetch
+          python3 scripts/validation-tools.py fetch
+          python3 scripts/validation-sources.py fetch
+          python3 scripts/prepare-image-context.py prepare .local/unqualified-context --release-commit "$SOURCE_COMMIT"
+          source_lock_sha=$(sha256sum validation-sources.lock.json | cut -d ' ' -f 1)
+          python3 scripts/release-artifacts.py candidate-sources-prepare --source-commit "$SOURCE_COMMIT" \
+            --context .local/unqualified-context --bundle ".cache/validation-sources/$source_lock_sha" --output .local/unqualified-sources
+      - name: Record recipe override omitting further testing and auditing
+        run: |
+          python3 - <<'PY'
+          import hashlib,importlib.util,json,os
+          from pathlib import Path
+          context=Path('.local/unqualified-context')
+          recipe=context/'Dockerfile';original=recipe.read_text();lines=original.splitlines(keepends=True)
+          modified=''.join(line for line in lines if not any(text in line for text in (
+              'go test -mod=vendor','/usr/local/bin/python3 /build/problemtools-wheel-audit.py',
+              '--wheel /build/dist/problemtools-','--output /opt/startrack/provenance/problemtools-wheel-audit.json',
+              '/usr/local/bin/python3 -m pip check')))
+          assert len(lines)-len(modified.splitlines())==5
+          recipe.write_text(modified)
+          note={'sourceCommit':os.environ['SOURCE_COMMIT'],'qualification':'UNQUALIFIED',
+                'releaseStatus':'PRE_RELEASE','deployment':'NOT_DEPLOYED',
+                'originalDockerfileSHA256':hashlib.sha256(original.encode()).hexdigest(),
+                'buildDockerfileSHA256':hashlib.sha256(modified.encode()).hexdigest(),
+                'omittedBuildSteps':['Go unit tests','problemtools wheel audit','pip dependency check'],
+                'reason':'User requested publication without further testing or audits',
+                'ciRun':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}
+          note_bytes=json.dumps(note,indent=2)+'\n'
+          (context/'provenance/unqualified-build.json').write_text(note_bytes)
+          spec=importlib.util.spec_from_file_location('context','scripts/prepare-image-context.py')
+          module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+          inventory=context/'provenance/context-inventory.json';record=json.loads(inventory.read_text())
+          record['buildOverride']=note;record['inventory']=module.inventory(context)
+          inventory.write_text(json.dumps(record,indent=2)+'\n')
+          distribution=Path('.local/unqualified-sources/distribution')
+          (distribution/'context/provenance/unqualified-build.json').write_text(note_bytes)
+          carrier=distribution/'source-inventory.json';record=json.loads(carrier.read_text())
+          record['qualification']='UNQUALIFIED';record['buildOverride']=note
+          record['inventory']=[entry for entry in module.inventory(distribution) if entry['path']!='source-inventory.json']
+          carrier.write_text(json.dumps(record,indent=2)+'\n')
+          evidence=Path('.local/publication-evidence');evidence.mkdir()
+          (evidence/'unqualified-build.json').write_text(note_bytes)
+          (evidence/'Dockerfile.unqualified').write_text(modified)
+          PY
+      - name: Build and publish corresponding sources without execution
+        run: |
+          docker buildx build --load --platform linux/amd64 --network none --provenance=false --sbom=false \
+            --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
+            --label 'org.opencontainers.image.source=https://github.com/STAR-Ability/code-startrack-judge' \
+            --label 'org.opencontainers.image.licenses=Apache-2.0' \
+            --label 'io.startrack.artifact=corresponding-source' \
+            --label 'io.startrack.qualification=UNQUALIFIED' --label 'io.startrack.release-status=PRE_RELEASE' \
+            --tag "$SOURCE_TAG" .local/unqualified-sources
+          docker push "$SOURCE_TAG" 2>&1 | tee .local/publication-evidence/sources-push.log
+          docker image inspect "$SOURCE_TAG" --format '{{json .RepoDigests}}' > .local/publication-evidence/source-digests.json
+          docker image rm "$SOURCE_TAG"
+          docker builder prune --force
+          rm -rf -- .local/unqualified-sources .cache/validation-sources
+      - name: Build and publish unqualified service without execution
+        run: |
+          docker buildx build --load --platform linux/amd64 --network none --provenance=false --sbom=false \
+            --metadata-file .local/publication-evidence/build-metadata.json \
+            --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
+            --label 'org.opencontainers.image.source=https://github.com/STAR-Ability/code-startrack-judge' \
+            --label 'org.opencontainers.image.licenses=Apache-2.0' \
+            --label 'org.opencontainers.image.title=UNQUALIFIED PR25 pre-release' \
+            --label 'io.startrack.qualification=UNQUALIFIED' --label 'io.startrack.release-status=PRE_RELEASE' \
+            --label 'io.startrack.deployment=NOT_DEPLOYED' --tag "$IMAGE_TAG" .local/unqualified-context
+          docker push "$IMAGE_TAG" 2>&1 | tee .local/publication-evidence/image-push.log
+          docker image inspect "$IMAGE_TAG" --format '{{json .RepoDigests}}' > .local/publication-evidence/image-digests.json
+          docker image inspect "$IMAGE_TAG" --format '{{json .Config.Labels}}' > .local/publication-evidence/image-labels.json
+          identifier=$(docker create --entrypoint /bin/true "$IMAGE_TAG")
+          docker cp "$identifier:/opt/startrack/provenance/binaries.sha256" .local/publication-evidence/binaries.sha256
+          docker rm "$identifier"
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('.local/publication-evidence');note=json.loads((root/'unqualified-build.json').read_text())
+          note['imageTag']=os.environ['IMAGE_TAG'];note['sourceTag']=os.environ['SOURCE_TAG']
+          note['imageReferences']=json.loads((root/'image-digests.json').read_text())
+          note['sourceReferences']=json.loads((root/'source-digests.json').read_text())
+          (root/'publication.json').write_text(json.dumps(note,indent=2)+'\n')
+          PY
+          cat .local/publication-evidence/publication.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: unqualified-pr25-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .local/publication-evidence/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Remove job credentials
+        if: always()
+        run: rm -rf -- "$DOCKER_CONFIG"
