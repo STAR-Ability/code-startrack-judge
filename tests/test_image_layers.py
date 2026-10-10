@@ -1,0 +1,458 @@
+"""Measure physical image evidence, including historic and nested payloads."""
+
+import hashlib
+import gzip
+from contextlib import nullcontext
+import importlib.util
+import io
+import json
+from pathlib import Path
+import struct
+import tarfile
+import tempfile
+import unittest
+from unittest.mock import patch
+import zipfile
+import zlib
+
+ROOT = Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location("image_layers", ROOT / "scripts/audit-image-layers.py")
+LAYERS = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(LAYERS)
+
+
+def sha(body):
+    return hashlib.sha256(body).hexdigest()
+
+
+def tar_bytes(entries):
+    output = io.BytesIO()
+    with tarfile.open(fileobj=output, mode="w") as archive:
+        for name, body in entries:
+            member = tarfile.TarInfo(name)
+            member.size = len(body)
+            member.mode = 0o644
+            archive.addfile(member, io.BytesIO(body))
+    return output.getvalue()
+
+
+def zip_bytes(name, body, *, compression=zipfile.ZIP_STORED):
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", compression=compression) as archive:
+        archive.writestr(name, body)
+    return output.getvalue()
+
+
+def forged_small_zip(body):
+    """Keep compressed streams while lying about every member's size and CRC."""
+    body = bytearray(body)
+    with zipfile.ZipFile(io.BytesIO(body)) as archive:
+        for info in archive.infolist():
+            struct.pack_into("<I", body, info.header_offset + 14, zlib.crc32(b"X"))
+            struct.pack_into("<I", body, info.header_offset + 22, 1)
+    cursor = 0
+    while True:
+        central = body.find(b"PK\x01\x02", cursor)
+        if central < 0:
+            break
+        struct.pack_into("<I", body, central + 16, zlib.crc32(b"X"))
+        struct.pack_into("<I", body, central + 24, 1)
+        cursor = central + 4
+    return bytes(body)
+
+
+def saved_image(root, layer_bodies, config_change=None, layer_change=None):
+    config = {"os": "linux", "architecture": "amd64", "rootfs": {
+        "type": "layers", "diff_ids": ["sha256:" + sha(body) for body in layer_bodies]}}
+    if config_change:
+        config_change(config)
+    config_body = json.dumps(config).encode()
+    config_id = "sha256:" + sha(config_body)
+    entries = [("config.json", config_body), ("manifest.json", json.dumps([
+        {"Config": "config.json", "RepoTags": ["fixture:local"],
+         "Layers": [f"layer-{index}/layer.tar" for index in range(len(layer_bodies))]}]).encode())]
+    for index, body in enumerate(layer_bodies):
+        entries.append((f"layer-{index}/layer.tar", layer_change(body) if layer_change else body))
+    path = root / "image.tar"
+    path.write_bytes(tar_bytes(entries))
+    return path, config_id
+
+
+def saved_oci_image(root, layer_bodies, *, stored_layers=None, filename=None,
+                    config_change=None, manifest_change=None, index_change=None,
+                    legacy_change=None, extra_entries=()):
+    """Docker 29 containerd export: content-addressed gzip and both graph views."""
+    if stored_layers is None:
+        stored_layers = []
+        for body in layer_bodies:
+            output = io.BytesIO()
+            with gzip.GzipFile(filename=filename or "", fileobj=output, mode="wb", mtime=0) as encoded:
+                encoded.write(body)
+            stored_layers.append(output.getvalue())
+    config = {"os": "linux", "architecture": "amd64", "rootfs": {
+        "type": "layers", "diff_ids": ["sha256:" + sha(body) for body in layer_bodies]}}
+    if config_change:
+        config_change(config)
+    config_body = json.dumps(config).encode()
+    config_id = "sha256:" + sha(config_body)
+    config_path = "blobs/sha256/" + sha(config_body)
+    paths = ["blobs/sha256/" + sha(body) for body in stored_layers]
+    manifest = {"schemaVersion": 2, "mediaType": LAYERS.OCI_MANIFEST,
+                "config": {"mediaType": LAYERS.OCI_CONFIG, "digest": config_id, "size": len(config_body)},
+                "layers": [{"mediaType": LAYERS.OCI_GZIP_LAYER, "digest": "sha256:" + sha(body), "size": len(body)}
+                           for body in stored_layers]}
+    if manifest_change:
+        manifest_change(manifest)
+    manifest_body = json.dumps(manifest).encode()
+    manifest_id = "sha256:" + sha(manifest_body)
+    index = {"schemaVersion": 2, "mediaType": LAYERS.OCI_INDEX,
+             "manifests": [{"mediaType": LAYERS.OCI_MANIFEST, "digest": manifest_id, "size": len(manifest_body)}]}
+    if index_change:
+        index_change(index)
+    legacy = {"Config": config_path, "RepoTags": None, "Layers": list(paths)}
+    if legacy_change:
+        legacy_change(legacy)
+    entries = [("oci-layout", b'{"imageLayoutVersion":"1.0.0"}'), ("index.json", json.dumps(index).encode()),
+               ("manifest.json", json.dumps([legacy]).encode()),
+               ("blobs/sha256/" + sha(manifest_body), manifest_body), (config_path, config_body)]
+    entries.extend(zip(paths, stored_layers))
+    entries.extend(extra_entries)
+    path = root / "image.tar"
+    path.write_bytes(tar_bytes(entries))
+    return path, config_id, manifest_id
+
+
+class ImageLayerTests(unittest.TestCase):
+    def test_docker29_gzip_binds_stored_blob_expanded_diffid_and_oci_manifest(self):
+        body = tar_bytes([("usr/file", b"measured")])
+        for filename in (None, "rootfs.tar"):
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as temporary:
+                path, identity, manifest = saved_oci_image(Path(temporary), [body], filename=filename)
+                report = LAYERS.audit(path, identity)
+                self.assertEqual(report["ociImageManifestID"], manifest)
+                self.assertIn("CALLER_DOCKER_ID_RECONCILIATION_REQUIRED", report["ociImageManifestIDBinding"])
+                self.assertEqual(report["layers"][0]["tarSizeBytes"], len(body))
+                self.assertEqual(report["layers"][0]["diffID"], "sha256:" + sha(body))
+                self.assertEqual(report["layers"][0]["inventory"][0]["sha256"], sha(b"measured"))
+                self.assertEqual(report["layers"][0]["compression"], "gzip")
+                self.assertEqual(report["measurement"]["expandedLayerBytes"], len(body))
+                self.assertEqual(report["layers"][0]["gzipEnvelope"]["headerSizeBytes"], 10 if filename is None else 21)
+                self.assertFalse(report["qualified"])
+
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity, _ = saved_oci_image(Path(temporary), [body], stored_layers=[body],
+                                              manifest_change=lambda m: m["layers"][0].update(mediaType=LAYERS.OCI_LAYER))
+            self.assertEqual(LAYERS.audit(path, identity)["layers"][0]["compression"], "none")
+
+    def test_docker29_rehashed_forged_graphs_and_external_payloads_are_refused(self):
+        cases = [
+            {"manifest_change": lambda m: m["layers"][0].update(size=m["layers"][0]["size"] + 1)},
+            {"manifest_change": lambda m: m["config"].update(size=m["config"]["size"] + 1)},
+            {"manifest_change": lambda m: m["layers"][0].update(mediaType=LAYERS.OCI_LAYER + "+zstd")},
+            {"manifest_change": lambda m: m["layers"][0].update(urls=["https://invalid.example/payload"])},
+            {"manifest_change": lambda m: m["config"].update(digest=m["layers"][0]["digest"], size=m["layers"][0]["size"])},
+            {"manifest_change": lambda m: m.update(schemaVersion=2.0)},
+            {"index_change": lambda m: m["manifests"][0].update(size=m["manifests"][0]["size"] + 1)},
+            {"index_change": lambda m: m["manifests"][0].update(mediaType=LAYERS.OCI_INDEX)},
+            {"index_change": lambda m: m["manifests"].append(m["manifests"][0])},
+            {"index_change": lambda m: m.update(schemaVersion=2.0)},
+            {"index_change": lambda m: m.update(artifactType="unsupported")},
+            {"index_change": lambda m: m.update(subject={"digest": "sha256:" + "0" * 64})},
+            {"legacy_change": lambda m: m["Layers"].reverse()},
+            {"config_change": lambda c: c["rootfs"]["diff_ids"].__setitem__(0, "sha256:" + "0" * 64)},
+            {"extra_entries": [("blobs/sha256/" + sha(b"unreferenced"), b"unreferenced")]},
+        ]
+        bodies = [tar_bytes([("usr/first", b"first")]), tar_bytes([("usr/second", b"second")])]
+        for index, options in enumerate(cases):
+            with self.subTest(case=index), tempfile.TemporaryDirectory() as temporary:
+                path, identity, _ = saved_oci_image(Path(temporary), bodies, **options)
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity)
+
+    def test_docker29_stored_digest_and_manifest_content_forgery_are_refused(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity, manifest = saved_oci_image(Path(temporary), [tar_bytes([("usr/file", b"safe")])])
+            with tarfile.open(path, "r:") as saved:
+                entries = [(m.name, saved.extractfile(m).read()) for m in saved]
+            for selected in ("blobs/sha256/" + manifest.removeprefix("sha256:"),
+                             next(name for name, _ in entries if name.startswith("blobs/sha256/")
+                                  and name != "blobs/sha256/" + manifest.removeprefix("sha256:")
+                                  and name != "blobs/sha256/" + identity.removeprefix("sha256:"))):
+                changed = [(name, body[:-1] + bytes([body[-1] ^ 1]) if name == selected else body) for name, body in entries]
+                path.write_bytes(tar_bytes(changed))
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity)
+
+    def test_gzip_header_carriers_trailers_and_concatenated_members_are_refused(self):
+        body = tar_bytes([("usr/file", b"safe")])
+        encoded = gzip.compress(body, mtime=0)
+        corrupt_crc = encoded[:-8] + bytes([encoded[-8] ^ 1]) + encoded[-7:]
+        corrupt_size = encoded[:-4] + bytes([encoded[-4] ^ 1]) + encoded[-3:]
+        payloads = [encoded + suffix for suffix in (b"\0", b"unmeasured", gzip.compress(b"", mtime=0))]
+        payloads.extend((encoded[:-1], corrupt_crc, corrupt_size))
+        for flag in (1, 2, 4, 16, 32, 64, 128):
+            payloads.append(encoded[:3] + bytes([flag]) + encoded[4:])
+        jar = zip_bytes("org/eclipse/jdt/internal/jarinjarloader/JarRsrcLoader.class", b"class")
+        payloads.extend((encoded[:3] + b"\x10" + encoded[4:10] + jar + b"\0" + encoded[10:],
+                         encoded[:3] + b"\x08" + encoded[4:10] + b"other\0" + encoded[10:],
+                         encoded[:3] + b"\x08" + encoded[4:10] + b"rootfs"))
+        for index, payload in enumerate(payloads):
+            with self.subTest(case=index), tempfile.TemporaryDirectory() as temporary:
+                path, identity, _ = saved_oci_image(Path(temporary), [body], stored_layers=[payload])
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity)
+
+    def test_gzip_expansion_bound_counts_tar_end_padding(self):
+        body = tar_bytes([("usr/file", b"safe")]) + b"\0" * 100000
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity, _ = saved_oci_image(Path(temporary), [body])
+            with patch.object(LAYERS, "MAX_TOTAL_BYTES", 32768), self.assertRaisesRegex(LAYERS.Failure, "expanded layer size bound"):
+                LAYERS.audit(path, identity)
+
+    def test_config_and_each_physical_layer_are_bound_to_content(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path, identity = saved_image(root, [tar_bytes([("usr/file", b"first")]), tar_bytes([("usr/file", b"second")])])
+            report = LAYERS.audit(path, identity)
+            self.assertTrue(report["completePhysicalLayerInventory"])
+            self.assertEqual(len(report["layers"]), 2)
+            self.assertEqual(report["layers"][0]["inventory"][0]["sha256"], sha(b"first"))
+            self.assertEqual(report["layers"][1]["inventory"][0]["sha256"], sha(b"second"))
+            self.assertFalse(report["qualified"])
+            with self.assertRaises(LAYERS.Failure):
+                LAYERS.audit(path, "sha256:" + "0" * 64)
+            path, identity = saved_image(root, [tar_bytes([("usr/file", b"first")])], layer_change=lambda body: body + b"tampered")
+            with self.assertRaises(LAYERS.Failure):
+                LAYERS.audit(path, identity)
+
+    def test_whiteout_does_not_hide_excluded_previous_layer(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity = saved_image(Path(temporary), [
+                tar_bytes([("build/problemtools/support/viva/payload", b"excluded")]),
+                tar_bytes([("build/problemtools/support/.wh.viva", b"")])])
+            report = LAYERS.audit(path, identity)
+            self.assertEqual(report["exclusionGate"], "FAILED")
+            self.assertIn("layer[0]", report["excludedPayloadFindings"][0]["location"])
+
+    def test_nested_and_prepended_jars_cannot_hide_excluded_class_paths(self):
+        jar = zip_bytes("org/eclipse/jdt/internal/jarinjarloader/JarRsrcLoader.class", b"class")
+        wheel = zip_bytes("package/module.py", b"pass\n")
+        for payload in (zip_bytes("renamed.data", jar), jar + wheel):
+            with self.subTest(payload_size=len(payload)), tempfile.TemporaryDirectory() as temporary:
+                path, identity = saved_image(Path(temporary), [tar_bytes([("usr/renamed", payload)])])
+                report = LAYERS.audit(path, identity)
+                self.assertTrue(report["excludedPayloadFindings"])
+                self.assertEqual(report["exclusionGate"], "FAILED")
+
+    def test_renamed_exact_binary_hash_is_detected(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(LAYERS, "BLOCKED_DIGESTS", frozenset([sha(b"excluded bytes")])):
+            path, identity = saved_image(Path(temporary), [tar_bytes([("usr/renamed", b"excluded bytes")])])
+            report = LAYERS.audit(path, identity)
+            self.assertEqual(report["excludedPayloadFindings"][0]["reason"], "EXACT_EXCLUDED_BINARY_SHA256")
+
+    def test_renamed_java_class_definition_is_distinct_from_reference(self):
+        blocked = b"org/eclipse/jdt/internal/jarinjarloader/JarRsrcLoader"
+        allowed = b"example/Allowed"
+        prefix = b"\xca\xfe\xba\xbe" + struct.pack(">HHH", 0, 52, 5)
+        pool = (b"\x01" + struct.pack(">H", len(blocked)) + blocked + b"\x07\x00\x01"
+                + b"\x01" + struct.pack(">H", len(allowed)) + allowed + b"\x07\x00\x03")
+        for definition, expected in ((2, True), (4, False)):
+            body = prefix + pool + struct.pack(">HHH", 0x21, definition, 0)
+            with self.subTest(definition=definition), tempfile.TemporaryDirectory() as temporary:
+                path, identity = saved_image(Path(temporary), [tar_bytes([("usr/renamed", body)])])
+                report = LAYERS.audit(path, identity)
+                self.assertEqual(bool(report["excludedPayloadFindings"]), expected)
+
+    def test_layer_paths_reject_traversal_absolute_and_duplicate_entries(self):
+        for entries in ([('../escape', b'x')], [('/absolute', b'x')], [('safe', b'x'), ('safe', b'y')]):
+            with self.subTest(entries=entries), tempfile.TemporaryDirectory() as temporary:
+                path, identity = saved_image(Path(temporary), [tar_bytes(entries)])
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity)
+
+    def test_payload_after_tar_end_cannot_escape_inventory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity = saved_image(Path(temporary), [tar_bytes([("usr/file", b"safe")]) + b"unmeasured binary"])
+            with self.assertRaises(LAYERS.Failure):
+                LAYERS.audit(path, identity)
+
+    def test_nonzero_regular_metadata_and_outer_member_padding_is_refused(self):
+        regular = bytearray(tar_bytes([("usr/file", b"x")]))
+        regular[513:520] = b"PADDING"
+        metadata = io.BytesIO()
+        with tarfile.open(fileobj=metadata, mode="w", format=tarfile.PAX_FORMAT) as archive:
+            member = tarfile.TarInfo("usr/file")
+            member.pax_headers = {"audit-metadata": "ordinary metadata"}
+            member.size = 1
+            archive.addfile(member, io.BytesIO(b"x"))
+        padded_metadata = bytearray(metadata.getvalue())
+        header = tarfile.TarInfo.frombuf(padded_metadata[:512], "utf-8", "surrogateescape")
+        padded_metadata[512 + header.size:519 + header.size] = b"PADDING"
+        for layer in (bytes(regular), bytes(padded_metadata)):
+            with self.subTest(layer_type="regular" if layer == bytes(regular) else "metadata"), tempfile.TemporaryDirectory() as temporary:
+                path, identity = saved_image(Path(temporary), [layer])
+                with self.assertRaisesRegex(LAYERS.Failure, "member padding"):
+                    LAYERS.audit(path, identity)
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity = saved_image(Path(temporary), [tar_bytes([("usr/file", b"x")])])
+            outer = bytearray(path.read_bytes())
+            header = tarfile.TarInfo.frombuf(outer[:512], "utf-8", "surrogateescape")
+            outer[512 + header.size:519 + header.size] = b"PADDING"
+            path.write_bytes(outer)
+            with self.assertRaisesRegex(LAYERS.Failure, "member padding"):
+                LAYERS.audit(path, identity)
+
+    def test_nonregular_payload_and_outer_archive_tail_are_refused(self):
+        body = io.BytesIO()
+        with tarfile.open(fileobj=body, mode="w") as archive:
+            member = tarfile.TarInfo("usr/link")
+            member.type = tarfile.SYMTYPE
+            member.linkname = "target"
+            member.size = 14
+            archive.addfile(member, io.BytesIO(b"excluded bytes"))
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            path, identity = saved_image(root, [body.getvalue()])
+            with self.assertRaises(LAYERS.Failure):
+                LAYERS.audit(path, identity)
+            path, identity = saved_image(root, [tar_bytes([("usr/file", b"safe")])])
+            path.write_bytes(path.read_bytes() + b"unmeasured outer payload")
+            with self.assertRaises(LAYERS.Failure):
+                LAYERS.audit(path, identity)
+
+    def test_pax_payloads_are_measured_and_inspected(self):
+        jar = zip_bytes("org/eclipse/jdt/internal/jarinjarloader/JarRsrcLoader.class", b"class")
+        for value in ("excluded bytes", jar.decode("utf-8", errors="surrogateescape")):
+            body = io.BytesIO()
+            with tarfile.open(fileobj=body, mode="w", format=tarfile.PAX_FORMAT) as archive:
+                member = tarfile.TarInfo("usr/allowed")
+                member.pax_headers = {"audit-payload": value}
+                archive.addfile(member)
+            with self.subTest(value_size=len(value)), tempfile.TemporaryDirectory() as temporary, \
+                 patch.object(LAYERS, "BLOCKED_DIGESTS", frozenset([sha(b"excluded bytes")])):
+                path, identity = saved_image(Path(temporary), [body.getvalue()])
+                report = LAYERS.audit(path, identity)
+                self.assertTrue(report["layers"][0]["metadataPayloads"])
+                self.assertTrue(report["excludedPayloadFindings"])
+                self.assertEqual(report["exclusionGate"], "FAILED")
+
+    def test_orphan_zip_local_payload_keeps_exclusion_gate_pending(self):
+        jar = zip_bytes("org/eclipse/jdt/internal/jarinjarloader/JarRsrcLoader.class", b"class")
+        orphan = jar[:jar.index(b"PK\x01\x02")]
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity = saved_image(Path(temporary), [tar_bytes([("usr/renamed.whl", orphan + zip_bytes("module.py", b"pass\n"))])])
+            report = LAYERS.audit(path, identity)
+            self.assertTrue(report["archiveInspectionGaps"])
+            self.assertEqual(report["exclusionGate"], "PENDING_ARCHIVE_COVERAGE")
+
+    def test_compressed_zip_directory_payload_is_not_skipped(self):
+        jar = zip_bytes("org/eclipse/jdt/internal/jarinjarloader/JarRsrcLoader.class", b"class")
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("allowed/", jar)
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity = saved_image(Path(temporary), [tar_bytes([("usr/renamed.whl", output.getvalue())])])
+            report = LAYERS.audit(path, identity)
+            self.assertTrue(report["excludedPayloadFindings"])
+            self.assertEqual(report["exclusionGate"], "FAILED")
+
+    def test_unsupported_zip_codecs_do_not_expand_forged_sizes_and_keep_findings(self):
+        for compression in (zipfile.ZIP_BZIP2, zipfile.ZIP_LZMA):
+            payload = forged_small_zip(zip_bytes("viva.jar", b"X" * (128 << 10), compression=compression))
+            with self.subTest(compression=compression), tempfile.TemporaryDirectory() as temporary:
+                path, identity = saved_image(Path(temporary), [tar_bytes([("usr/nested.zip", payload)])])
+                with patch.object(LAYERS, "BLOCKED_DIGESTS", frozenset((sha(payload),))), \
+                     patch.object(zipfile, "_get_decompressor", side_effect=AssertionError("unsupported codec invoked")):
+                    report = LAYERS.audit(path, identity)
+                self.assertEqual(report["measurement"]["zipExpandedBytes"], 0)
+                self.assertIn("ZIP_ENVELOPE_BYTES_NOT_FULLY_MEMBER_BOUND",
+                              {row["reason"] for row in report["archiveInspectionGaps"]})
+                reasons = {row["reason"] for row in report["excludedPayloadFindings"]}
+                self.assertIn("EXACT_EXCLUDED_BINARY_SHA256", reasons)
+                self.assertIn("EXCLUDED_VIVA_OR_NESTED_CLASS_PATH", reasons)
+                self.assertEqual(report["exclusionGate"], "FAILED")
+
+    def test_forged_deflate_sizes_cannot_bypass_nested_aggregate_expansion_bound(self):
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for index in range(24):
+                archive.writestr(str(index), b"X" * (16 << 10))
+        inner = forged_small_zip(output.getvalue())
+        payload = zip_bytes("inner.zip", inner, compression=zipfile.ZIP_DEFLATED)
+        original = zipfile._get_decompressor
+        opened = []
+        def observe(compression):
+            opened.append(compression)
+            return original(compression)
+        with tempfile.TemporaryDirectory() as temporary:
+            path, identity = saved_image(Path(temporary), [tar_bytes([("usr/nested.zip", payload)])])
+            with patch.multiple(LAYERS, MAX_ZIP_BYTES=4 << 10, MAX_ZIP_EXPANDED_BYTES=64 << 10), \
+                 patch.object(zipfile, "_get_decompressor", side_effect=observe):
+                report = LAYERS.audit(path, identity)
+        self.assertEqual(opened, [zipfile.ZIP_DEFLATED])
+        self.assertEqual(report["measurement"]["zipExpandedBytes"], len(inner))
+        self.assertIn("ZIP_ENVELOPE_BYTES_NOT_FULLY_MEMBER_BOUND",
+                      {row["reason"] for row in report["archiveInspectionGaps"]})
+        self.assertEqual(report["exclusionGate"], "PENDING_ARCHIVE_COVERAGE")
+
+    def test_false_empty_stored_directory_and_member_comment_remain_pending(self):
+        stored = bytearray(zip_bytes("allowed/", b"unmeasured bytes"))
+        central = stored.index(b"PK\x01\x02")
+        struct.pack_into("<I", stored, 22, 0)
+        struct.pack_into("<I", stored, central + 24, 0)
+        commented = io.BytesIO()
+        with zipfile.ZipFile(commented, "w") as archive:
+            member = zipfile.ZipInfo("allowed.py")
+            member.comment = b"opaque member metadata"
+            archive.writestr(member, b"pass\n")
+        for payload in (bytes(stored), commented.getvalue()):
+            with self.subTest(payload_size=len(payload)), tempfile.TemporaryDirectory() as temporary:
+                path, identity = saved_image(Path(temporary), [tar_bytes([("usr/renamed.whl", payload)])])
+                report = LAYERS.audit(path, identity)
+                self.assertTrue(report["archiveInspectionGaps"])
+                self.assertEqual(report["exclusionGate"], "PENDING_ARCHIVE_COVERAGE")
+
+    def test_tar_extension_size_is_bounded_before_parser_allocation(self):
+        output = io.BytesIO()
+        with tarfile.open(fileobj=output, mode="w", format=tarfile.PAX_FORMAT) as archive:
+            member = tarfile.TarInfo("usr/allowed")
+            member.pax_headers = {"audit-payload": "oversized metadata"}
+            archive.addfile(member)
+        with tempfile.TemporaryDirectory() as temporary, patch.object(LAYERS, "MAX_METADATA_BYTES", 8):
+            path, identity = saved_image(Path(temporary), [output.getvalue()])
+            # Manifest size exceeds this synthetic low bound too; the direct
+            # layer call isolates the extension parser's allocation boundary.
+            counters = {"payloadBytes": 0, "metadataBytes": 0, "layerMembers": 0, "zipArchives": 0, "zipMembers": 0, "zipExpandedBytes": 0}
+            with self.assertRaises(LAYERS.Failure):
+                LAYERS.layer_inventory(io.BytesIO(output.getvalue()), 0, [], [], counters)
+
+    def test_source_carrier_exact_inventory_and_outer_root_boundary(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            payload = b"source bytes"
+            receipt = json.dumps({"schemaVersion": 1, "inventory": [{"path": "context/source.go", "sizeBytes": len(payload), "sha256": sha(payload), "mode": "0644"}]}).encode()
+            inventory = root / "source-inventory.json"
+            inventory.write_bytes(receipt)
+            entries = [("corresponding-source/context/source.go", payload), ("corresponding-source/source-inventory.json", receipt)]
+            path, identity = saved_image(root, [tar_bytes(entries)])
+            self.assertTrue(LAYERS.audit(path, identity, inventory)["sourceCarrierInventoryVerified"])
+            for changed in (entries + [("outside", b"unexpected")], [entries[0], (entries[1][0], b"tampered")]):
+                path, identity = saved_image(root, [tar_bytes(changed)])
+                with self.assertRaises(LAYERS.Failure):
+                    LAYERS.audit(path, identity, inventory)
+            path, identity = saved_image(root, [tar_bytes(entries), tar_bytes([("corresponding-source/extra", b"x")])])
+            with self.assertRaises(LAYERS.Failure):
+                LAYERS.audit(path, identity, inventory)
+
+    def test_uninspected_archive_and_size_bounds_remain_pending(self):
+        for payload, options in ((b"\x1f\x8bnot inspected", {}), (b"oversized", {"MAX_ZIP_BYTES": 4})):
+            with self.subTest(payload=payload), tempfile.TemporaryDirectory() as temporary, patch.multiple(LAYERS, **options) if options else nullcontext():
+                path, identity = saved_image(Path(temporary), [tar_bytes([("usr/archive", payload)])])
+                report = LAYERS.audit(path, identity)
+                self.assertTrue(report["archiveInspectionGaps"])
+                self.assertEqual(report["exclusionGate"], "PENDING_ARCHIVE_COVERAGE")
+                self.assertEqual(report["wholeImageSBOM"], "SEPARATE_EVIDENCE_REQUIRED")
+
+
+if __name__ == "__main__":
+    unittest.main()

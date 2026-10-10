@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security policy
+    url: https://github.com/STAR-Ability/code-startrack-judge/blob/dev/SECURITY.md
+    about: Read the private reporting process before reporting a vulnerability.

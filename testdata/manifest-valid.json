@@ -1,0 +1,250 @@
+{
+  "manifestVersion": "0.2.0",
+  "adapterVersion": "ojlab-kattis-v0.2.1",
+  "sourceFormat": "oj-lab-v1",
+  "source": {
+    "source": "OJ_LAB",
+    "repositoryUrl": "https://github.com/oj-lab/problem-packages",
+    "revision": "a4e1d6f106879043eb30af640ba46d0fcbf8053f",
+    "packagePath": "problems/synthetic-schema-fixture"
+  },
+  "judgeMode": "BATCH_PASS_FAIL",
+  "title": "Synthetic schema fixture — no execution qualification",
+  "statement": {
+    "format": "MARKDOWN",
+    "source": {
+      "path": "statement.md",
+      "sha256": "1be52757ed776fb7125cda63a97984ab52c512d737eb4e33cc062197241a255a",
+      "sizeBytes": 27
+    },
+    "validationFormat": "TEX",
+    "validationView": {
+      "path": "problem_statement/problem.en.tex",
+      "sha256": "b5b12270ecf36f0f53fc5725af64dcd4a966cc6f608e6a327d33efeb13b5790a",
+      "sizeBytes": 39
+    },
+    "shortname": "pe89d4b28fcdd9495a4998a818eb7ddcd"
+  },
+  "languageIds": [
+    "cpp17"
+  ],
+  "limits": {
+    "timeLimitMs": 1000,
+    "wallLimitMs": 2000,
+    "memoryLimitBytes": 1073741824,
+    "outputLimitBytes": 8388608,
+    "processLimit": 32
+  },
+  "executionProfiles": {
+    "compile": {
+      "timeLimitMs": 60000,
+      "wallLimitMs": 120000,
+      "memoryLimitBytes": 1073741824,
+      "outputLimitBytes": 8388608,
+      "processLimit": 128
+    },
+    "checker": {
+      "timeLimitMs": 60000,
+      "wallLimitMs": 120000,
+      "memoryLimitBytes": 1073741824,
+      "outputLimitBytes": 8388608,
+      "processLimit": 32
+    },
+    "validator": {
+      "timeLimitMs": 60000,
+      "wallLimitMs": 120000,
+      "memoryLimitBytes": 1073741824,
+      "outputLimitBytes": 8388608,
+      "processLimit": 64
+    }
+  },
+  "checker": {
+    "type": "DEFAULT",
+    "profile": "kattis-default-v1.20260907",
+    "implementation": {
+      "repositoryUrl": "https://github.com/Kattis/problemtools",
+      "revision": "6010cbaa37a1612117f49566b2fff8646d53faa2",
+      "sourcePath": "support/default_validator/default_validator.cc",
+      "sourceSha256": "2901f589366382433562ec550b2f0c979ad94e3a3a4f737ef013bdd4fa334328"
+    },
+    "caseSensitive": false,
+    "spaceChangeSensitive": false,
+    "floatAbsoluteTolerance": null,
+    "floatRelativeTolerance": null
+  },
+  "testCount": 2,
+  "tests": [
+    {
+      "ordinal": 1,
+      "visibility": "SAMPLE",
+      "input": {
+        "path": "data/sample/1.in",
+        "sha256": "f251ddc12234e0da8d3b778bd0f7463fb477f16f47757f5617dc8b4ff4d4f14a",
+        "sizeBytes": 4
+      },
+      "answer": {
+        "path": "data/sample/1.ans",
+        "sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+        "sizeBytes": 2
+      },
+      "checker": {
+        "type": "DEFAULT",
+        "profile": "kattis-default-v1.20260907",
+        "implementation": {
+          "repositoryUrl": "https://github.com/Kattis/problemtools",
+          "revision": "6010cbaa37a1612117f49566b2fff8646d53faa2",
+          "sourcePath": "support/default_validator/default_validator.cc",
+          "sourceSha256": "2901f589366382433562ec550b2f0c979ad94e3a3a4f737ef013bdd4fa334328"
+        },
+        "caseSensitive": false,
+        "spaceChangeSensitive": false,
+        "floatAbsoluteTolerance": null,
+        "floatRelativeTolerance": null
+      },
+      "validationGroup": null
+    },
+    {
+      "ordinal": 2,
+      "visibility": "SECRET",
+      "input": {
+        "path": "data/secret/1.in",
+        "sha256": "9d63d0ac62176acc5977b66200ca95fbff99307c57a1cff0bc7d445ee1672dde",
+        "sizeBytes": 4
+      },
+      "answer": {
+        "path": "data/secret/1.ans",
+        "sha256": "2e6d31a5983a91251bfae5aefa1c0a19d8ba3cf601d0e8a706b4cfa9661a6b8a",
+        "sizeBytes": 2
+      },
+      "checker": {
+        "type": "DEFAULT",
+        "profile": "kattis-default-v1.20260907",
+        "implementation": {
+          "repositoryUrl": "https://github.com/Kattis/problemtools",
+          "revision": "6010cbaa37a1612117f49566b2fff8646d53faa2",
+          "sourcePath": "support/default_validator/default_validator.cc",
+          "sourceSha256": "2901f589366382433562ec550b2f0c979ad94e3a3a4f737ef013bdd4fa334328"
+        },
+        "caseSensitive": false,
+        "spaceChangeSensitive": false,
+        "floatAbsoluteTolerance": null,
+        "floatRelativeTolerance": null
+      },
+      "validationGroup": null
+    }
+  ],
+  "referenceSolutions": [
+    {
+      "file": {
+        "path": "submissions/accepted/main.cpp",
+        "sha256": "91193433e324b0a1e525cfecac51f43ca0f6bd882e1c34292510c9740115bf5c",
+        "sizeBytes": 22
+      },
+      "languageId": "cpp17",
+      "role": "ACCEPTED"
+    }
+  ],
+  "inputValidators": [
+    {
+      "file": {
+        "path": "input_validators/validate.py",
+        "sha256": "dad145c9d0dff3ca325090b87471a0cda89d85ca8f556bd690dd5e8249181485",
+        "sizeBytes": 22
+      },
+      "languageId": "python3"
+    }
+  ],
+  "files": [
+    {
+      "originalPath": "data/sample/1.ans",
+      "normalizedPath": "data/sample/1.ans",
+      "sourceSha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+      "normalizedSha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+      "sourceSizeBytes": 2,
+      "normalizedSizeBytes": 2,
+      "role": "ANSWER"
+    },
+    {
+      "originalPath": "data/sample/1.in",
+      "normalizedPath": "data/sample/1.in",
+      "sourceSha256": "f251ddc12234e0da8d3b778bd0f7463fb477f16f47757f5617dc8b4ff4d4f14a",
+      "normalizedSha256": "f251ddc12234e0da8d3b778bd0f7463fb477f16f47757f5617dc8b4ff4d4f14a",
+      "sourceSizeBytes": 4,
+      "normalizedSizeBytes": 4,
+      "role": "INPUT"
+    },
+    {
+      "originalPath": "data/secret/1.ans",
+      "normalizedPath": "data/secret/1.ans",
+      "sourceSha256": "2e6d31a5983a91251bfae5aefa1c0a19d8ba3cf601d0e8a706b4cfa9661a6b8a",
+      "normalizedSha256": "2e6d31a5983a91251bfae5aefa1c0a19d8ba3cf601d0e8a706b4cfa9661a6b8a",
+      "sourceSizeBytes": 2,
+      "normalizedSizeBytes": 2,
+      "role": "ANSWER"
+    },
+    {
+      "originalPath": "data/secret/1.in",
+      "normalizedPath": "data/secret/1.in",
+      "sourceSha256": "9d63d0ac62176acc5977b66200ca95fbff99307c57a1cff0bc7d445ee1672dde",
+      "normalizedSha256": "9d63d0ac62176acc5977b66200ca95fbff99307c57a1cff0bc7d445ee1672dde",
+      "sourceSizeBytes": 4,
+      "normalizedSizeBytes": 4,
+      "role": "INPUT"
+    },
+    {
+      "originalPath": "input_validators/validate.py",
+      "normalizedPath": "input_validators/validate.py",
+      "sourceSha256": "dad145c9d0dff3ca325090b87471a0cda89d85ca8f556bd690dd5e8249181485",
+      "normalizedSha256": "dad145c9d0dff3ca325090b87471a0cda89d85ca8f556bd690dd5e8249181485",
+      "sourceSizeBytes": 22,
+      "normalizedSizeBytes": 22,
+      "role": "INPUT_VALIDATOR"
+    },
+    {
+      "originalPath": null,
+      "normalizedPath": "problem_statement/problem.en.tex",
+      "sourceSha256": null,
+      "normalizedSha256": "b5b12270ecf36f0f53fc5725af64dcd4a966cc6f608e6a327d33efeb13b5790a",
+      "sourceSizeBytes": null,
+      "normalizedSizeBytes": 39,
+      "role": "VALIDATION_STATEMENT"
+    },
+    {
+      "originalPath": "statement.md",
+      "normalizedPath": "statement.md",
+      "sourceSha256": "1be52757ed776fb7125cda63a97984ab52c512d737eb4e33cc062197241a255a",
+      "normalizedSha256": "1be52757ed776fb7125cda63a97984ab52c512d737eb4e33cc062197241a255a",
+      "sourceSizeBytes": 27,
+      "normalizedSizeBytes": 27,
+      "role": "STATEMENT"
+    },
+    {
+      "originalPath": "submissions/accepted/main.cpp",
+      "normalizedPath": "submissions/accepted/main.cpp",
+      "sourceSha256": "91193433e324b0a1e525cfecac51f43ca0f6bd882e1c34292510c9740115bf5c",
+      "normalizedSha256": "91193433e324b0a1e525cfecac51f43ca0f6bd882e1c34292510c9740115bf5c",
+      "sourceSizeBytes": 22,
+      "normalizedSizeBytes": 22,
+      "role": "REFERENCE"
+    }
+  ],
+  "sourceMetadata": {
+    "fixtureOnly": true,
+    "unknown-extension": {
+      "retained": [
+        1,
+        null,
+        "value"
+      ]
+    }
+  },
+  "adaptations": [
+    {
+      "code": "UNIT_CONVERSION",
+      "sourceField": ".timelimit",
+      "originalValue": "1",
+      "normalizedValue": 1000,
+      "reason": "Synthetic fixture proving typed schema only, not a package validation result."
+    }
+  ]
+}

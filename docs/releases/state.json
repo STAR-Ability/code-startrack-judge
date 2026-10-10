@@ -1,0 +1,10 @@
+{
+  "targetRelease": "0.2.0",
+  "contractVersion": "0.2.0",
+  "contractPath": "docs/contracts/v0.2",
+  "apiGeneration": "/internal/v2",
+  "repositoryMigrationLevel": 5,
+  "productionRelease": null,
+  "productionStatus": "no release recorded",
+  "deploymentEvidence": null
+}

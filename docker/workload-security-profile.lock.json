@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "status": "PROPOSED_UNQUALIFIED",
+  "scope": "STACKED_WORKLOAD_ONLY_GUARD",
+  "architecture": "linux/amd64",
+  "profilePath": "docker/startrack-workload-seccomp.yaml",
+  "profileSha256": "e47a2805e1f4c70bf359b4df5500fc9ed7dca3ddfc004733ec66d17b801dc417",
+  "embeddedPath": "seccomp/startrack-workload.yaml",
+  "initProfile": {
+    "component": "go-judge",
+    "path": "seccomp/moby.yaml",
+    "sha256": "5d42a7d288d62b78b01bdf29898630df3641aeef9562a44f0f048febc8740090",
+    "mustRemainUnchanged": true
+  },
+  "assembler": {
+    "component": "go-seccomp-bpf",
+    "module": "github.com/elastic/go-seccomp-bpf",
+    "version": "v1.6.0",
+    "commit": "9375c0f7fb340aa2e8715cc30cc0247be18971c9",
+    "customBPF": false
+  },
+  "policy": {
+    "defaultAction": "ALLOW_NEUTRAL_WHEN_STACKED",
+    "unshare": "EPERM",
+    "setns": "EPERM",
+    "cloneNamespaceMask": "0x7e020000",
+    "cloneNamespaceAction": "EPERM",
+    "clone3": "ENOSYS",
+    "clone3Errno": 38,
+    "conditionalCloneGroup": "TERMINAL",
+    "foreignArchitecture": "INHERITED_INIT_EPERM",
+    "x32": "ENOSYS",
+    "legacyCloneNewtimeExcluded": true
+  },
+  "loading": "FIXED_EMBEDDED_NO_CALLER_PROFILE_OR_DISABLE",
+  "installation": "EXISTING_FORKEXEC_AFTER_TRUSTED_SETUP_AND_CAPABILITY_DROP_BEFORE_EXEC",
+  "minimumWorkloadFilterCount": 3,
+  "sources": [
+    {
+      "component": "go-judge",
+      "path": "env/env_linux.go",
+      "sha256": "518a61f6cfeb7a2aa97043b1595698c5e5498118a82c78d3cec5ebeb074c8afd"
+    },
+    {
+      "component": "go-judge",
+      "path": "env/linuxcontainer/environment_linux.go",
+      "sha256": "d93ed8b9f75bfe19a08c5c8a3693d123087f003706170501a320d31d2fb973a5"
+    },
+    {
+      "component": "go-judge",
+      "path": "seccomp/startrack_workload.go",
+      "sha256": "49315b0e0b318c17892c7d7f9e29f026fa6dec6a0832d7405746a44c121ac4f9"
+    },
+    {
+      "component": "go-judge",
+      "path": "seccomp/startrack-workload.yaml",
+      "sha256": "e47a2805e1f4c70bf359b4df5500fc9ed7dca3ddfc004733ec66d17b801dc417"
+    },
+    {
+      "component": "go-judge",
+      "path": "seccomp/startrack_workload_test.go",
+      "sha256": "323d8e376054c2f9e2b3088c32a2480ecedcf1c8938394f21995e3291ecf6116"
+    },
+    {
+      "component": "go-sandbox",
+      "path": "container/container_exec_linux.go",
+      "sha256": "94446cd836438a917c6e02f6ad1a3e0c87e9d889b79179392d47daf6694663fb"
+    }
+  ],
+  "qualification": "REQUIRED_EXACT_IMAGE_LINUX_MATRIX_NO_PORTABLE_ACCEPTANCE"
+}

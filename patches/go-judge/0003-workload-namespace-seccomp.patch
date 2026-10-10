@@ -1,0 +1,346 @@
+diff --git a/env/env_linux.go b/env/env_linux.go
+--- a/env/env_linux.go
++++ b/env/env_linux.go
+@@ -10,6 +10,7 @@
+ 	"github.com/criyle/go-judge/env/linuxcontainer"
+ 	"github.com/criyle/go-judge/env/pool"
+ 	"github.com/criyle/go-judge/envexec"
++	seccompprofile "github.com/criyle/go-judge/seccomp"
+ 	"github.com/criyle/go-sandbox/container"
+ 	"github.com/criyle/go-sandbox/pkg/cgroup"
+ 	"github.com/criyle/go-sandbox/pkg/forkexec"
+@@ -29,6 +30,11 @@
+ 
+ // NewBuilder build a environment builder
+ func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, error) {
++	// Code Startrack: the workload guard requires the unchanged embedded init
++	// whitelist. Disable flags and caller-selected replacement policies fail closed.
++	if c.NoSeccomp || c.SeccompConf != "" {
++		return nil, nil, fmt.Errorf("the fixed workload seccomp guard requires the embedded init profile")
++	}
+ 	mountsConfig, mountBuilder, symbolicLinks, maskPaths, err := prepareMountAndPaths(c, logger)
+ 	if err != nil {
+ 		return nil, nil, err
+@@ -39,6 +45,13 @@
+ 	if err != nil {
+ 		return nil, nil, err
+ 	}
++	// Code Startrack: use the existing final-exec filter path for a fixed guard.
++	// The broader container-init filter above remains unchanged.
++	workloadRaw, err := seccompprofile.WorkloadFilter()
++	if err != nil {
++		return nil, nil, fmt.Errorf("failed to assemble workload seccomp guard: %w", err)
++	}
++	workloadSeccomp := toSockFilter(workloadRaw)
+ 	unshareFlags, unshareCgroup := prepareUnshareFlags(c, logger)
+ 	credGen := prepareCredGen(c)
+ 	hostName, domainName, workDir, cUID, cGID, initCmd, err := prepareContainerMeta(mountsConfig, logger)
+@@ -86,7 +99,7 @@
+ 		"cgroupControllers": cgroupControllers,
+ 	}
+ 
+-	if tryClone3Builder := tryClone3(c, b, cgb, cgroupType, cgroupPool, workDir, seccomp, logger); tryClone3Builder != nil {
++	if tryClone3Builder := tryClone3(c, b, cgb, cgroupType, cgroupPool, workDir, workloadSeccomp, logger); tryClone3Builder != nil {
+ 		conf["clone3"] = true
+ 		return tryClone3Builder, conf, nil
+ 	}
+@@ -96,7 +109,7 @@
+ 		CgroupPool: cgroupPool,
+ 		WorkDir:    workDir,
+ 		CPURate:    c.EnableCPURate,
+-		Seccomp:    nil,
++		Seccomp:    workloadSeccomp,
+ 	}), conf, nil
+ }
+ 
+@@ -221,7 +234,7 @@
+ 	cgroupType int,
+ 	cgroupPool linuxcontainer.CgroupPool,
+ 	workDir string,
+-	seccomp []syscall.SockFilter,
++	workloadSeccomp []syscall.SockFilter,
+ 	logger *zap.Logger,
+ ) pool.EnvBuilder {
+ 	major, minor := kernelVersion()
+@@ -236,7 +249,7 @@
+ 		CgroupPool: cgroupPool,
+ 		WorkDir:    workDir,
+ 		CPURate:    c.EnableCPURate,
+-		Seccomp:    nil,
++		Seccomp:    workloadSeccomp,
+ 		CgroupFd:   true,
+ 	})
+ 	e, err := b.Build()
+diff --git a/env/linuxcontainer/environment_linux.go b/env/linuxcontainer/environment_linux.go
+--- a/env/linuxcontainer/environment_linux.go
++++ b/env/linuxcontainer/environment_linux.go
+@@ -12,6 +12,7 @@
+ 	"github.com/criyle/go-sandbox/container"
+ 	"github.com/criyle/go-sandbox/pkg/cgroup"
+ 	"github.com/criyle/go-sandbox/pkg/rlimit"
++	sandboxseccomp "github.com/criyle/go-sandbox/pkg/seccomp"
+ 	"github.com/criyle/go-sandbox/runner"
+ )
+ 
+@@ -102,9 +103,9 @@
+ 		CTTY:     param.TTY,
+ 		ExecFile: param.ExecFile,
+ 		RLimits:  rLimits.PrepareRLimit(),
+-		// Seccomp is installed once by the container init. The workload
+-		// inherits it and must not install another filter here.
+-		Seccomp: nil,
++		// Code Startrack: stack the fixed workload guard with the inherited init
++		// whitelist through the mature final-exec filter path.
++		Seccomp: sandboxseccomp.Filter(c.seccomp),
+ 		SyncFunc: func(pid int) error {
+ 			defer close(syncDone)
+ 			if syncFunc != nil {
+diff --git a/seccomp/startrack_workload.go b/seccomp/startrack_workload.go
+new file mode 100644
+--- /dev/null
++++ b/seccomp/startrack_workload.go
+@@ -0,0 +1,63 @@
++// Copyright 2026 Code Startrack contributors.
++// SPDX-License-Identifier: Apache-2.0
++
++package seccomp
++
++import (
++	_ "embed"
++	"fmt"
++
++	seccompbpf "github.com/elastic/go-seccomp-bpf"
++	"github.com/elastic/go-seccomp-bpf/arch"
++	"github.com/elastic/go-ucfg/yaml"
++	"golang.org/x/net/bpf"
++)
++
++// This fixed embedded guard has no caller-selected profile or filesystem path.
++// It is installed by the existing upstream forkexec path only after trusted
++// namespace/cgroup setup and capability removal, immediately before workload exec.
++//
++//go:embed startrack-workload.yaml
++var workloadProfile []byte
++
++type workloadSeccompConfig struct {
++	Architecture  string                    `config:"architecture"`
++	DefaultAction seccompbpf.Action         `config:"default_action"`
++	Syscalls      []seccompbpf.SyscallGroup `config:"syscalls"`
++}
++
++// WorkloadFilter assembles the additional guard through the pinned mature
++// assembler. Its default ALLOW is neutral only when stacked with the unchanged
++// inherited init whitelist; it is not a standalone sandbox policy. The init
++// whitelist continues to deny foreign architectures and all unlisted syscalls.
++func WorkloadFilter() ([]bpf.RawInstruction, error) {
++	conf, err := yaml.NewConfig(workloadProfile)
++	if err != nil {
++		return nil, err
++	}
++	var config workloadSeccompConfig
++	if err := conf.Unpack(&config); err != nil {
++		return nil, err
++	}
++	info, err := arch.GetInfo("")
++	if err != nil {
++		return nil, fmt.Errorf("workload seccomp architecture: %w", err)
++	}
++	if info.Name != config.Architecture {
++		return nil, fmt.Errorf("workload seccomp has no reviewed profile for architecture %q", info.Name)
++	}
++	// The pinned configuration decoder accepts named actions, not errno payloads.
++	// Add Linux ENOSYS(38) through the assembler's existing Action API so libc can
++	// fall back to legacy clone for ordinary threads/forks. Classic seccomp cannot
++	// inspect the clone_args memory referenced by clone3's pointer argument.
++	if len(config.Syscalls) != 3 || len(config.Syscalls[1].Names) != 1 || config.Syscalls[1].Names[0] != "clone3" || config.Syscalls[1].Action != seccompbpf.ActionErrno {
++		return nil, fmt.Errorf("invalid fixed workload seccomp profile")
++	}
++	config.Syscalls[1].Action |= seccompbpf.Action(38)
++	policy := seccompbpf.Policy{DefaultAction: config.DefaultAction, Syscalls: config.Syscalls}
++	instructions, err := policy.Assemble()
++	if err != nil {
++		return nil, err
++	}
++	return bpf.Assemble(instructions)
++}
+diff --git a/seccomp/startrack-workload.yaml b/seccomp/startrack-workload.yaml
+new file mode 100644
+--- /dev/null
++++ b/seccomp/startrack-workload.yaml
+@@ -0,0 +1,18 @@
++# Copyright 2026 Code Startrack contributors. SPDX-License-Identifier: Apache-2.0
++# Additional workload-only restrictions; the unchanged init whitelist is inherited.
++architecture: x86_64
++default_action: allow
++syscalls:
++  - names: [unshare, setns]
++    action: errno
++  - names: [clone3]
++    action: errno
++  # Keep this conditional group last: the pinned assembler consumes the argument
++  # accumulator on a mismatch. No syscall-number group may follow it.
++  - names_with_args:
++      - name: clone
++        arguments:
++          - argument: 0
++            operation: BitsSet
++            value: 2114060288 # 0x7e020000: NEWNS, NEWCGROUP, NEWUTS, NEWIPC, NEWUSER, NEWPID, NEWNET
++    action: errno
+diff --git a/seccomp/startrack_workload_test.go b/seccomp/startrack_workload_test.go
+new file mode 100644
+--- /dev/null
++++ b/seccomp/startrack_workload_test.go
+@@ -0,0 +1,153 @@
++// Copyright 2026 Code Startrack contributors.
++// SPDX-License-Identifier: Apache-2.0
++
++package seccomp
++
++import (
++	"encoding/binary"
++	"testing"
++
++	seccompbpf "github.com/elastic/go-seccomp-bpf"
++	"github.com/elastic/go-seccomp-bpf/arch"
++	"github.com/elastic/go-ucfg/yaml"
++	"golang.org/x/net/bpf"
++)
++
++const (
++	workloadAllow  = int(seccompbpf.ActionAllow)
++	workloadEPERM  = int(seccompbpf.ActionErrno) | 1
++	workloadENOSYS = int(seccompbpf.ActionErrno) | 38
++)
++
++func workloadVMRun(t *testing.T, vm *bpf.VM, number, architecture uint32, args [6]uint64) int {
++	t.Helper()
++	data := make([]byte, 64)
++	binary.LittleEndian.PutUint32(data, number)
++	binary.LittleEndian.PutUint32(data[4:], architecture)
++	for i, value := range args {
++		binary.LittleEndian.PutUint64(data[16+i*8:], value)
++	}
++	// Linux amd64 seccomp loads native 32-bit words; x/net/bpf's inert packet
++	// VM loads network-order words. Preserve argument low/high word offsets.
++	for offset := 0; offset < len(data); offset += 4 {
++		word := binary.LittleEndian.Uint32(data[offset:])
++		binary.BigEndian.PutUint32(data[offset:], word)
++	}
++	result, err := vm.Run(data)
++	if err != nil {
++		t.Fatal(err)
++	}
++	return result
++}
++
++func TestStartrackWorkloadSeccomp(t *testing.T) {
++	info, err := arch.GetInfo("")
++	if err != nil {
++		t.Fatal(err)
++	}
++	if info.Name != "x86_64" {
++		if _, err := WorkloadFilter(); err == nil {
++			t.Fatal("unreviewed workload architecture must fail closed")
++		}
++		return
++	}
++	raw, err := WorkloadFilter()
++	if err != nil {
++		t.Fatal(err)
++	}
++	instructions, decoded := bpf.Disassemble(raw)
++	if !decoded {
++		t.Fatal("workload filter did not disassemble")
++	}
++	guard, err := bpf.NewVM(instructions)
++	if err != nil {
++		t.Fatal(err)
++	}
++	conf, err := yaml.NewConfig(DefaultProfile)
++	if err != nil {
++		t.Fatal(err)
++	}
++	type groups struct {
++		Syscalls []seccompbpf.SyscallGroup `config:"syscalls"`
++	}
++	var baseline struct {
++		DefaultAction seccompbpf.Action `config:"default_action"`
++		Base          groups            `config:"base"`
++		Architectures map[string]groups `config:"architectures"`
++	}
++	if err := conf.Unpack(&baseline); err != nil {
++		t.Fatal(err)
++	}
++	initPolicy := seccompbpf.Policy{
++		DefaultAction: baseline.DefaultAction,
++		Syscalls:      append(append([]seccompbpf.SyscallGroup{}, baseline.Base.Syscalls...), baseline.Architectures[info.Name].Syscalls...),
++	}
++	initInstructions, err := initPolicy.Assemble()
++	if err != nil {
++		t.Fatal(err)
++	}
++	initVM, err := bpf.NewVM(initInstructions)
++	if err != nil {
++		t.Fatal(err)
++	}
++	requireGuard := func(number uint32, args [6]uint64, want int) {
++		t.Helper()
++		if got := workloadVMRun(t, guard, number, uint32(info.ID), args); got != want {
++			t.Fatalf("syscall %d args %x: guard=%x want=%x", number, args, got, want)
++		}
++	}
++	// Plain fork, vfork-style and pthread flags keep the inherited decision.
++	for _, flags := range []uint64{0, 17, 0x4111, 0x3d0f00, 1 << 32} {
++		requireGuard(56, [6]uint64{flags}, workloadAllow)
++		if got := workloadVMRun(t, initVM, 56, uint32(info.ID), [6]uint64{flags}); got != workloadAllow {
++			t.Fatalf("ordinary clone was denied by inherited init policy: %x", got)
++		}
++	}
++	bits := []uint64{0x20000, 0x2000000, 0x4000000, 0x8000000, 0x10000000, 0x20000000, 0x40000000}
++	for subset := uint64(1); subset < 128; subset++ {
++		flags := uint64(17)
++		for i, bit := range bits {
++			if subset&(1<<i) != 0 {
++				flags |= bit
++			}
++		}
++		for _, ordinary := range []uint64{0, 0x4111, 0x3d0f00, 1 << 32} {
++			requireGuard(56, [6]uint64{flags | ordinary}, workloadEPERM)
++		}
++	}
++	for _, pointer := range []uint64{0, 1, 17, 56, 435, 0x10000000, 1 << 63} {
++		for _, size := range []uint64{0, 64, 88, 4096} {
++			requireGuard(435, [6]uint64{pointer, size}, workloadENOSYS)
++		}
++	}
++	for _, number := range []uint32{272, 308} {
++		for _, argument := range []uint64{0, 1, 17, 0x10000000, 0x7e020000, 1 << 63} {
++			requireGuard(number, [6]uint64{argument}, workloadEPERM)
++		}
++	}
++	for _, number := range []uint32{0, 1, 56, 435} {
++		foreign := uint32(0x40000003)
++		if got := workloadVMRun(t, guard, number, foreign, [6]uint64{}); got != workloadAllow {
++			t.Fatalf("foreign-architecture guard should be neutral: %x", got)
++		}
++		if got := workloadVMRun(t, initVM, number, foreign, [6]uint64{}); got != workloadEPERM {
++			t.Fatalf("foreign architecture must be denied by inherited init: %x", got)
++		}
++		requireGuard(number|0x40000000, [6]uint64{}, workloadENOSYS)
++	}
++	// Exercise all numbered ordinary syscall slots, including conditional socket
++	// argument/syscall-number collisions in the unchanged upstream assembler.
++	for number := uint32(0); number < 512; number++ {
++		if number == 56 || number == 272 || number == 308 || number == 435 {
++			continue
++		}
++		for _, argument := range []uint64{0, 1, 17, 38, 41, 45, 56, 62, 435, 0x20000, 0x10000000, 0x7e020000, 1 << 32, 1 << 63} {
++			args := [6]uint64{argument, argument, argument, argument, argument, argument}
++			requireGuard(number, args, workloadAllow)
++			old := workloadVMRun(t, initVM, number, uint32(info.ID), args)
++			if old != workloadAllow && old != workloadEPERM {
++				t.Fatalf("unexpected inherited ordinary action: %x", old)
++			}
++		}
++	}
++}

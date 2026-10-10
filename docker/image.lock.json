@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "platform": "linux/amd64",
+  "goBuilder": "golang:1.26.8-bookworm@sha256:26de5cf8eac40c12a1ff8de1a634971b4654fd881225eed7ace643b8c769f2f5",
+  "toolchainBase": "python:3.11.15-bookworm@sha256:eaeffb6e8511935426934aac863940fbd004ef31dab0d7fc27a129bb7c19d9a8",
+  "goVersion": "go1.26.8",
+  "compilerVersion": "g++ (Debian 12.2.0-14+deb12u1) 12.2.0",
+  "pythonVersion": "Python 3.11.15",
+  "status": "BUILD_INPUT_PINS_ONLY"
+}

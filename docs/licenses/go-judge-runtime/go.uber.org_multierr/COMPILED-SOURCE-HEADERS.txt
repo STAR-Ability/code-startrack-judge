@@ -1,0 +1,167 @@
+===== error.go sha256:bc61a3648af1a944f3cc55b8a7fe26343f722056cbd7382095614c251a8c87da =====
+// Copyright (c) 2017-2023 Uber Technologies, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+// Package multierr allows combining one or more errors together.
+//
+// # Overview
+//
+// Errors can be combined with the use of the Combine function.
+//
+//	multierr.Combine(
+//		reader.Close(),
+//		writer.Close(),
+//		conn.Close(),
+//	)
+//
+// If only two errors are being combined, the Append function may be used
+// instead.
+//
+//	err = multierr.Append(reader.Close(), writer.Close())
+//
+// The underlying list of errors for a returned error object may be retrieved
+// with the Errors function.
+//
+//	errors := multierr.Errors(err)
+//	if len(errors) > 0 {
+//		fmt.Println("The following errors occurred:", errors)
+//	}
+//
+// # Appending from a loop
+//
+// You sometimes need to append into an error from a loop.
+//
+//	var err error
+//	for _, item := range items {
+//		err = multierr.Append(err, process(item))
+//	}
+//
+// Cases like this may require knowledge of whether an individual instance
+// failed. This usually requires introduction of a new variable.
+//
+//	var err error
+//	for _, item := range items {
+//		if perr := process(item); perr != nil {
+//			log.Warn("skipping item", item)
+//			err = multierr.Append(err, perr)
+//		}
+//	}
+//
+// multierr includes AppendInto to simplify cases like this.
+//
+//	var err error
+//	for _, item := range items {
+//		if multierr.AppendInto(&err, process(item)) {
+//			log.Warn("skipping item", item)
+//		}
+//	}
+//
+// This will append the error into the err variable, and return true if that
+// individual error was non-nil.
+//
+// See [AppendInto] for more information.
+//
+// # Deferred Functions
+//
+// Go makes it possible to modify the return value of a function in a defer
+// block if the function was using named returns. This makes it possible to
+// record resource cleanup failures from deferred blocks.
+//
+//	func sendRequest(req Request) (err error) {
+//		conn, err := openConnection()
+//		if err != nil {
+//			return err
+//		}
+//		defer func() {
+//			err = multierr.Append(err, conn.Close())
+//		}()
+//		// ...
+//	}
+//
+// multierr provides the Invoker type and AppendInvoke function to make cases
+// like the above simpler and obviate the need for a closure. The following is
+// roughly equivalent to the example above.
+//
+//	func sendRequest(req Request) (err error) {
+//		conn, err := openConnection()
+//		if err != nil {
+//			return err
+//		}
+//		defer multierr.AppendInvoke(&err, multierr.Close(conn))
+//		// ...
+//	}
+//
+// See [AppendInvoke] and [Invoker] for more information.
+//
+// NOTE: If you're modifying an error from inside a defer, you MUST use a named
+// return value for that function.
+//
+// # Advanced Usage
+//
+// Errors returned by Combine and Append MAY implement the following
+// interface.
+//
+//	type errorGroup interface {
+//		// Returns a slice containing the underlying list of errors.
+//		//
+//		// This slice MUST NOT be modified by the caller.
+//		Errors() []error
+//	}
+//
+// Note that if you need access to list of errors behind a multierr error, you
+// should prefer using the Errors function. That said, if you need cheap
+// read-only access to the underlying errors slice, you can attempt to cast
+// the error to this interface. You MUST handle the failure case gracefully
+// because errors returned by Combine and Append are not guaranteed to
+// implement this interface.
+//
+//	var errors []error
+//	group, ok := err.(errorGroup)
+//	if ok {
+//		errors = group.Errors()
+//	} else {
+//		errors = []error{err}
+//	}
+
+===== error_post_go120.go sha256:8e19ca3f44862c8daafbf335e3efbdd352770090ad05a85ff8f9d6096dd2e537 =====
+// Copyright (c) 2017-2023 Uber Technologies, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+//go:build go1.20
+// +build go1.20
+
+

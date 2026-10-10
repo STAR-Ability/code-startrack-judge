@@ -1,0 +1,44 @@
+===== client_metrics.go sha256:c72466d4aa805b477c386f0726e4a8f46cb5abdc9d1db5173a66864a8d272488 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== client_options.go sha256:2f2ef6c9240df63ddb91ef659276f9a8736fb99c81ce6752f49a55beb055d393 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== constants.go sha256:6596d622082152c2ab5d7419c4794a0db22a823b2d1db72bab063ccec84818c3 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== doc.go sha256:52b764d452a2c444afd4ae1f5e8ca9a7437a4d5e0f07ad8d331fbda89a481fd0 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+/*
+Package prometheus provides a standalone interceptor for metrics. It's next iteration of deprecated https://github.com/grpc-ecosystem/go-grpc-prometheus.
+See https://github.com/grpc-ecosystem/go-grpc-middleware/tree/main/examples for example.
+*/
+
+===== options.go sha256:326254f8b1484487b49cffabd4c0d45caecf2d023d871d8d69b19e96a5254a6d =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== reporter.go sha256:b5af201366c79913535b36b3be553542ce8dfa67071ecec39038476de57947cf =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== server_metrics.go sha256:39d68ff8f2441dd5bd40dae2508c3a442985b2b845232fe781ec84a5b5db6c9d =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+
+===== server_options.go sha256:c22839d8223c45e739010a8f59a0f7f77b1bdbc257661edb954b3511a3662ed6 =====
+// Copyright (c) The go-grpc-middleware Authors.
+// Licensed under the Apache License 2.0.
+
+

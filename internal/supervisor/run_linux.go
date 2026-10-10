@@ -1,0 +1,467 @@
+//go:build linux
+
+package supervisor
+
+import (
+	"context"
+	"io"
+	"net"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"strconv"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+)
+
+// Run is the fixed PID1 service bootstrap. A failed component stops the whole
+// container; the operator restarts the measured instance, never a weaker mode.
+func Run(ctx context.Context) (result error) {
+	if ctx == nil || os.Getpid() != 1 || os.Geteuid() != 0 {
+		return fail("linux_pid1")
+	}
+	if _, _, errno := syscall.Syscall(syscall.SYS_PRCTL, 4, 0, 0); errno != 0 {
+		return fail("dumpability")
+	}
+	if err := validateRootEnvironment(os.Environ()); err != nil {
+		return err
+	}
+	if err := rootAncestors(SecretsDirectory); err != nil {
+		return err
+	}
+	s, err := loadSettings(os.Getenv, func(name string) (string, error) {
+		return readSecretFile(filepath.Join(SecretsDirectory, name), 0)
+	})
+	if err != nil {
+		return err
+	}
+	if err = prepareDirectories(); err != nil {
+		return err
+	}
+	os.Remove(QualificationPath)
+	os.Remove(QualificationPath + ".tmp")
+	os.Remove(MatrixPath)
+	os.Remove(MatrixPath + ".tmp")
+	for _, path := range []string{IsolationObservationsPath, CapacityPath, ProcessBoundaryPath} {
+		os.Remove(path)
+		os.Remove(path + ".tmp")
+	}
+	accounting := &cgroupAccounting{}
+	resourcesSettled := true
+	defer func() {
+		if resourcesSettled {
+			accounting.close()
+		}
+	}()
+	if err = prepareCgroup(accounting); err != nil {
+		return err
+	}
+	// Docker masks selected /proc children. Linux refuses a new user-namespace
+	// proc mount when every inherited proc is partially masked. This private,
+	// root-only bootstrap mount permits the manager to replace /proc with its own
+	// PID-namespace view; it is hidden again by RuntimeInit before go-judge exec.
+	if os.MkdirAll("/run/startrack-supervisor/bootstrap/proc", 0700) != nil {
+		return fail("bootstrap_proc_directory")
+	}
+	if syscall.Mount("proc", "/run/startrack-supervisor/bootstrap/proc", "proc", syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC, "") != nil {
+		return fail("bootstrap_proc_mount")
+	}
+
+	publication := newQualificationPublication(QualificationPath)
+	children := []*componentChild{}
+	// Parent cancellation means a stop request only after full normal startup.
+	// Real recurring probes keep their own existing deadlines during API drain.
+	workCtx, cancelWork := context.WithCancel(context.WithoutCancel(ctx))
+	var qualificationWG sync.WaitGroup
+	defer func() {
+		if result != nil {
+			publication.reject(result)
+		}
+		publication.revoke()
+		cancelWork()
+		helpersDone := make(chan struct{})
+		go func() { qualificationWG.Wait(); close(helpersDone) }()
+		select {
+		case <-helpersDone:
+		case <-time.After(65 * time.Second):
+			publication.reject(fail("qualification_shutdown_deadline"))
+			resourcesSettled = false
+		}
+		if !stopComponents(children, publication, 10*time.Second, 5*time.Second) {
+			resourcesSettled = false
+		}
+		if err := publication.failure(); err != nil {
+			result = err
+		}
+	}()
+	go func() {
+		select {
+		case <-publication.failed:
+			cancelWork()
+		case <-workCtx.Done():
+		}
+	}()
+	runtime, diagnostics, err := startRuntime(s)
+	if err != nil {
+		return err
+	}
+	runtimeState := monitorComponent(runtime, "runtime", publication, diagnostics, 5*time.Second)
+	children = append(children, runtimeState)
+	// Establish the complete global-idle proof before any business or matrix
+	// process can dispatch work. Refreshes prove only their own execution cleanup.
+	initialCtx, cancelInitial := context.WithTimeout(ctx, 60*time.Second)
+	go func() {
+		select {
+		case <-publication.failed:
+			cancelInitial()
+		case <-initialCtx.Done():
+		}
+	}()
+	err = qualify(initialCtx, s, runtime.Process.Pid, true, publication)
+	cancelInitial()
+	if err != nil {
+		return err
+	}
+	qualificationDone := make(chan struct{})
+	startQualification := func() {
+		qualificationWG.Add(1)
+		go func() {
+			defer qualificationWG.Done()
+			defer close(qualificationDone)
+			timer := time.NewTimer(15 * time.Second)
+			defer timer.Stop()
+			for {
+				select {
+				case <-workCtx.Done():
+					return
+				case <-publication.stopped:
+					return
+				case <-timer.C:
+				}
+				if !publication.admitProbe() {
+					return
+				}
+				probeCtx, cancel := context.WithTimeout(workCtx, 60*time.Second)
+				err := qualify(probeCtx, s, runtime.Process.Pid, false, publication)
+				cancel()
+				if !publication.acceptProbeResult(err) {
+					return
+				}
+				timer.Reset(15 * time.Second)
+			}
+		}()
+	}
+	if s.qualificationOnly && s.capacityPhase == "" {
+		startQualification()
+		matrixFailed := make(chan error, 1)
+		qualificationWG.Add(1)
+		go func() { defer qualificationWG.Done(); matrixFailed <- runQualificationMatrix(workCtx, s, accounting) }()
+		select {
+		case <-ctx.Done():
+			return fail("qualification_aborted")
+		case <-runtimeState.exited:
+			return fail("runtime_stopped")
+		case <-publication.failed:
+			return publication.failure()
+		case err := <-matrixFailed:
+			if err != nil {
+				return err
+			}
+			select {
+			case <-ctx.Done():
+				return fail("qualification_aborted")
+			case <-runtimeState.exited:
+				return fail("runtime_stopped")
+			case <-publication.failed:
+				return publication.failure()
+			}
+		}
+	}
+	listener, err := net.ListenUnix("unix", &net.UnixAddr{Name: SchedulingSocket, Net: "unix"})
+	if err != nil {
+		return fail("scheduler_listener")
+	}
+	defer listener.Close()
+	listener.SetUnlinkOnClose(false)
+	if os.Chown(SchedulingSocket, JudgerUID, SchedulingGID) != nil || os.Chmod(SchedulingSocket, 0660) != nil {
+		return fail("scheduler_listener_ownership")
+	}
+	fd, err := listener.File()
+	if err != nil {
+		return fail("scheduler_descriptor")
+	}
+	judger := ownedChild(JudgerBinary, s.judgerEnvironment(), JudgerUID, nil)
+	judger.ExtraFiles = []*os.File{fd}
+	err = judger.Start()
+	fd.Close()
+	if err != nil {
+		return fail("judger_start")
+	}
+	judgerState := monitorComponent(judger, "judger", publication, nil, 5*time.Second)
+	children = append(children, judgerState)
+	if s.capacityPhase != "" {
+		startQualification()
+		capacityFailed := make(chan error, 1)
+		qualificationWG.Add(1)
+		go func() { defer qualificationWG.Done(); capacityFailed <- runImportCapacity(workCtx, s, accounting) }()
+		for {
+			select {
+			case <-ctx.Done():
+				return fail("qualification_aborted")
+			case <-runtimeState.exited:
+				return fail("runtime_stopped")
+			case <-judgerState.exited:
+				return fail("judger_stopped")
+			case <-publication.failed:
+				return publication.failure()
+			case err := <-capacityFailed:
+				if err != nil {
+					return err
+				}
+				// Preserve the measured instance and private objects until the
+				// trusted runner collects accounting and stops it explicitly.
+				capacityFailed = nil
+			}
+		}
+	}
+	api := ownedChild(APIBinary, s.apiEnvironment(), APIUID, []uint32{SchedulingGID})
+	if api.Start() != nil {
+		return fail("api_start")
+	}
+	apiState := monitorComponent(api, "api", publication, nil, 5*time.Second)
+	children = append(children, apiState)
+	if err := VerifyServiceProcessBoundary(ctx, api.Process.Pid, judger.Process.Pid); err != nil {
+		return err
+	}
+	startQualification()
+	select {
+	case <-ctx.Done():
+		// Only this fully initialized normal-service branch permits graceful
+		// drain. Fresh qualifying executions continue until the API has exited.
+		publication.terminate(apiState)
+		apiDeadline := time.NewTimer(30 * time.Second)
+		defer apiDeadline.Stop()
+		select {
+		case <-apiState.exited:
+			if apiState.waitErr != nil {
+				return fail("api_stopped")
+			}
+		case <-publication.failed:
+			return publication.failure()
+		case <-apiDeadline.C:
+			return fail("api_drain_deadline")
+		}
+		if err := publication.revoke(); err != nil {
+			return err
+		}
+		// Revoke stops scheduling, but an already admitted real probe retains
+		// its normal 60s execution deadline and independent 5s cache cleanup.
+		probeDeadline := time.NewTimer(65 * time.Second)
+		defer probeDeadline.Stop()
+		select {
+		case <-qualificationDone:
+			return publication.failure()
+		case <-publication.failed:
+			return publication.failure()
+		case <-probeDeadline.C:
+			return fail("qualification_drain_deadline")
+		}
+	case <-publication.failed:
+		return publication.failure()
+	}
+}
+
+func ownedChild(binary string, env []string, uid uint32, groups []uint32) *exec.Cmd {
+	c := exec.Command(binary)
+	c.Env, c.Dir = env, "/"
+	c.Stdin, c.Stdout, c.Stderr = nil, os.Stdout, os.Stderr
+	c.SysProcAttr = &syscall.SysProcAttr{Credential: &syscall.Credential{Uid: uid, Gid: uid, Groups: groups}, Pdeathsig: syscall.SIGKILL}
+	return c
+}
+
+func startRuntime(s settings) (*exec.Cmd, *childDiagnostics, error) {
+	started := false
+	read, write, err := os.Pipe()
+	if err != nil {
+		return nil, nil, fail("runtime_barrier")
+	}
+	defer read.Close()
+	defer write.Close()
+	diagnostics, status, err := os.Pipe()
+	if err != nil {
+		return nil, nil, fail("runtime_status")
+	}
+	defer status.Close()
+	statusDone := make(chan struct{})
+	go func() {
+		defer close(statusDone)
+		defer diagnostics.Close()
+		body, _ := io.ReadAll(io.LimitReader(diagnostics, 256))
+		if regexp.MustCompile(`^supervisor [a-z0-9_]+ failure\n$`).Match(body) {
+			os.Stderr.Write(body)
+		}
+	}()
+	// Failure before the log facility is created still owns this reader.
+	defer func() {
+		if !started {
+			diagnostics.Close()
+			<-statusDone
+		}
+	}()
+	c := exec.Command(RuntimeInitBinary)
+	c.Env, c.Dir = s.runtimeEnvironment(), "/"
+	c.ExtraFiles = []*os.File{read, status}
+	// Bounded raw startup diagnostics have a separate root-only facility. They
+	// never enter normal container logs or the structural measurement report.
+	logs, logWriter, err := os.Pipe()
+	if err != nil {
+		return nil, nil, fail("runtime_diagnostics")
+	}
+	defer logWriter.Close()
+	privateLog, err := openPrivateLog(filepath.Join(filepath.Dir(QualificationPath), "runtime-private.log"), 0)
+	if err != nil {
+		logs.Close()
+		return nil, nil, fail("runtime_diagnostics")
+	}
+	logsDone := make(chan struct{})
+	go func() {
+		defer close(logsDone)
+		defer logs.Close()
+		defer privateLog.Close()
+		io.Copy(privateLog, io.LimitReader(logs, 64<<10))
+	}()
+	drained := make(chan struct{})
+	go func() { <-statusDone; <-logsDone; close(drained) }()
+	drain := &childDiagnostics{done: drained, close: diagnosticsCloser(diagnostics, logs, privateLog)}
+	defer func() {
+		if !started {
+			drain.close()
+			<-drained
+		}
+	}()
+	c.Stdout, c.Stderr = logWriter, logWriter
+	c.SysProcAttr = &syscall.SysProcAttr{
+		Cloneflags:                 syscall.CLONE_NEWUSER | syscall.CLONE_NEWPID | syscall.CLONE_NEWNS,
+		UidMappings:                []syscall.SysProcIDMap{{ContainerID: 0, HostID: RuntimeHostUID, Size: 1}, {ContainerID: 1, HostID: 100000, Size: 65536}},
+		GidMappings:                []syscall.SysProcIDMap{{ContainerID: 0, HostID: RuntimeHostUID, Size: 1}, {ContainerID: 1, HostID: 100000, Size: 65536}},
+		GidMappingsEnableSetgroups: true,
+		Credential:                 &syscall.Credential{Uid: 0, Gid: 0}, Pdeathsig: syscall.SIGKILL,
+	}
+	if c.Start() != nil {
+		return nil, nil, fail("runtime_start")
+	}
+	if os.WriteFile("/sys/fs/cgroup/cgroup.procs", []byte(strconv.Itoa(c.Process.Pid)), 0) != nil {
+		c.Process.Kill()
+		c.Wait()
+		return nil, nil, fail("runtime_delegation")
+	}
+	if _, err = write.Write([]byte{1}); err != nil {
+		c.Process.Kill()
+		c.Wait()
+		return nil, nil, fail("runtime_barrier")
+	}
+	started = true
+	return c, drain, nil
+}
+
+func prepareDirectories() error {
+	for _, dir := range []struct {
+		path string
+		uid  int
+		mode os.FileMode
+	}{
+		{"/run/startrack-api", 0, 0755}, {"/run/startrack-judger", 0, 0755}, {"/run/startrack-runtime", 0, 0755},
+		{SocketDirectory, 0, 0755}, {filepath.Dir(QualificationPath), 0, 0755},
+		{PrivateDirectory, APIUID, 0700}, {"/var/lib/startrack-judger/dispatches", JudgerUID, 0700},
+		{"/run/startrack-api/tmp", APIUID, 0700}, {"/run/startrack-judger/tmp", JudgerUID, 0700},
+		{RuntimeDirectory, RuntimeHostUID, 0700}, {RuntimeCacheDirectory, RuntimeHostUID, 0700},
+	} {
+		if err := rootAncestors(filepath.Dir(dir.path)); err != nil {
+			return err
+		}
+		if os.MkdirAll(dir.path, dir.mode) != nil {
+			return fail("directory_creation")
+		}
+		info, err := os.Lstat(dir.path)
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			return fail("directory_type")
+		}
+		if os.Chown(dir.path, dir.uid, dir.uid) != nil || os.Chmod(dir.path, dir.mode) != nil {
+			return fail("directory_ownership")
+		}
+	}
+	return nil
+}
+
+// Every replaceable ancestor must be root-owned and immutable to service roles.
+func rootAncestors(path string) error {
+	for {
+		info, err := os.Lstat(path)
+		if err != nil || !info.IsDir() || info.Mode().Perm()&0022 != 0 {
+			return fail("directory_ancestor")
+		}
+		stat, ok := info.Sys().(*syscall.Stat_t)
+		if !ok || stat.Uid != 0 {
+			return fail("directory_ancestor")
+		}
+		if path == "/" {
+			return nil
+		}
+		path = filepath.Dir(path)
+	}
+}
+
+func prepareCgroup(accounting *cgroupAccounting) error {
+	data, err := os.ReadFile("/proc/self/cgroup")
+	if err != nil || strings.TrimSpace(string(data)) != "0::/" {
+		return fail("private_cgroup_root")
+	}
+	if err = syscall.Mount("", "/sys/fs/cgroup", "", syscall.MS_REMOUNT|syscall.MS_BIND|syscall.MS_NOSUID|syscall.MS_NODEV|syscall.MS_NOEXEC, ""); err != nil {
+		return fail("cgroup_remount")
+	}
+	for _, name := range []string{"service", "runtime"} {
+		if os.Mkdir("/sys/fs/cgroup/"+name, 0755) != nil {
+			return fail("cgroup_directory")
+		}
+	}
+	if os.WriteFile("/sys/fs/cgroup/service/cgroup.procs", []byte(strconv.Itoa(os.Getpid())), 0) != nil {
+		return fail("service_cgroup")
+	}
+	if os.WriteFile("/sys/fs/cgroup/cgroup.subtree_control", []byte("+cpu +memory +pids"), 0) != nil {
+		return fail("cgroup_controllers")
+	}
+	for _, name := range []string{"", "cgroup.procs", "cgroup.threads", "cgroup.subtree_control"} {
+		path := filepath.Join("/sys/fs/cgroup/runtime", name)
+		if os.Chown(path, RuntimeHostUID, 0) != nil {
+			return fail("cgroup_owner")
+		}
+		mode := os.FileMode(0660)
+		if name == "" {
+			mode = 0750
+		}
+		if os.Chmod(path, mode) != nil {
+			return fail("cgroup_mode")
+		}
+	}
+	// Manager plus untrusted execution stay within these service-owned maxima.
+	for name, value := range map[string]string{"memory.max": "6442450944", "memory.swap.max": "0", "pids.max": "256"} {
+		if os.WriteFile("/sys/fs/cgroup/service/"+name, []byte(value), 0) != nil {
+			return fail("service_cgroup_limits")
+		}
+	}
+	for name, value := range map[string]string{"memory.max": "4294967296", "memory.swap.max": "0", "pids.max": "256", "cpu.max": "200000 100000"} {
+		if os.WriteFile("/sys/fs/cgroup/runtime/"+name, []byte(value), 0) != nil {
+			return fail("cgroup_limits")
+		}
+	}
+	if err := accounting.open(); err != nil {
+		return err
+	}
+	if syscall.Mount("/sys/fs/cgroup/runtime", "/sys/fs/cgroup", "", syscall.MS_BIND, "") != nil {
+		return fail("cgroup_mount_boundary")
+	}
+	return nil
+}

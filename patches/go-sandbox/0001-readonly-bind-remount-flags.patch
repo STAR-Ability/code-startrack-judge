@@ -1,0 +1,13 @@
+--- a/pkg/mount/mount_linux.go
++++ b/pkg/mount/mount_linux.go
+@@ -24,7 +24,9 @@
+ 		if err := syscall.Statfs(m.Source, &s); err != nil {
+ 			return fmt.Errorf("statfs: %w", err)
+ 		}
+-		flag := m.Flags | syscall.MS_REMOUNT | uintptr(s.Flags&mask)
++		// Code Startrack modification: propagation flags belong to the initial mount,
++		// not the read-only bind remount; retain bind, read-only and locked flags.
++		flag := (m.Flags &^ (syscall.MS_PRIVATE | syscall.MS_REC)) | syscall.MS_REMOUNT | uintptr(s.Flags&mask)
+ 		if err := syscall.Mount("", m.Target, m.FsType, flag, m.Data); err != nil {
+ 			return fmt.Errorf("remount: %w", err)
+ 		}

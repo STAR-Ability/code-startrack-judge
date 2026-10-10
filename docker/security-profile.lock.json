@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "status": "PROPOSED_UNQUALIFIED",
+  "module": "github.com/moby/profiles/seccomp",
+  "version": "v0.2.3",
+  "moduleSum": "h1:nrHNSiECQQvq4WjgceCUgJXIXUJBIswVQ133k4Do2mA=",
+  "goModSum": "h1:8m3qkkWZXrRsMqlUUN2zyccnYmBf3EAdQYPMVJ3NBhk=",
+  "upstreamProfileSha256": "536529b665dd0972c37bfb569f5d4ac8a53592e7b00752bc39ff063ca9864c74",
+  "profileSha256": "f2af652154341047f7e80ce3b5b731c472e52cca150ccafacc6eef4f6f29f84d",
+  "licenseSha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "delta": {
+    "addedSyscalls": [
+      "pivot_root"
+    ],
+    "action": "SCMP_ACT_ALLOW",
+    "requiresOuterCapability": "CAP_SYS_ADMIN"
+  },
+  "reason": "Docker29.5.2 default seccomp blocks pinned mature sandbox pivot_root; no other default rule changes",
+  "qualification": "REQUIRED_EXACT_IMAGE_LINUX_MATRIX",
+  "repository": "https://github.com/moby/profiles",
+  "commit": "836ae4d37ef2ec995c77c99fc55f5b5f3af3a897",
+  "tag": "seccomp/v0.2.3",
+  "sourcePath": "seccomp/default.json",
+  "moduleArchiveSha256": "a312154ab6d08dc2a5263cd1b8b6ef9c62bd4c24f8d6802ef158b51a1e37e75a",
+  "profileSourceURL": "https://raw.githubusercontent.com/moby/profiles/836ae4d37ef2ec995c77c99fc55f5b5f3af3a897/seccomp/default.json",
+  "licenseSourceURL": "https://raw.githubusercontent.com/moby/profiles/836ae4d37ef2ec995c77c99fc55f5b5f3af3a897/LICENSE"
+}

@@ -1,0 +1,22 @@
+mount:
+  - {type: bind, source: /usr, target: /usr, readonly: true}
+  - {type: bind, source: /bin, target: /bin, readonly: true}
+  - {type: bind, source: /lib, target: /lib, readonly: true}
+  - {type: bind, source: /lib64, target: /lib64, readonly: true}
+  - {type: bind, source: /etc/ld.so.cache, target: /etc/ld.so.cache, readonly: true}
+  - {type: bind, source: /etc/alternatives, target: /etc/alternatives, readonly: true}
+  - {type: bind, source: /etc/texmf, target: /etc/texmf, readonly: true}
+  - {type: bind, source: /etc/fonts, target: /etc/fonts, readonly: true}
+  - {type: bind, source: /var/lib/texmf, target: /var/lib/texmf, readonly: true}
+  - {type: bind, source: /dev/null, target: /dev/null}
+  - {type: bind, source: /dev/zero, target: /dev/zero}
+  - {type: bind, source: /dev/urandom, target: /dev/urandom}
+  - {type: tmpfs, target: /w, data: 'size=2g,nr_inodes=262144,mode=1777'}
+  - {type: tmpfs, target: /tmp, data: 'size=128m,nr_inodes=8192,mode=1777'}
+proc: true
+workDir: /w
+hostName: startrack-sandbox
+uid: 1000
+gid: 1000
+maskPath:
+  - /usr/local/libexec/startrack

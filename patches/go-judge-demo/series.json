@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "component": "go-judge-demo",
+  "repository": "https://github.com/criyle/go-judge-demo.git",
+  "baseCommit": "ed6cc756082ee9f7d792238185dc3e6a47c84b52",
+  "includePaths": [
+    "LICENSE",
+    "go.mod",
+    "go.sum",
+    "judger/",
+    "pb/"
+  ],
+  "excludePaths": [],
+  "unsupportedPackageExtensions": [],
+  "patches": [
+    {
+      "path": "patches/go-judge-demo/0001-startrack-distribution-hardening.patch",
+      "sha256": "ea73df9bbc56dffea986b014392debd553b510ea6ceb17cd4990b02d30f90e0c",
+      "reason": "Remove the unsolicited :2112 diagnostics listener and raw source/test/result logs; owned UDS scheduling and REST executor wiring remains a separate adapter.",
+      "licenseImpact": "Modified upstream source remains MIT; original LICENSE and applicable NOTICE stay byte-identical. New Code Startrack regression tests retain Apache-2.0 attribution.",
+      "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+      "files": [
+        {
+          "path": "judger/main.go",
+          "baseSha256": "d1c54eeac97f776aec358b015a2283aa4253fd386d1793e15005f5db2ba90d4d",
+          "patchedSha256": "e9723d74324acfecb90e6be030fea638e552e43473f40c9e9207340d069f56fd",
+          "mode": "100644"
+        },
+        {
+          "path": "judger/grpc.go",
+          "baseSha256": "83a93d46e521b20e36558748597f7a6eb53e417fc8ebacb6b77c1252f1f0b5b0",
+          "patchedSha256": "79ef7134701239e25dbdb0723c7139412ca241b59b15969d7cc66ee6afff1f1d",
+          "mode": "100644"
+        }
+      ]
+    }
+  ]
+}

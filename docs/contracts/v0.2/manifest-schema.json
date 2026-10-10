@@ -1,0 +1,636 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:code-startrack:problem-manifest:0.2.0",
+  "title": "Code Startrack immutable BATCH_PASS_FAIL problem manifest 0.2.0",
+  "description": "Private package/runtime protocol; source and normalized archive digests, license bindings, runtime image identities and validation-run selections live outside this byte-derived manifest to avoid circular archive checksums.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifestVersion",
+    "adapterVersion",
+    "sourceFormat",
+    "source",
+    "judgeMode",
+    "title",
+    "statement",
+    "languageIds",
+    "limits",
+    "executionProfiles",
+    "checker",
+    "testCount",
+    "tests",
+    "referenceSolutions",
+    "inputValidators",
+    "files",
+    "sourceMetadata",
+    "adaptations"
+  ],
+  "properties": {
+    "manifestVersion": {
+      "const": "0.2.0"
+    },
+    "adapterVersion": {
+      "const": "ojlab-kattis-v0.2.1"
+    },
+    "sourceFormat": {
+      "const": "oj-lab-v1"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "repositoryUrl",
+        "revision",
+        "packagePath"
+      ],
+      "properties": {
+        "source": {
+          "const": "OJ_LAB"
+        },
+        "repositoryUrl": {
+          "const": "https://github.com/oj-lab/problem-packages"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "packagePath": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/path"
+            },
+            {
+              "pattern": "^problems/"
+            }
+          ]
+        }
+      }
+    },
+    "judgeMode": {
+      "const": "BATCH_PASS_FAIL"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "source",
+        "validationFormat",
+        "validationView",
+        "shortname"
+      ],
+      "properties": {
+        "format": {
+          "const": "MARKDOWN"
+        },
+        "source": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "validationFormat": {
+          "const": "TEX"
+        },
+        "validationView": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "shortname": {
+          "type": "string",
+          "pattern": "^p[0-9a-f]{32}$"
+        }
+      }
+    },
+    "languageIds": {
+      "const": [
+        "cpp17"
+      ]
+    },
+    "limits": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/limits"
+        },
+        {
+          "properties": {
+            "processLimit": {
+              "const": 32
+            }
+          }
+        }
+      ]
+    },
+    "executionProfiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "compile",
+        "checker",
+        "validator"
+      ],
+      "properties": {
+        "compile": {
+          "const": {
+            "timeLimitMs": 60000,
+            "wallLimitMs": 120000,
+            "memoryLimitBytes": 1073741824,
+            "outputLimitBytes": 8388608,
+            "processLimit": 128
+          }
+        },
+        "checker": {
+          "const": {
+            "timeLimitMs": 60000,
+            "wallLimitMs": 120000,
+            "memoryLimitBytes": 1073741824,
+            "outputLimitBytes": 8388608,
+            "processLimit": 32
+          }
+        },
+        "validator": {
+          "const": {
+            "timeLimitMs": 60000,
+            "wallLimitMs": 120000,
+            "memoryLimitBytes": 1073741824,
+            "outputLimitBytes": 8388608,
+            "processLimit": 64
+          }
+        }
+      }
+    },
+    "checker": {
+      "$ref": "#/$defs/checker"
+    },
+    "testCount": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/test"
+      },
+      "minItems": 1,
+      "maxItems": 4096,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "visibility"
+            ],
+            "properties": {
+              "visibility": {
+                "const": "SAMPLE"
+              }
+            }
+          },
+          "minContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "required": [
+              "visibility"
+            ],
+            "properties": {
+              "visibility": {
+                "const": "SECRET"
+              }
+            }
+          },
+          "minContains": 1
+        }
+      ]
+    },
+    "referenceSolutions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reference"
+      },
+      "minItems": 1,
+      "maxItems": 4096,
+      "contains": {
+        "type": "object",
+        "required": [
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "const": "ACCEPTED"
+          }
+        }
+      },
+      "minContains": 1
+    },
+    "inputValidators": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/program"
+      },
+      "minItems": 1,
+      "maxItems": 128
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mapping"
+      },
+      "minItems": 1,
+      "maxItems": 65536
+    },
+    "sourceMetadata": {
+      "type": "object"
+    },
+    "adaptations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/adaptation"
+      },
+      "minItems": 1,
+      "maxItems": 65536
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*[\\\\\\x00-\\x1f\\x7f%:])[^/]+(?:/[^/]+)*$",
+      "format": "ustar-relative-path",
+      "not": {
+        "const": "startrack-manifest.json"
+      }
+    },
+    "fileRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256",
+        "sizeBytes"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/path"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeLimitMs",
+        "wallLimitMs",
+        "memoryLimitBytes",
+        "outputLimitBytes",
+        "processLimit"
+      ],
+      "properties": {
+        "timeLimitMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60000
+        },
+        "wallLimitMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120000
+        },
+        "memoryLimitBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483648
+        },
+        "outputLimitBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 67108864
+        },
+        "processLimit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        }
+      }
+    },
+    "tolerance": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?$",
+          "format": "unit-interval-decimal"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "checker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "profile",
+        "implementation",
+        "caseSensitive",
+        "spaceChangeSensitive",
+        "floatAbsoluteTolerance",
+        "floatRelativeTolerance"
+      ],
+      "properties": {
+        "type": {
+          "const": "DEFAULT"
+        },
+        "profile": {
+          "const": "kattis-default-v1.20260907"
+        },
+        "implementation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repositoryUrl",
+            "revision",
+            "sourcePath",
+            "sourceSha256"
+          ],
+          "properties": {
+            "repositoryUrl": {
+              "const": "https://github.com/Kattis/problemtools"
+            },
+            "revision": {
+              "const": "6010cbaa37a1612117f49566b2fff8646d53faa2"
+            },
+            "sourcePath": {
+              "const": "support/default_validator/default_validator.cc"
+            },
+            "sourceSha256": {
+              "const": "2901f589366382433562ec550b2f0c979ad94e3a3a4f737ef013bdd4fa334328"
+            }
+          }
+        },
+        "caseSensitive": {
+          "type": "boolean"
+        },
+        "spaceChangeSensitive": {
+          "type": "boolean"
+        },
+        "floatAbsoluteTolerance": {
+          "$ref": "#/$defs/tolerance"
+        },
+        "floatRelativeTolerance": {
+          "$ref": "#/$defs/tolerance"
+        }
+      }
+    },
+    "program": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "languageId"
+      ],
+      "properties": {
+        "file": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "languageId": {
+          "enum": [
+            "cpp17",
+            "python3"
+          ]
+        }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "languageId",
+        "role"
+      ],
+      "properties": {
+        "file": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "languageId": {
+          "enum": [
+            "cpp17",
+            "python3"
+          ]
+        },
+        "role": {
+          "enum": [
+            "ACCEPTED",
+            "WRONG_ANSWER",
+            "TIME_LIMIT",
+            "RUNTIME_ERROR"
+          ]
+        }
+      }
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "originalPath",
+        "normalizedPath",
+        "sourceSha256",
+        "normalizedSha256",
+        "sourceSizeBytes",
+        "normalizedSizeBytes",
+        "role"
+      ],
+      "properties": {
+        "originalPath": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/path"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "normalizedPath": {
+          "$ref": "#/$defs/path"
+        },
+        "sourceSha256": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "normalizedSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sourceSizeBytes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 67108864
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "normalizedSizeBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 67108864
+        },
+        "role": {
+          "enum": [
+            "STATEMENT",
+            "VALIDATION_STATEMENT",
+            "INPUT",
+            "ANSWER",
+            "REFERENCE",
+            "INPUT_VALIDATOR",
+            "LICENSE",
+            "SOURCE_METADATA",
+            "OTHER"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "originalPath": {
+                "type": "null"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "sourceSha256": {
+                "type": "null"
+              },
+              "sourceSizeBytes": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "sourceSha256": {
+                "$ref": "#/$defs/sha256"
+              },
+              "sourceSizeBytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 67108864
+              }
+            }
+          }
+        }
+      ]
+    },
+    "test": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "visibility",
+        "input",
+        "answer",
+        "checker",
+        "validationGroup"
+      ],
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "visibility": {
+          "enum": [
+            "SAMPLE",
+            "SECRET"
+          ]
+        },
+        "input": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "answer": {
+          "$ref": "#/$defs/fileRef"
+        },
+        "checker": {
+          "$ref": "#/$defs/checker"
+        },
+        "validationGroup": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "adaptation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "sourceField",
+        "originalValue",
+        "normalizedValue",
+        "reason"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "MARKDOWN_TO_TEX",
+            "SHORTNAME_MAPPING",
+            "EXTENSION_TO_MANIFEST",
+            "UNIT_CONVERSION",
+            "DEFAULT_APPLIED"
+          ]
+        },
+        "sourceField": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "originalValue": {},
+        "normalizedValue": {},
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      }
+    }
+  }
+}

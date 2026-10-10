@@ -1,0 +1,13 @@
+diff --git a/container/environment_linux.go b/container/environment_linux.go
+--- a/container/environment_linux.go
++++ b/container/environment_linux.go
+@@ -263,6 +263,9 @@
+ 			UidMappings: uidMap,
+ 			GidMappings: gidMap,
+ 			AmbientCaps: []uintptr{
++				// Code Startrack: the trusted namespace init needs SETPCAP for
++				// its securebits transition; untrusted children still drop all caps.
++				unix.CAP_SETPCAP,
+ 				unix.CAP_SYS_ADMIN,
+ 				unix.CAP_SYS_RESOURCE,
+ 			},

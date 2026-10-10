@@ -1,0 +1,160 @@
+name: Publish immutable artifacts
+
+on:
+  workflow_run:
+    workflows: [Foundation]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: immutable-artifacts-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Immutable main sources, image and evidence
+    if: >-
+      github.repository == 'STAR-Ability/code-startrack-judge' &&
+      github.ref == 'refs/heads/main' && github.ref_protected &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == 'STAR-Ability/code-startrack-judge' &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
+    env:
+      GOTOOLCHAIN: local
+      RELEASE_SOURCE_COMMIT: ${{ github.event.workflow_run.head_sha }}
+      RELEASE_VALIDATION_RUN: ${{ github.event.workflow_run.html_url }}
+      IMAGE_TAG: ghcr.io/star-ability/code-startrack-judge:git-${{ github.event.workflow_run.head_sha }}
+      SOURCE_TAG: ghcr.io/star-ability/code-startrack-judge-sources:git-${{ github.event.workflow_run.head_sha }}
+    steps:
+      # v4.3.1; exact source from the successful protected-main Foundation run.
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set private registry path for this runner attempt
+        run: |
+          printf 'DOCKER_CONFIG=%s\n' \
+            "$RUNNER_TEMP/judge-registry-auth-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" >> "$GITHUB_ENV"
+      - name: Authenticate the fixed image registry
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          install -d -m 0700 "$DOCKER_CONFIG"
+          printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+      - name: Resolve an existing immutable commit image
+        id: target
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/release-artifacts.py target --output "$GITHUB_OUTPUT"
+      - name: Resolve existing immutable corresponding sources
+        id: sources
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/release-artifacts.py target --kind sources --output "$GITHUB_OUTPUT"
+      - name: Install verified Go SDK
+        run: make toolchain
+      - name: Fetch and verify all locked build inputs
+        if: steps.target.outputs.exists != 'true' || steps.sources.outputs.exists != 'true'
+        run: |
+          make upstream-fetch upstream-verify upstream-patch-check
+          python3 scripts/validation-tools.py fetch
+          python3 scripts/prepare-image-context.py prepare .local/image-context --release-commit "$RELEASE_SOURCE_COMMIT"
+          python3 scripts/prepare-image-context.py verify .local/image-context
+      - name: Fetch and verify complete signed corresponding sources
+        if: steps.sources.outputs.exists != 'true'
+        run: |
+          python3 scripts/validation-sources.py verify-signatures
+          python3 scripts/validation-sources.py fetch
+          python3 scripts/validation-sources.py verify
+          source_lock_sha=$(sha256sum validation-sources.lock.json | cut -d ' ' -f 1)
+          python3 scripts/release-artifacts.py sources-prepare --context .local/image-context \
+            --bundle ".cache/validation-sources/$source_lock_sha" --output .local/source-context
+      - name: Build the data-only corresponding-source carrier
+        if: steps.sources.outputs.exists != 'true'
+        run: |
+          docker buildx build --load --platform linux/amd64 --network none --provenance=false --sbom=false \
+            --label "org.opencontainers.image.revision=$RELEASE_SOURCE_COMMIT" \
+            --label 'org.opencontainers.image.source=https://github.com/STAR-Ability/code-startrack-judge' \
+            --label 'org.opencontainers.image.licenses=Apache-2.0' \
+            --label 'io.startrack.artifact=corresponding-source' \
+            --tag "$SOURCE_TAG" .local/source-context
+      - name: Recover the existing corresponding-source carrier
+        if: steps.sources.outputs.exists == 'true'
+        env:
+          SOURCE_REFERENCE: ${{ steps.sources.outputs.image }}
+        run: docker pull "$SOURCE_REFERENCE"
+      - name: Audit every source carrier byte without execution
+        env:
+          SOURCE_REFERENCE: ${{ steps.sources.outputs.image }}
+        run: python3 scripts/release-artifacts.py sources-audit --image "$SOURCE_REFERENCE" --output .local/source-evidence
+      - name: Publish verified sources before the service image
+        if: steps.sources.outputs.exists != 'true'
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/release-artifacts.py sources-push --image "$SOURCE_TAG" --output .local/source-evidence
+      - name: Bind the published immutable source digest
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/release-artifacts.py sources-finalize --image "$SOURCE_TAG" --output .local/source-evidence
+      - name: Release temporary multi-GB source storage
+        run: |
+          source_config_id=$(python3 -c 'import json; print(json.load(open(".local/source-evidence/release-artifacts.json"))["imageConfigID"])')
+          docker image rm --force "$source_config_id"
+          docker builder prune --force
+          rm -rf -- .local/source-context .cache/validation-sources
+      - name: Build the offline Linux image without publication
+        if: steps.target.outputs.exists != 'true'
+        run: |
+          docker buildx build --load --platform linux/amd64 --network none --provenance=false --sbom=false \
+            --metadata-file .local/image-build-metadata.json \
+            --label "org.opencontainers.image.revision=$RELEASE_SOURCE_COMMIT" \
+            --label 'org.opencontainers.image.source=https://github.com/STAR-Ability/code-startrack-judge' \
+            --label 'org.opencontainers.image.licenses=Apache-2.0' \
+            --tag "$IMAGE_TAG" .local/image-context
+      - name: Recover the existing published image
+        if: steps.target.outputs.exists == 'true'
+        env:
+          IMAGE_REFERENCE: ${{ steps.target.outputs.image }}
+        run: docker pull "$IMAGE_REFERENCE"
+      - name: Audit actual image licenses and provenance before publication
+        if: steps.target.outputs.exists != 'true'
+        run: |
+          python3 scripts/release-artifacts.py audit --image "$IMAGE_TAG" --output .local/release-evidence --sources .local/source-evidence --build-metadata .local/image-build-metadata.json
+          tar -czf .local/release-evidence/build-inputs.tar.gz -C .local/image-context Dockerfile docker service upstream legal provenance validation-tools
+      - name: Audit the existing immutable image
+        if: steps.target.outputs.exists == 'true'
+        env:
+          IMAGE_REFERENCE: ${{ steps.target.outputs.image }}
+        run: python3 scripts/release-artifacts.py audit --image "$IMAGE_REFERENCE" --output .local/release-evidence --sources .local/source-evidence
+      - name: Publish the audited image without replacing any commit tag
+        if: steps.target.outputs.exists != 'true'
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/release-artifacts.py push --image "$IMAGE_TAG" --output .local/release-evidence --sources .local/source-evidence
+      - name: Measure the final registry digest and write evidence checksums
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/release-artifacts.py finalize --image "$IMAGE_TAG" --output .local/release-evidence --sources .local/source-evidence
+      # v4.6.2; verified against the upstream GitHub tag ref. Artifact IDs are immutable.
+      - name: Publish immutable evidence artifacts
+        id: evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: judge-evidence-${{ github.event.workflow_run.head_sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .local/release-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+      - name: Remove registry credentials
+        if: always()
+        run: rm -rf -- "$DOCKER_CONFIG"

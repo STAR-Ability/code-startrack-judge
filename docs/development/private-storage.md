@@ -1,0 +1,11 @@
+# Private object lifecycle
+
+Refs #7. Judge stores immutable bytes by exact SHA-256 and submitted source under a task-specific private namespace. The store checks length/checksum, uses confined paths without following symbolic objects, synchronizes data and directories, and publishes bytes atomically. No raw caller path becomes an object key or host mount.
+
+Object writes and PostgreSQL commits cannot share a transaction. Durable one-hour stage pins precede writes; acceptance consumes live stages and registers immutable owner references in the owner's transaction. Renew and consumption lock the stage row before checking the current database deadline. Stable whole-inventory object locking prevents transactions registering shared bytes in different orders from deadlocking. Expired pins cannot be renewed or attached.
+
+Garbage collection locks both the object identity and ledger row before rechecking stage/reference ownership and unlinking. It checks actual artifact, manifest-file, test, answer, reference, rejected-evidence, validation-log, case-log and task fields as well as registry references. Historical objects remain protected when registry pins are absent. Filesystem orphan scanning uses the same checks and bounded pagination; immutable history never loses bytes because one work directory disappears.
+
+Transient submitted source is eligible only when its frozen retention deadline has passed and its task has been terminal for at least24hours. Cleanup clears the permitted task pointer and matching private reference atomically before removing that task's source object. Backend-owned source is outside this store. Artifact/package/test/reference/history objects have no ordinary deletion workflow.
+
+Actual PostgreSQL17.10 and filesystem race tests on2026-10-08 covered duplicate immutable identities, concurrent version allocation, immutable test/reference/qualification ownership, alternate-profile audit retention without qualifier replacement, staging/GC races, unchanged row-lock expiry, direct foreign-key pin contention, historical missing-pin objects, symlink redirection and terminal cleanup. These host tests do not prove sandbox filesystem isolation; the Linux execution profile needs its own qualification.

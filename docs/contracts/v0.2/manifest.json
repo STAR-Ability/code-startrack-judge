@@ -1,0 +1,100 @@
+{
+  "contractVersion": "0.2.0",
+  "apiGeneration": "/internal/v2",
+  "status": "implementation-baseline",
+  "files": [
+    {
+      "source": "判题题库api文档.md",
+      "path": "docs/contracts/v0.2/api.md",
+      "sha256": "ecfe5b27158b14b0ef47824e176c1a4bcfcb0597d6ab6e17a2ae31855ead515d"
+    },
+    {
+      "source": "判题题库数据库文档.md",
+      "path": "docs/contracts/v0.2/database.md",
+      "sha256": "ad395c6219a46284267afddd4efcea155803d1543729e3d311d9be632e1eef8f"
+    },
+    {
+      "source": "V0.2-整体架构与联调说明.md",
+      "path": "docs/contracts/v0.2/integration.md",
+      "sha256": "f7ff9604edf08a4028766c3eba062bca1d2829c0ceab7a6e841bee65be61e503"
+    }
+  ],
+  "upstreamComponents": [
+    "go-judge-demo",
+    "go-judge",
+    "problem-packages",
+    "problemtools"
+  ],
+  "supplementaryReferences": [
+    {
+      "source": "/Users/jack5/QLluckGithub/code-startrack-docs/v0.2/前端api文档.md",
+      "path": "docs/contracts/v0.2/reference/前端api文档.md",
+      "sha256": "90e8033e2ec2e8ff8c21732ba09247c1d070c90bd1111055e767694743b76bb8",
+      "role": "supplementary cross-service reference evidence"
+    },
+    {
+      "source": "/Users/jack5/QLluckGithub/code-startrack-docs/v0.2/前端需要知道的数据库.md",
+      "path": "docs/contracts/v0.2/reference/前端需要知道的数据库.md",
+      "sha256": "3b56e4df86757e8c0f8d29faa70f82af9e2b38ef256a638178799ec6b049bda6",
+      "role": "supplementary cross-service reference evidence"
+    },
+    {
+      "source": "/Users/jack5/QLluckGithub/code-startrack-docs/v0.2/后端api文档.md",
+      "path": "docs/contracts/v0.2/reference/后端api文档.md",
+      "sha256": "d4bb3b148b5155bac32bfa6a7e154327cdbe7974d965d0a6f153be9404d05a97",
+      "role": "supplementary cross-service reference evidence"
+    },
+    {
+      "source": "/Users/jack5/QLluckGithub/code-startrack-docs/v0.2/后端数据库文档.md",
+      "path": "docs/contracts/v0.2/reference/后端数据库文档.md",
+      "sha256": "578ea46c67944fc800df459185a0e8bc5680cecd5e3899a45b8397f04a108fbf",
+      "role": "supplementary cross-service reference evidence"
+    },
+    {
+      "source": "/Users/jack5/QLluckGithub/code-startrack-docs/v0.2/算法模块api文档.md",
+      "path": "docs/contracts/v0.2/reference/算法模块api文档.md",
+      "sha256": "af06a8b9fd4d60a833493107b6f8121419b13b5f83805d104b3f7c9b77230df1",
+      "role": "supplementary cross-service reference evidence"
+    },
+    {
+      "source": "/Users/jack5/QLluckGithub/code-startrack-docs/v0.2/算法模块数据库文档.md",
+      "path": "docs/contracts/v0.2/reference/算法模块数据库文档.md",
+      "sha256": "7d6480919cc1b40f7cef1c79ad8ba7641d4b8a5c4bd73c6c992ef1e3e8e14cb5",
+      "role": "supplementary cross-service reference evidence"
+    }
+  ],
+  "amendments": [
+    {
+      "path": "docs/contracts/v0.2/clarifications.md",
+      "sha256": "049367b4ac5709f57c8e38e8ddaf019d79ff5f24947be35adf58aa8f5712b34f",
+      "date": "2026-10-08",
+      "status": "owner-authorized-engineering-design-reviewed",
+      "authority": "Owner complete-V0.2 implementation mandate; independent engineering design review; implementation-owner engineering decisions",
+      "externalConsumerSignoff": "not yet asserted"
+    },
+    {
+      "path": "docs/contracts/v0.2/package-protocol.md",
+      "sha256": "d26db81d1006b5541a42bf7dc33ba2e377b94a5b2973d7e2b67d1792105186c2",
+      "date": "2026-10-08",
+      "status": "owner-authorized-engineering-design-reviewed",
+      "authority": "Owner complete-V0.2 implementation mandate; independent engineering design review; implementation-owner engineering decisions",
+      "externalConsumerSignoff": "not yet asserted"
+    },
+    {
+      "path": "docs/contracts/v0.2/manifest-schema.json",
+      "sha256": "1d5670c34eb87f5e85b9cec3cc52b4008e4a531afafa5144cfc19ca0a72045f8",
+      "date": "2026-10-08",
+      "status": "owner-authorized-engineering-design-reviewed",
+      "authority": "Owner complete-V0.2 implementation mandate; independent engineering design review; implementation-owner engineering decisions",
+      "externalConsumerSignoff": "not yet asserted"
+    },
+    {
+      "path": "docs/contracts/v0.2/validation-results-schema.json",
+      "sha256": "2d1abf6a87beddbc0fb26fc124f5f6b2e0c62014dbcc6c2cae5c65f69c9f48ab",
+      "date": "2026-10-08",
+      "status": "owner-authorized-engineering-design-reviewed",
+      "authority": "Owner complete-V0.2 implementation mandate; independent engineering design review; implementation-owner engineering decisions",
+      "externalConsumerSignoff": "not yet asserted"
+    }
+  ]
+}

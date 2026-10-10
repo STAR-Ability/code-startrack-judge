@@ -1,0 +1,43 @@
+{
+  "data": {
+    "snapshotId": "123e4567-e89b-12d3-a456-426614174100",
+    "catalogVersion": "18",
+    "items": [
+      {
+        "problem": {
+          "problemRef": {
+            "source": "PLATFORM",
+            "platform": "startrack",
+            "problemId": "42",
+            "problemVersionId": "123e4567-e89b-12d3-a456-426614174101"
+          },
+          "title": "Shortest Route",
+          "difficulty": 1600,
+          "difficultyScale": "PLATFORM_RATING",
+          "tags": ["graphs"],
+          "url": null
+        },
+        "status": "PUBLISHED"
+      },
+      {
+        "problem": {
+          "problemRef": {
+            "source": "PLATFORM",
+            "platform": "startrack",
+            "problemId": "43",
+            "problemVersionId": "123e4567-e89b-12d3-a456-426614174102"
+          },
+          "title": "Retired Routes",
+          "difficulty": null,
+          "difficultyScale": "UNRATED",
+          "tags": ["graphs", "archived"],
+          "url": null
+        },
+        "status": "WITHDRAWN"
+      }
+    ],
+    "nextCursor": "opaque.fixturE/page+2=",
+    "expiresAt": "2026-10-08T04:30:00Z"
+  },
+  "requestId": "123e4567-e89b-12d3-a456-426614174110"
+}

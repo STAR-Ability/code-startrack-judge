@@ -1,0 +1,704 @@
+===== bson/array_codec.go sha256:35635b21718c6b799944788ae4d8d362cf81e4c5af3687319d5c93bca8dcd8a5 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/bsoncodec.go sha256:e7c7aae1198f8f323a22f99852a72e484cee1428f02c8bbdeb534221092aa6f3 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/buffered_byte_src.go sha256:e0b831e7fcb8a9e446d76901af88131447b72cb37ec95253e3a8aa11d9007ebd =====
+// Copyright (C) MongoDB, Inc. 2025-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/byte_slice_codec.go sha256:ff9eed1c0edf213d9e4bd9c22a7382045d7ecf5f8eb841c64e44461deb1f19f3 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/codec_cache.go sha256:660cb65567141448571185e1cbac2458692197e8ee1a378a8b00c8284ce67463 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/cond_addr_codec.go sha256:8591a2e4290b8cc61610d7eeadd0244ec179f14d439418c0ec008abddc2dddd4 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/copier.go sha256:9ffdec79cedd42c5c4817eea55c3043cb3fb9971388ede69d303ef0bd6d0b4db =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/decimal.go sha256:9926524d1384cca40425a696f3704bed27b9a2d7bb41971ce243acc4c89c79dc =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
+// See THIRD-PARTY-NOTICES for original license terms.
+
+
+===== bson/decoder.go sha256:608a6ba44dfd8e5bacb0f5a3d59095a52d5c508bad2720d3364400e60c55628b =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/default_value_decoders.go sha256:94d97c1f21a3d1e04dda8ae9ca44871f51b4a0afff04aee5e354e331a75f845d =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/default_value_encoders.go sha256:5fb5d6ccb3fac3d11a7de011cb87ea0311cc52192b955ca96380111ec9874c1e =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/doc.go sha256:348cd623efc3e8eba8111c36cbba000bbe8fa46f4e531c87e9002b80f795da4c =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+// Package bson is a library for reading, writing, and manipulating BSON. BSON is a binary serialization
+// format used to store documents and make remote procedure calls in MongoDB. For more information about
+// the Go BSON library, including usage examples, check out the [Work with BSON] page in the Go Driver
+// docs site. For more information about BSON, see https://bsonspec.org.
+//
+// # Native Go Types
+//
+// The [D] and [M] types defined in this package can be used to build representations of BSON using native Go types. D is a
+// slice and M is a map. For more information about the use cases for these types, see the documentation on the type
+// definitions.
+//
+// Note that a D should not be constructed with duplicate key names, as that can cause undefined server behavior.
+//
+// Example:
+//
+//	bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
+//	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
+//
+// When decoding BSON to a D or M, the following type mappings apply when unmarshaling:
+//
+//  1. BSON int32 unmarshals to an int32.
+//  2. BSON int64 unmarshals to an int64.
+//  3. BSON double unmarshals to a float64.
+//  4. BSON string unmarshals to a string.
+//  5. BSON boolean unmarshals to a bool.
+//  6. BSON embedded document unmarshals to the parent type (i.e. D for a D, M for an M).
+//  7. BSON array unmarshals to a bson.A.
+//  8. BSON ObjectId unmarshals to a bson.ObjectID.
+//  9. BSON datetime unmarshals to a bson.DateTime.
+//  10. BSON binary unmarshals to a bson.Binary.
+//  11. BSON regular expression unmarshals to a bson.Regex.
+//  12. BSON JavaScript unmarshals to a bson.JavaScript.
+//  13. BSON code with scope unmarshals to a bson.CodeWithScope.
+//  14. BSON timestamp unmarshals to an bson.Timestamp.
+//  15. BSON 128-bit decimal unmarshals to an bson.Decimal128.
+//  16. BSON min key unmarshals to an bson.MinKey.
+//  17. BSON max key unmarshals to an bson.MaxKey.
+//  18. BSON undefined unmarshals to a bson.Undefined.
+//  19. BSON null unmarshals to nil.
+//  20. BSON DBPointer unmarshals to a bson.DBPointer.
+//  21. BSON symbol unmarshals to a bson.Symbol.
+//
+// The above mappings also apply when marshaling a D or M to BSON. Some other useful marshaling mappings are:
+//
+//  1. time.Time marshals to a BSON datetime.
+//  2. int8, int16, and int32 marshal to a BSON int32.
+//  3. int marshals to a BSON int32 if the value is between math.MinInt32 and math.MaxInt32, inclusive, and a BSON int64
+//     otherwise.
+//  4. int64 marshals to BSON int64 (unless [Encoder.IntMinSize] is set).
+//  5. uint8 and uint16 marshal to a BSON int32.
+//  6. uint, uint32, and uint64 marshal to a BSON int64 (unless [Encoder.IntMinSize] is set).
+//  7. BSON null and undefined values will unmarshal into the zero value of a field (e.g. unmarshaling a BSON null or
+//     undefined value into a string will yield the empty string.).
+//
+// # Structs
+//
+// Structs can be marshaled/unmarshaled to/from BSON or Extended JSON. When transforming structs to/from BSON or Extended
+// JSON, the following rules apply:
+//
+//  1. Only exported fields in structs will be marshaled or unmarshaled.
+//
+//  2. When marshaling a struct, each field will be lowercased to generate the key for the corresponding BSON element.
+//     For example, a struct field named "Foo" will generate key "foo". This can be overridden via a struct tag (e.g.
+//     `bson:"fooField"` to generate key "fooField" instead).
+//
+//  3. An embedded struct field is marshaled as a subdocument. The key will be the lowercased name of the field's type.
+//
+//  4. A pointer field is marshaled as the underlying type if the pointer is non-nil. If the pointer is nil, it is
+//     marshaled as a BSON null value.
+//
+//  5. When unmarshaling, a field of type any will follow the D/M type mappings listed above. BSON documents
+//     unmarshaled into an any field will be unmarshaled as a D.
+//
+// The encoding of each struct field can be customized by the "bson" struct tag. The "bson" tag gives the name of the
+// field, followed by a comma-separated list of options. The name may be omitted in order to specify options without
+// overriding the default field name. The following options can be used to configure behavior:
+//
+//  1. omitempty: If the "omitempty" struct tag is specified on a field, the field will not be marshaled if it is set to
+//     an "empty" value. Numbers, booleans, and strings are considered empty if their value is equal to the zero value for
+//     the type (i.e. 0 for numbers, false for booleans, and "" for strings). Slices, maps, and arrays are considered
+//     empty if they are of length zero. Interfaces and pointers are considered empty if their value is nil. By default,
+//     structs are only considered empty if the struct type implements [Zeroer] and the "IsZero"
+//     method returns true. Struct types that do not implement [Zeroer] are never considered empty and will be
+//     marshaled as embedded documents. NOTE: It is recommended that this tag be used for all slice and map fields.
+//
+//  2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
+//     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For
+//     other types, this tag is ignored.
+//
+//  3. truncate: If the truncate struct tag is specified on a field with a non-float numeric type, BSON doubles
+//     unmarshaled into that field will be truncated at the decimal point. For example, if 3.14 is unmarshaled into a
+//     field of type int, it will be unmarshaled as 3. If this tag is not specified, the decoder will throw an error if
+//     the value cannot be decoded without losing precision. For float64 or non-numeric types, this tag is ignored.
+//
+//  4. inline: If the inline struct tag is specified for a struct or map field, the field will be "flattened" when
+//     marshaling and "un-flattened" when unmarshaling. This means that all of the fields in that struct/map will be
+//     pulled up one level and will become top-level fields rather than being fields in a nested document. For example,
+//     if a map field named "Map" with value map[string]any{"foo": "bar"} is inlined, the resulting document will
+//     be {"foo": "bar"} instead of {"map": {"foo": "bar"}}. There can only be one inlined map field in a struct. If
+//     there are duplicated fields in the resulting document when an inlined struct is marshaled, the inlined field will
+//     be overwritten. If there are duplicated fields in the resulting document when an inlined map is marshaled, an
+//     error will be returned. This tag can be used with fields that are pointers to structs. If an inlined pointer field
+//     is nil, it will not be marshaled. For fields that are not maps or structs, this tag is ignored.
+//
+// # Raw BSON
+//
+// The Raw family of types is used to validate and retrieve elements from a slice of bytes. This
+// type is most useful when you want do lookups on BSON bytes without unmarshaling it into another
+// type.
+//
+// Example:
+//
+//	var raw bson.Raw = ... // bytes from somewhere
+//	err := raw.Validate()
+//	if err != nil { return err }
+//	val := raw.Lookup("foo")
+//	i32, ok := val.Int32OK()
+//	// do something with i32...
+//
+// # Custom Registry
+//
+// The Go BSON library uses a [Registry] to define encoding and decoding behavior for different data types.
+// The default encoding and decoding behavior can be customized or extended by using a modified Registry.
+// The custom registry system is composed of two parts:
+//
+// 1) [ValueEncoder] and [ValueDecoder] that handle encoding and decoding Go values to and from BSON
+// representations.
+//
+// 2) A [Registry] that holds these ValueEncoders and ValueDecoders and provides methods for
+// retrieving them.
+//
+// To use a custom Registry, use [Encoder.SetRegistry] or [Decoder.SetRegistry].
+//
+// [Work with BSON]: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/
+
+===== bson/empty_interface_codec.go sha256:ddb18b7e6f6184eff566e8345db17a8aca3353b6de5420ee11d5ae625746d587 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/encoder.go sha256:f3bf39a1898e4fa0cb75f6fd406e51ad095984064335c9504063b7dcb346cb21 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/extjson_parser.go sha256:509f1d4f14ce13d6487fdc1b9ab27e078c51d1f77d101f9d6d65b17cf8967bba =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/extjson_reader.go sha256:ffcd49d196b682749b64191f650ee5c8fea699e203eaf3447908a28ca490e626 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/extjson_tables.go sha256:aa6714eb0eeebe01f013f8f740986dbd47a4b1e8219bcb7b895b51c232ec9046 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on github.com/golang/go by The Go Authors
+// See THIRD-PARTY-NOTICES for original license terms.
+
+
+===== bson/extjson_wrappers.go sha256:0f50a29483f0ea65235d1f737025120dc115cea172aba94fbff60dfa16a0c5a9 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/extjson_writer.go sha256:5d2a2a0b3e1cfe8db856129669c46d0675468c91eee1cb0935b298aaf11fdcdf =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/json_scanner.go sha256:c4e184d30363acc292e7223ec69a3d07e8dcbe62cac91884806b33cad4eaa296 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/map_codec.go sha256:65354d5a9f2f407c8f9f3c699e29b61deee1f53d52ae80e2f740bb2643851186 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/marshal.go sha256:7991543aefa2b92e25b324bbeb47c008b6efc796325ff8fdadedf25beb8e6bca =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/mgoregistry.go sha256:3e7aa01ab1cbbeb0d0d8b5268edc5f23f5f2f3136d39c3d98eb3d53ca2e11df7 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/mode.go sha256:5ecb8a3cedc1d484506c6727c79757bc3f920932310b924db6638dd62324c346 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/objectid.go sha256:f3ac25c032aaf4008e1550ba7cabd723121c8837e55401e7b7438010431c0f3c =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
+// See THIRD-PARTY-NOTICES for original license terms.
+
+
+===== bson/pointer_codec.go sha256:20e4fc404a51e9caff7499aa840405033cd6d373ceea0a3f5bd687f2ad63a599 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/primitive.go sha256:9c3fd2a3f61e3f4c4b8bd03edc6baa590744e2ed4e5a3feb74216476e1250ac1 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
+// See THIRD-PARTY-NOTICES for original license terms.
+
+
+===== bson/primitive_codecs.go sha256:bca4f112f6acedc294c450f72dbb430a082f42d68b355d1963c34a1b380a79e0 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/raw.go sha256:8c97579d2792c08498aa3949367aeec49b2006c10c802ed54476b64ec58d825a =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/raw_array.go sha256:bce556a286c8c0e6d5c8c73e03d06fc0ffa6f6ee472a6e7162842408a237e262 =====
+// Copyright (C) MongoDB, Inc. 2024-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/raw_element.go sha256:ef8a35411604c00f71fe49231b7e9de9cafe9fda5d9103937e1db946c52ba499 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/raw_value.go sha256:1890d0d75118e3cd9fc59776df8981897dec06f2f4ff0df222c406e7cff0c493 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/reader.go sha256:2b4b868f24743be742803e3e3fa9c91c7b779ff4481d3ed7e9dd47933dc19e1b =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/registry.go sha256:3a03611c09723eec708067bb26419c93c3ae9feff4f731801e0da4a4afc6124c =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/slice_codec.go sha256:1ab01b437f418c097ec63c7f260123d54a3e9226d3c73938f0cc7a7aaacaad8c =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/streaming_byte_src.go sha256:e3cc246718daad3947b91aef9a749b18466eef381f8552b28c31a8bfdd642b85 =====
+// Copyright (C) MongoDB, Inc. 2025-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/string_codec.go sha256:dde47ed96194242682a3c0c7295a820bacdced1e538b801a28fac386f14b1fdc =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/struct_codec.go sha256:2df27fcc3a7de8aa23646b7081aeb63d7caa52ff79aa3c1ce1cbc304fbe37a65 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/struct_tag_parser.go sha256:ed4789795c73c1c3ff1bc0e55d894f8d18557b599798945f4d3d9bed2bf0993a =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/time_codec.go sha256:92194235176e6e366cebcd25f39aff7ad5ff9a40e5f285fb3ec0bd7c44223430 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/types.go sha256:175378d91c5ea9bd6898884a7f025792d725915f319cdf503a179a0d7cb7b10a =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/uint_codec.go sha256:26fe5c90a16f378d26521253667b4e56f42c8be1329bc9ca7ea8c6f3efdd355e =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/unmarshal.go sha256:22dac89d4e4c3f800d5fa3e3c009e458a54c7f5c5f7e6dd28080eb65b673b7e0 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/value_reader.go sha256:ac27cba362a03e7993ce6985f2d94f6b9e97d8eeefb6d62ee2034fdf3b27f00a =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/value_writer.go sha256:8423de38f8474b1d7e3d0f9d298c1e93d6d4950559c6d666691009c7f66167c9 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/vector.go sha256:163958611361042f736ef8388a2f8e941a8408d1058ff102839abf657df801b0 =====
+// Copyright (C) MongoDB, Inc. 2024-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== bson/writer.go sha256:7d87380620c3c322359b1012c9dec811b04a9efb0978897b54f04790bd6d73b5 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== internal/binaryutil/binaryutil.go sha256:4f22c4850fb7578c8224c058cb8af9b5b9c39428be93742ed3a57a8a1c404114 =====
+// Copyright (C) MongoDB, Inc. 2025-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+// Package binaryutil provides utility functions for working with binary data.
+
+===== internal/binaryutil/doc.go sha256:21a16a2346e4a9d1b5a2ac8f9267cdd1d9e1aab4121e1c0415ff867a160d7a99 =====
+// Copyright (C) MongoDB, Inc. 2026-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+// Package binaryutil provides functions for reading binary primitives from
+// byte slices. It is used internally for BSON parsing and wire protocol
+// operations.
+//
+// The functions in this package are designed for use in BSON operations.
+// Signed integer functions (ReadI32, ReadI64) use manual bit-shifting rather
+// than encoding/binary to avoid unsafe signed/unsigned conversions and comply
+// with gosec G115. Bounds-check elimination (BCE) hints help the compiler
+// inline these functions.
+//
+// Benchmarking across different ARM64 architectures (Apple M-series)
+// revealed non-deterministic performance discrepancies between using the
+// "encoding/binary" standard library and manual bit-shifting ("straight-lining").
+//
+// Without Loss of Generality (WLOG), benchmarking observed that:
+//   - On Apple M1 Pro: Standard library (ReadU32) outperformed manual
+//     bit-shifting (ReadI32) by ~2x (~0.08ns vs ~0.16ns).
+//   - On Apple M4 Max: Manual bit-shifting (ReadI32) outperformed the
+//     standard library (ReadU32) by ~1.6x (~0.03ns vs ~0.05ns).
+//
+// Further testing showed that "straight-lining" the ReadU32 implementation
+// to match ReadI32 normalized performance to ~0.03ns on the M4 Max, even
+// though the generated assembly for both approaches is virtually equivalent.
+//
+// The generated assembly is nearly identical for both approaches. These
+// sub-nanosecond variations likely stem from microarchitecture differences
+// (instruction caching, branch prediction) rather than the code itself.
+//
+// Since network I/O dominates driver latency, these differences do not have a
+// significant impact on driver performance. The implementation favors security
+// compliance and readability over hardware-specific tuning.
+
+===== internal/bsoncoreutil/bsoncoreutil.go sha256:bc7de43644d458ac34ee46b3a79bff9cddea67d46e0e96dc7dfb08ab229d13c5 =====
+// Copyright (C) MongoDB, Inc. 2024-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== internal/decimal128/decimal128.go sha256:fa1fa87c80fcb9c892fe6e8ad4e0490016b8f8d371b55e1a43b701d20f7ddcc8 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/array.go sha256:ac301f8df5857e2219f235471cfe613997a1786690cc634edc1a97b3a91185ed =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/bson_arraybuilder.go sha256:ff7aafb585bbb5124c4cdeb6c03f1855cd5b37f132b747e2e0be798decccecff =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/bson_documentbuilder.go sha256:17f415aab601a087bcc51909aba2fd9657b77979b97acf25f4cefe720805f1d7 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/bsoncore.go sha256:b031eb7df374d571a7093c176ed9bd1759566038277649c197d58fe34d027f17 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/doc.go sha256:a8f48ed5b68172dc0f436aa18938c71caedd0c3b08114c1dd9786b779fac0493 =====
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+// Package bsoncore is intended for internal use only. It is made available to
+// facilitate use cases that require access to internal MongoDB driver
+// functionality and state. The API of this package is not stable and there is
+// no backward compatibility guarantee.
+//
+// WARNING: THIS PACKAGE IS EXPERIMENTAL AND MAY BE MODIFIED OR REMOVED WITHOUT
+// NOTICE! USE WITH EXTREME CAUTION!
+//
+// Package bsoncore contains functions that can be used to encode and decode
+// BSON elements and values to or from a slice of bytes. These functions are
+// aimed at allowing low level manipulation of BSON and can be used to build a
+// higher level BSON library.
+//
+// The Read* functions within this package return the values of the element and
+// a boolean indicating if the values are valid. A boolean was used instead of
+// an error because any error that would be returned would be the same: not
+// enough bytes. This library attempts to do no validation, it will only return
+// false if there are not enough bytes for an item to be read. For example, the
+// ReadDocument function checks the length, if that length is larger than the
+// number of bytes available, it will return false, if there are enough bytes,
+// it will return those bytes and true. It is the consumers responsibility to
+// validate those bytes.
+//
+// The Append* functions within this package will append the type value to the
+// given dst slice. If the slice has enough capacity, it will not grow the
+// slice. The Append*Element functions within this package operate in the same
+// way, but additionally append the BSON type and the key before the value.
+
+===== x/bsonx/bsoncore/document.go sha256:2db2a075ff1de11a2d7e61f373032ffdb0b96e3a68f332a9ce6c976d95495da8 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/element.go sha256:ab35b43edf136453c015ed0423c922c7f4db77f199af48d8e9c499d7d147d850 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/iterator.go sha256:8a0510b315ccca2017cb3fd29e8ce4772f3ab7af4a7c4f1f602b0bc32b9480ab =====
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/tables.go sha256:bb78cb6971e037dfc2dd49826b9136bd9536964eda63746f133d8501acb35e40 =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on github.com/golang/go by The Go Authors
+// See THIRD-PARTY-NOTICES for original license terms.
+
+
+===== x/bsonx/bsoncore/type.go sha256:3c429e36597e1629afd9adece68c7e0a780e4257ec84078e6916e916504cbf5b =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+
+===== x/bsonx/bsoncore/value.go sha256:26f61d2b22714539b5977b37997beac14bd14c72542cb04e50bcb43d25ed54bb =====
+// Copyright (C) MongoDB, Inc. 2017-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+

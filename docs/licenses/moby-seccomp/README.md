@@ -1,0 +1,5 @@
+# Docker seccomp profile provenance
+
+The retained LICENSE is byte-identical to Moby profiles commit `836ae4d37ef2ec995c77c99fc55f5b5f3af3a897`, release `seccomp/v0.2.3`. [The lock](../../../docker/security-profile.lock.json) records the module and archive hashes, exact source/license URLs, verbatim upstream profile hash and derived profile hash. The selected module is `github.com/moby/profiles/seccomp@v0.2.3`, measured in Docker29.5.2 daemon build information on the isolated qualification VM.
+
+The [verbatim source profile](../../../docker/seccomp-source.json) remains distinct from the [derived candidate](../../../docker/startrack-v02.seccomp.json). The sole semantic change appends an allow rule for `pivot_root`, conditional on outer `CAP_SYS_ADMIN`, required by the pinned mature sandbox's filesystem initialization. All33 upstream rules and other fields remain unchanged. Container startup uses this explicit profile; it never selects unconfined seccomp. The inner mature filter and untrusted pivot-root denial still require actual Linux evidence. Proposed profile provenance is not security acceptance or a production deployment claim.

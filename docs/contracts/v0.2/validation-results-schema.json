@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:code-startrack:validation-results:0.2.0",
+  "title": "Code Startrack package validation checkpoints 0.2.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "structure",
+    "statement",
+    "testData",
+    "validators",
+    "referenceSolutions"
+  ],
+  "properties": {
+    "structure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "evidence"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "check",
+              "subjectSha256",
+              "logObjectKey",
+              "summary"
+            ],
+            "properties": {
+              "check": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              "subjectSha256": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "logObjectKey": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "minItems": 1,
+          "maxItems": 65536
+        }
+      }
+    },
+    "statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "evidence"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "check",
+              "subjectSha256",
+              "logObjectKey",
+              "summary"
+            ],
+            "properties": {
+              "check": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              "subjectSha256": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "logObjectKey": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "minItems": 1,
+          "maxItems": 65536
+        }
+      }
+    },
+    "testData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "evidence"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "check",
+              "subjectSha256",
+              "logObjectKey",
+              "summary"
+            ],
+            "properties": {
+              "check": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              "subjectSha256": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "logObjectKey": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "minItems": 1,
+          "maxItems": 65536
+        }
+      }
+    },
+    "validators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "evidence"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "check",
+              "subjectSha256",
+              "logObjectKey",
+              "summary"
+            ],
+            "properties": {
+              "check": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              "subjectSha256": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "logObjectKey": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "minItems": 1,
+          "maxItems": 65536
+        }
+      }
+    },
+    "referenceSolutions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "passed",
+        "evidence"
+      ],
+      "properties": {
+        "passed": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "check",
+              "subjectSha256",
+              "logObjectKey",
+              "summary"
+            ],
+            "properties": {
+              "check": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
+              },
+              "subjectSha256": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/sha256"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "logObjectKey": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 1024
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              }
+            }
+          },
+          "minItems": 1,
+          "maxItems": 65536
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

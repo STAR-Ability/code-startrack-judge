@@ -1,0 +1,418 @@
+===== cpu/byteorder.go sha256:825146fd4557b1cbd8161fa28bb4be8820089848d695316edeecb7fd5a551f8a =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== cpu/cpu.go sha256:b56854737e8d803d582232f9790f7dda2d8ff69e5982f6cdbdd2a150be540922 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package cpu implements processor feature detection for
+// various CPU architectures.
+
+===== cpu/cpu_gc_x86.go sha256:2eec0a58e170f14b054a9d0c006fede8cd5c075c5d7cde1fbab688b4b793588e =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (386 || amd64 || amd64p32) && gc
+
+
+===== cpu/cpu_gc_x86.s sha256:74ac7fc7ef9c56c3306238cf031ea8ef7c0312a7116cb9fba6d07f0b1382df80 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (386 || amd64 || amd64p32) && gc
+
+#include "textflag.h"
+
+// func cpuid(eaxArg, ecxArg uint32) (eax, ebx, ecx, edx uint32)
+
+===== cpu/cpu_linux_noinit.go sha256:620abd97199a2230f59165a2bc58c3ba780b6801ec0246cfb7319553dd795226 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux && !arm && !arm64 && !loong64 && !mips64 && !mips64le && !ppc64 && !ppc64le && !s390x && !riscv64
+
+
+===== cpu/cpu_other_x86.go sha256:6f447bdafdc6f75593b29977c4f43a39f743043d4f286c542a8b93fa7fad3bf9 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build 386 || amd64p32 || (amd64 && (!darwin || !gc))
+
+
+===== cpu/cpu_x86.go sha256:6a9cdf0eca762b62d0e49e1f3bc9b5c68f23fecbdb888d12ef27bc32bc3893b9 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build 386 || amd64 || amd64p32
+
+
+===== cpu/endian_little.go sha256:c6bc70c372d9e1fe86fcf295f406b17bf04bf8d1af25c2456f58520cdaef3be9 =====
+// Copyright 2023 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build 386 || amd64 || amd64p32 || alpha || arm || arm64 || loong64 || mipsle || mips64le || mips64p32le || nios2 || ppc64le || riscv || riscv64 || sh || wasm
+
+
+===== cpu/hwcap_linux.go sha256:4101df793fddf76dfae477f917928008bc4a797446cd4ad44cde6e906c3f8713 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== cpu/parse.go sha256:97b269ea4f0b6d4071a9eed8a74f05055965c307bbab9090d9002bb01f7365a9 =====
+// Copyright 2022 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== cpu/runtime_auxv.go sha256:d898ace395866bed261d403c8cd0ea6eab6d6d77f52042204957e389c38938cf =====
+// Copyright 2023 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== cpu/runtime_auxv_go121.go sha256:6eee9d1a593dce53d22545dc5d5f6ed9127a43e6568ef5f5521920946510d445 =====
+// Copyright 2023 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build go1.21
+
+
+===== unix/affinity_linux.go sha256:b6c998fdf681f97006b0dae3ba0bf5d6d05a9f86fcc94f1518e37eab9dbc990a =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// CPU affinity functions
+
+
+===== unix/aliases.go sha256:53e7eeba0503ad62ec18cdf2ca51a1785249a8646354439c854148dc57c06fb5 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== unix/asm_linux_amd64.s sha256:14c826e5d2db337e49c32e0b5a66317b58da198874a0eb950c33aac571e9573c =====
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build gc
+
+#include "textflag.h"
+
+//
+// System calls for AMD64, Linux
+//
+
+// Just jump to package syscall's implementation for all these functions.
+// The runtime may know about them.
+
+
+===== unix/auxv.go sha256:5e470a481610ff746d64cb22b3e7a981ffa527d6ca546e87df4296704d6c6de6 =====
+// Copyright 2025 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build go1.21 && (aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos)
+
+
+===== unix/bluetooth_linux.go sha256:72ce84a68d3647cd34f04e9040861333ac9e9f9ac5b00008d41514c79da664d8 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Bluetooth sockets and messages
+
+
+===== unix/constants.go sha256:f3405abc7484992964143eac589b951132d8e3a90f8359fc1a6e9ddcc201aa8a =====
+// Copyright 2015 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== unix/dev_linux.go sha256:eec381cf025f58965728544dae5df9394d6bebc7e68572e429814c87ee6dd284 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Functions to access/create device major and minor numbers matching the
+// encoding used by the Linux kernel and glibc.
+//
+// The information below is extracted and adapted from bits/sysmacros.h in the
+// glibc sources:
+//
+// dev_t in glibc is 64-bit, with 32-bit major and minor numbers. glibc's
+// default encoding is MMMM Mmmm mmmM MMmm, where M is a hex digit of the major
+// number and m is a hex digit of the minor number. This is backward compatible
+// with legacy systems where dev_t is 16 bits wide, encoded as MMmm. It is also
+// backward compatible with the Linux kernel, which for some architectures uses
+// 32-bit dev_t, encoded as mmmM MMmm.
+
+
+===== unix/dirent.go sha256:03e3b15a8428e2f1520386291052fd30e5d74ecb4d78c724bae7953d71425be1 =====
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== unix/endian_little.go sha256:bc06276262c57cf21e35c13ff2f5fdc96c18feb32a055c6201edfa76e95c967f =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+//
+//go:build 386 || amd64 || amd64p32 || alpha || arm || arm64 || loong64 || mipsle || mips64le || mips64p32le || nios2 || ppc64le || riscv || riscv64 || sh
+
+
+===== unix/env_unix.go sha256:bcb73ccfc5a8dae1f59e4debba69e0f600155b947f358c939bc753443a7a8007 =====
+// Copyright 2010 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+// Unix environment variables.
+
+
+===== unix/fcntl.go sha256:e8d84df0c6ed38a56014cc73d431aa973f1d298169735eaf9f7d42cbb26f7768 =====
+// Copyright 2014 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build dragonfly || freebsd || linux || netbsd
+
+
+===== unix/fdset.go sha256:8339dad44215930bdd253beaa1064c4d34ed2f81d54c4bd53d2be1f64fe35530 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== unix/ifreq_linux.go sha256:a950bf9eec4d9385836bd0dd400c6218d5033585f9cb15135d110848a20af5c3 =====
+// Copyright 2021 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux
+
+
+===== unix/ioctl_linux.go sha256:b0de1db3834fe4cb2e23e36e65c43614b493cb4c29c98f63f2b9a7e7e66972a1 =====
+// Copyright 2021 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+
+===== unix/ioctl_unsigned.go sha256:991b152e32cde753f3b64d8ebc1d18e9078a3615006bc79c474b2bbbc653487a =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build darwin || dragonfly || freebsd || hurd || linux || netbsd || openbsd
+
+
+===== unix/mremap.go sha256:c4f762c0f38d6a9f08c9b754b207a1ba64dd29d03692245171f8a344aac6935a =====
+// Copyright 2023 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux || netbsd
+
+
+===== unix/pagesize_unix.go sha256:5fea300c32898efe55341abb39489aeac76f81ea9df513f68d1b2556be7b48a3 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+// For Unix, get the pagesize from the runtime.
+
+
+===== unix/race0.go sha256:8a78192af2b20cd177f78e3761e10d66567373cef3b7671aa3c7912d65de4c90 =====
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || (darwin && !race) || (linux && !race) || (freebsd && !race) || netbsd || openbsd || solaris || dragonfly || zos
+
+
+===== unix/readdirent_getdents.go sha256:50e29bed47a256b79cb3754f43d0f8c1a5ea762e400bf809d0eb44d16ddd4714 =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || dragonfly || freebsd || linux || netbsd || openbsd
+
+
+===== unix/readv_unix.go sha256:2abd5ef6af8852208f2bae9de6de1c8d90ae33caba76f7fb757004d7a4040fe8 =====
+// Copyright 2026 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build darwin || linux || openbsd
+
+
+===== unix/sockcmsg_linux.go sha256:51d948aa226aa043c2760288aa883f9dbd53b9d65cf8bc20215146fc016dde6f =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Socket control messages
+
+
+===== unix/sockcmsg_unix.go sha256:7863093bfa7ec9e564c36992fbf2b7c97244c84d406e5fdc60b72c56a23af396 =====
+// Copyright 2011 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+// Socket control messages
+
+
+===== unix/sockcmsg_unix_other.go sha256:73f23d4f0c002e24160530515a45f46bb6fbe8728cc79b135a8c6956d5c8458c =====
+// Copyright 2019 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== unix/syscall.go sha256:41abaa37d079eee890fb7803dde876a19ba3acdbadf41f269ae8ed0d73ca0e37 =====
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+// Package unix contains an interface to the low-level operating system
+// primitives. OS details vary depending on the underlying system, and
+// by default, godoc will display OS-specific documentation for the current
+// system. If you want godoc to display OS documentation for another
+// system, set $GOOS and $GOARCH to the desired system. For example, if
+// you want to view documentation for freebsd/arm on linux/amd64, set $GOOS
+// to freebsd and $GOARCH to arm.
+//
+// The primary use of this package is inside other packages that provide a more
+// portable interface to the system, such as "os", "time" and "net".  Use
+// those packages rather than this one if you can.
+//
+// For details of the functions and data types in this package consult
+// the manuals for the appropriate operating system.
+//
+// These calls return err == nil to indicate success; otherwise
+// err represents an operating system error describing the failure and
+// holds a value of type syscall.Errno.
+
+===== unix/syscall_linux.go sha256:5a1f64326a3de29148008a364f560fa8c8227238ca1b681ba5bec2e7c266bb98 =====
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Linux system calls.
+// This file is compiled as ordinary Go code,
+// but it is also input to mksyscall,
+// which parses the //sys lines and generates system call stubs.
+// Note that sometimes we use a lowercase //sys name and
+// wrap it in our own nicer implementation.
+
+
+===== unix/syscall_linux_alarm.go sha256:eede15c54c7c4dfc0691ae0e646fd31aca15bfd72f53783081e829cd150b19e0 =====
+// Copyright 2022 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux && (386 || amd64 || mips || mipsle || mips64 || mipsle || ppc64 || ppc64le || ppc || s390x || sparc64)
+
+
+===== unix/syscall_linux_amd64.go sha256:dfb1ba340e05d035b27aec5624c4743b5b686607ece9ab8d39eed329ac179df4 =====
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build amd64 && linux
+
+
+===== unix/syscall_linux_amd64_gc.go sha256:6c5b86f3c4aa3dcf8619c5d444491414f72e014767e57fd9ad62f57653f4d837 =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build amd64 && linux && gc
+
+
+===== unix/syscall_linux_gc.go sha256:41a54001d221205e9f1538066105b46c08cd329e85d4529426063961daa86235 =====
+// Copyright 2018 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux && gc
+
+
+===== unix/syscall_unix.go sha256:d851dcf05549674486f35d58b0357bb5c1ea9378bd234b1646534a35dc4a6da5 =====
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris
+
+
+===== unix/syscall_unix_gc.go sha256:8b7592bca0fff629f9bb6f2c78c4ec8810f989e04b29d76ebd1ff81efd34db5b =====
+// Copyright 2016 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (darwin || dragonfly || freebsd || (linux && !ppc64 && !ppc64le) || netbsd || openbsd || solaris) && gc
+
+
+===== unix/sysvshm_linux.go sha256:8f932aac3521059ca3b4156c78b1ec45f1976972d1f70dee14375a1b7a507e44 =====
+// Copyright 2021 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux
+
+
+===== unix/sysvshm_unix.go sha256:e9e5031e048cf7c58692650ea14887158c3bedaaba506be63cbd8190cea2c066 =====
+// Copyright 2021 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build (darwin && !ios) || linux || zos
+
+
+===== unix/timestruct.go sha256:d0d07c2481ce2692f4e5728d65ccab1d105ecf64f52ac6b9a923ef106088a249 =====
+// Copyright 2017 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+
+
+===== unix/vgetrandom_linux.go sha256:4dfa240c42977f70ef32d1cea7effdbd902b5ef6814e67f20c48da10548b4bc9 =====
+// Copyright 2024 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//go:build linux && go1.24
+
+

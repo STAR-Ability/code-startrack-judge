@@ -1,0 +1,608 @@
+{
+  "schema_version": 1,
+  "repository": "STAR-Ability/code-startrack-judge",
+  "target_release": "V0.2",
+  "contract_version": "0.2.0",
+  "milestone": {
+    "title": "V0.2 Judge & Problem Service",
+    "description": "First formal implementation milestone after Phase 0. Deliver the published 0.2.0 judge/problem contracts, real Linux sandbox validation, backend integration and traceable release evidence. Foundation/owner-license decision tracked separately."
+  },
+  "contract_paths": {
+    "api": "docs/contracts/v0.2/api.md",
+    "database": "docs/contracts/v0.2/database.md"
+  },
+  "issue_id_policy": "Pxx IDs are stable work-package references, not chronological order. depends_on is the authoritative DAG; GitHub issue numbers/URLs are populated in docs/architecture/implementation-plan.md after creation.",
+  "issues": [
+    {
+      "id": "F00",
+      "kind": "foundation",
+      "milestone": false,
+      "title": "Phase 0: establish and verify the repository engineering foundation",
+      "labels": [
+        "type:infra",
+        "area:deployment",
+        "priority:P0"
+      ],
+      "depends_on": [],
+      "body": "## Outcome\n\nInitialize this long-lived repository before V0.2 business implementation: durable governance, contracts, ownership, reproducible tooling, security/compliance provenance and an actionable implementation backlog.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§1, 8, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§1, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Durable AGENTS.md, README, contribution/security rules, versioned byte-traceable contracts, accepted ADRs, API/migration/upstream/release policies.\n- Pinned upstream bootstrap, portable PostgreSQL/tooling environment, meaningful CI and explicit separate Linux security-validation workflow.\n- Inspect GitHub configuration; protect main with a documented emergency administration route, keep dev usable, create milestone/labels/scoped Issues.\n- Independent reviews from the nine requested perspectives; reconcile findings, verify commands/configuration/links/provenance, commit and push to dev.\n\n## Acceptance and validation\n\n- [ ] Contract snapshots retain source evidence and no historical contract is silently changed.\n- [ ] Actual validation outcomes and remaining Linux/runtime limitations are recorded; no mock result counts as sandbox verification.\n- [ ] Initialization changes are pushed to dev; no normal direct main push and no final dev-to-main release PR.\n- [ ] Owner project-license decision remains explicit; do not assign a project license without authorization.\n\n## Dependencies\n\nPhase 0 foundation; no implementation Issue prerequisite.\n\n## Outside this Issue\n\nFull JudgeTask, scheduler, problem import/publish or production sandbox implementation is deferred to the milestone Issues.\n",
+      "github": {
+        "number": 1,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/1"
+      }
+    },
+    {
+      "id": "Q01",
+      "kind": "decision",
+      "milestone": true,
+      "title": "Resolve V0.2 contract clarifications before affected implementation",
+      "labels": [
+        "type:docs",
+        "area:api",
+        "area:database",
+        "priority:P0"
+      ],
+      "depends_on": [],
+      "body": "## Outcome\n\nResolve the bounded implementation blockers in the [V0.2 contract resolution register](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/open-questions.md) jointly with the named contract/backend/database/security owners. Preserve supplied `0.2.0` documents byte-for-byte; publish explicit approved clarification or successor contracts instead of guessing.\n\n## Questions and affected work\n\n- Q-001: recover the absent whole-system architecture/integration contract and exact revision. Blocks P19/P20 final integrated claims.\n- Q-002: agree canonical hashing field scope/ordering/Unicode/numbers/null/array semantics and golden vectors, including path resource identity. Blocks divergent P01/P08/P12/P14/P15 cross-service semantics.\n- Q-003: approve per-package license evidence intake/reviewer workflow and retention of unsupported/rejected originals without fictitious validated identities. Blocks P03/P04/P07 publication paths.\n- Q-004: agree recovery graph and initial-versus-recovery retry budget boundaries/timestamps/events for judge and imports. Blocks P07/P13 recovery.\n- Q-005: reconcile immutable artifacts, validation pointers and evidence-only re-review with artifact uniqueness at unchanged source/adapter. Blocks P02/P03/P04/P06 affected schema, persistence and upgrades.\n- Q-006: agree duplicate submission attempt and initial-DRAFT withdrawal rejection codes, replay state/header semantics and pre-accept import 422 versus post-accept asynchronous errors. Blocks affected P07/P08/P12 fixtures.\n- Q-007: freeze typed manifest/checksum/conversion/default/checker protocol profile shared by importer/runtime. Blocks divergent P05/P06/P11 execution inputs.\n- Q-008: reconcile exact demo gRPC localhost:5051 with contract bottom loopback:5050; review supported transport/binding or provenance-preserving adapter. Blocks P11/P16 wiring. Do not quietly add a listener or change the contract.\n\n## Acceptance and validation\n\n- [ ] Every question records agreed owner answer, evidence, affected Issues, compatibility impact, tests and approved clarification/versioned amendment where required.\n- [ ] Cross-service answers are jointly reviewed with backend; schema answers with database; isolation answers with security/deployment.\n- [ ] Unresolved items block only the affected behavior; unrelated foundation/fixtures work continues.\n- [ ] No resolution edits published contract history, fabricates license rights, loosens sandbox security or crosses service ownership.\n\n## Dependencies\n\nPhase 0 question/evidence register. Each implementation Issue consults applicable Q IDs before finalizing its behavior.\n\n## Outside this Issue\n\nNo broad contract rewrite, arbitrary extra endpoint, project-license decision or implementation authorization during Phase 0.\n",
+      "github": {
+        "number": 2,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/2"
+      }
+    },
+    {
+      "id": "L01",
+      "kind": "decision",
+      "milestone": false,
+      "title": "Owner decision: choose the Code Startrack project license",
+      "labels": [
+        "type:docs",
+        "priority:P1"
+      ],
+      "depends_on": [],
+      "body": "## Outcome\n\nThe repository owner explicitly selects Code Startrack-owned source licensing after reviewing MIT and Apache-2.0; upstream software and imported problem content keep their own independent license evidence.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§8; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§5, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Review docs/licenses/project-license-decision.md and pinned upstream LICENSE/NOTICE evidence.\n- Record owner selection, copyright holder and year policy, then consistently add project LICENSE, source/package metadata and distribution documentation.\n- Retain upstream MIT attribution, Moby/seccomp Apache-2.0 NOTICE obligations and problem-specific license gates regardless of project selection.\n\n## Acceptance and validation\n\n- [ ] Commercial use, modification/redistribution, attribution, Apache NOTICE/patent grant and current dependency compatibility are reviewed.\n- [ ] Selection is owner-authored/approved and no SPDX identifier is guessed.\n- [ ] Before any production/public distribution: license/NOTICE payloads and dependency/problem inventory are verified in the actual artifact.\n\n## Dependencies\n\nPhase 0 foundation; no implementation Issue prerequisite.\n\n## Outside this Issue\n\nNo automatic MIT/Apache selection. A project license never substitutes for problem-package review. Engineering bootstrap may proceed while the owner decision is pending.\n",
+      "github": {
+        "number": 3,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/3"
+      }
+    },
+    {
+      "id": "U01",
+      "kind": "compliance",
+      "milestone": true,
+      "title": "Resolve problemtools nested VIVA binary provenance before image redistribution",
+      "labels": [
+        "type:upstream",
+        "priority:P0"
+      ],
+      "depends_on": [],
+      "body": "## Outcome\n\nResolve the nested binary provenance and distribution obligations in pinned Kattis/problemtools before shipping its worker image. Root MIT does not settle every bundled component.\n\n## Evidence\n\nPinned `v1.20260907` / `6010cbaa37a1612117f49566b2fff8646d53faa2` support/Makefile installs `support/viva/viva.jar`. Its SHA-256 is `6590cf1bcea23e27bc4c0ca86ca365343ee85a19671b42ef9815aaaa451b8aa9`. Pinned debian/copyright declares `support/viva/*` MIT, copyright 2010–2018 David van Brackle. VIVA therefore has an upstream license declaration.\n\nThe jar also includes nested `miglayout15-swing.jar` (SHA-256 `79db2dea6c4f024285a648c51be82c333345b82958e14f7fb5f6920f0b455d85`) and Eclipse JDT JarRsrcLoader classes. Phase 0 inspection found no embedded LICENSE/NOTICE for those nested artifacts. Their exact versions, provenance and applicable obligations remain unresolved; do not invent SPDX identifiers or describe VIVA as wholly unlicensed.\n\nSee [pinned dependency evidence](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/upstream/dependencies.md) and retained upstream licensing texts.\n\n## Deliverables\n\n- Obtain exact nested source/version/provenance, authoritative license texts/NOTICE and applicable redistribution obligations; update inventory/notices and validate actual image contents.\n- Alternatively, propose and review a provenance-recorded minimal-build/omission patch excluding the unresolved binary components while preserving required verifyproblem/default checker and contract validation behavior.\n- Record technical compatibility impact, patch content/reason, regression results and upgrade implications. Any upstream patch remains separate from owned adapter code.\n\n## Acceptance and validation\n\n- [ ] Every shipped nested component has verified source/version/license/notice evidence; no attribution guessed from library names.\n- [ ] If excluded, actual build/install image inventory proves exclusion and the real pinned package-validation/default-checker regression suite passes.\n- [ ] Release/compliance owner approves the chosen route; THIRD_PARTY_NOTICES, license texts, SBOM/compatibility inventory reflect actual artifact content.\n- [ ] P06/P16/P20 cannot claim redistributable production image until this gate is resolved. Fixture/source review may proceed without redistribution.\n\n## Dependencies\n\nPhase 0 pinned upstream evidence; coordinate with P06 validation and P16 image owners. This Issue precedes image redistribution and P20 release acceptance.\n\n## Outside this Issue\n\nNo guessed MIT/Apache/EPL classification for nested code, automatic project-license choice, dropping required validation checks or silently omitting binaries in Phase 0.\n",
+      "github": {
+        "number": 4,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/4"
+      }
+    },
+    {
+      "id": "P01",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: bootstrap service configuration and strict internal HTTP contracts",
+      "labels": [
+        "type:feature",
+        "area:api",
+        "priority:P0"
+      ],
+      "depends_on": [],
+      "body": "## Outcome\n\nCreate the owned judge-problem-service process and reusable internal HTTP/DTO boundary without importing backend business ownership.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§1, 2, 3, 5, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§1. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Record the business-service language and source-directory ownership/seams in an ADR; select an exact compatible patched toolchain after reviewing both upstream go 1.26.0 directives. Pin native dependencies and lock a reproducible service build without silently changing contractual runtime commits.\n- Add documented build/start commands and actual native formatting/lint/unit/contract checks to Make/CI; retain portable mocks while execution is unqualified.\n- Entrypoint/configuration with validated DB/private-storage settings, independent BACKEND_JUDGE_TOKEN and JUDGE_BACKEND_TOKEN, redacted errors and graceful lifecycle.\n- Reusable strict DTO, envelope/error, requestId, pagination, Id/UUID/UTC and size-limit validation; contract fixtures shared by later handlers.\n- GET /health exact raw contract object with dependency capabilities wired conservatively; remain unavailable for unimplemented or failed sandbox capability.\n\n## Acceptance and validation\n\n- [ ] A fresh developer can reproduce the locked build and run the native checks; exact toolchain/build identity and planned source ownership are documented, with no floating toolchain resolver in release builds.\n- [ ] Missing/wrong bearer token is 401; browser Cookie grants no authority; body/header requestId mismatch and unknown fields are rejected.\n- [ ] Positive decimal bigint IDs remain strings; UTF-8 bytes, null/required fields, safe counters and ms/bytes are tested with boundary/negative cases.\n- [ ] No callback URL/command/test-data inputs are admitted; errors/logs leak no secrets, SQL or stack trace.\n- [ ] Health 200 requires DB, private storage and real sandbox self-checks; degraded judge refuses new execution while available historical reads remain possible.\n\n## Dependencies\n\nPhase 0 foundation; no implementation Issue prerequisite.\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo user/RBAC/Submission/CF/analysis/portrait implementation; no fake ready judge or mass endpoint business implementation.\n",
+      "question_gates": [
+        "Q-002"
+      ],
+      "github": {
+        "number": 5,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/5"
+      }
+    },
+    {
+      "id": "P02",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: implement initial judge schema and forward-only migrations",
+      "labels": [
+        "type:feature",
+        "area:database",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01"
+      ],
+      "body": "## Outcome\n\nDeliver the first production-reviewable schema baseline and migration tooling for all V0.2 owned tables and constraints.\n\n## Authority\n\n[Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§1–14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Resolve Q-005 artifact uniqueness, validation-pointer and evidence-only re-review semantics before freezing the affected schema; unaffected migration tooling and tables may proceed.\n- Numbered forward-only migrations and checksum/schema-version visibility; judge-only runtime role and separately scoped migration role.\n- Contract tables, text CHECK enums, keys/indexes, JSON owner validation boundaries, deferred local composite FKs and deferred task/result consistency checks.\n- Fresh-install, upgrade/failure runbook and CI PostgreSQL migration validation; no cross-backend/algorithm physical FK or permissions.\n\n## Acceptance and validation\n\n- [ ] The Q-005 resolution and owner-reviewed contract clarification are linked before affected immutable artifact/validation/license constraints ship in a shared migration.\n- [ ] Fresh database reaches expected migration level and restart/re-run is safe; checksum drift/shipped history mutation is detected.\n- [ ] Cross-problem current/version/artifact/case links, illegal state/nullability combinations and duplicate request/submission identities fail.\n- [ ] Circular artifact/version/validation references commit correctly only for valid same-owner data; source identities and history use RESTRICT.\n- [ ] Runtime credentials cannot create objects or read/write backend/algorithm schemas; production migration backup/locking/failure procedure is reviewed.\n\n## Dependencies\n\nP01\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nBusiness repositories/handlers are later Issues. Do not introduce rollback migrations or edit a migration once shared/staging/production has used it.\n",
+      "github": {
+        "number": 6,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/6"
+      }
+    },
+    {
+      "id": "P03",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: immutable problem/version/artifact repositories and private storage lifecycle",
+      "labels": [
+        "type:feature",
+        "area:problems",
+        "area:database",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P02"
+      ],
+      "body": "## Outcome\n\nImplement owned immutable identities and checksum-addressed private objects so accepted history remains reproducible after new imports and releases.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§1, 3, 5, 7; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§2–7, 10, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Repository models for stable source identity, version numbering, base-version links, source/normalized artifacts, tests and reference programs.\n- Private object abstraction with checksum verification, immutable writes, safe path/size/symlink handling and database registration/orphan cleanup.\n- Transient judge-source lifecycle: backend remains owner, in-flight copies survive, terminal copies/workdirs purge after 24h without deleting historical package/results.\n\n## Acceptance and validation\n\n- [ ] Same source identity stays one problemId; same pinned source/adapter reuses matching artifact; differing checksums cannot overwrite historical bytes.\n- [ ] Version contents/tests/references and published evidence are immutable; metadata-only versions share artifact and retain old content.\n- [ ] Crash between object write and DB commit leaves a collectible orphan, never an accepted task/version pointing at missing bytes.\n- [ ] Private objects, hidden tests/answers/reference code and raw logs are absent from public DTOs and normal logs; credentials cannot access backend source storage.\n\n## Dependencies\n\nP02\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo arbitrary archive-upload/download or remote-source URL API; no publication/import scheduling or backend source ownership.\n",
+      "question_gates": [
+        "Q-003",
+        "Q-005"
+      ],
+      "github": {
+        "number": 7,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/7"
+      }
+    },
+    {
+      "id": "P04",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: per-package license evidence and publication eligibility gate",
+      "labels": [
+        "type:feature",
+        "area:problems",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P02",
+        "P03"
+      ],
+      "body": "## Outcome\n\nMake problem-package rights independently traceable and reject publication when rights are missing or unreviewed.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§3, 7, 8; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§4, 5, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- License-evidence repository, exact commit/path/file hashes, source URL/notice, PACKAGE versus REPOSITORY_INHERITED scope and reviewer/policy identity.\n- Controlled review workflow approved under Q01 Q-003, plus a shared publication eligibility gate consumed by import/publication handlers.\n- Version/artifact-specific immutable evidence and documentation for third-party content review and attribution propagation.\n\n## Acceptance and validation\n\n- [ ] VERIFIED requires reviewer/time, real evidence, complete notice/source URL and at least one license file; spdxId may be null only with valid non-SPDX evidence.\n- [ ] Root MIT never automatically verifies all packages; third-party statements/tests/assets/reference programs are inspected.\n- [ ] MISSING/REVIEW_REQUIRED cannot publish; evidence from another commit/package cannot satisfy composite identity checks.\n- [ ] Post-publication rights change appends new evidence/artifact/version; upstream software notices remain separate from imported problem evidence.\n\n## Dependencies\n\nP02, P03\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo invented SPDX identifier, copyright permission or project-license choice; no unapproved review API.\n",
+      "question_gates": [
+        "Q-003",
+        "Q-005"
+      ],
+      "github": {
+        "number": 8,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/8"
+      }
+    },
+    {
+      "id": "P05",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: implement the versioned OJ-Lab to Kattis package compatibility adapter",
+      "labels": [
+        "type:feature",
+        "area:problems",
+        "type:upstream",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P03"
+      ],
+      "body": "## Outcome\n\nGenerate a reproducible validation view and platform manifest from unchanged pinned OJ-Lab originals using adapterVersion ojlab-kattis-v0.2.1.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§7, 8; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§3, 4, 6, 7. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Explicit oj-lab-v1 format parser/manifest schema 0.2.0; preserve Markdown, unknown source metadata and original values.\n- Escaped legacy validation statement, lawful shortname mapping, extension mapping and recorded second/memory/output unit conversions.\n- Deterministic test order, checksum file mapping, checker semantics and supported BATCH_PASS_FAIL classification; retain unsupported source per approved Q01 Q-003 route.\n\n## Acceptance and validation\n\n- [ ] Golden fixtures at OJ-Lab a4e1d6f106879043eb30af640ba46d0fcbf8053f produce reproducible normalized checksums and reversible provenance.\n- [ ] Original Markdown/units/tags/difficulty survive; 1..10 is not CF/platform rating; sample extraction never reads hidden cases.\n- [ ] Token/float/case checker rules remain faithful; no TrimSpace-only replacement for mature checker behavior.\n- [ ] Path traversal, absolute/URL paths, escaping symlinks, malformed size/limits and unsupported modes are rejected with accurate structured evidence.\n\n## Dependencies\n\nP03\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo general network scraper, TeX rewrite of public statements, 2023-07-draft production shortcut or direct execution of imported code.\n",
+      "question_gates": [
+        "Q-003",
+        "Q-007"
+      ],
+      "github": {
+        "number": 9,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/9"
+      }
+    },
+    {
+      "id": "P06",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: isolated problemtools validation and reproducible validation records",
+      "labels": [
+        "type:feature",
+        "area:problems",
+        "area:sandbox",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P02",
+        "P03",
+        "P05",
+        "P10",
+        "P11",
+        "P17"
+      ],
+      "body": "## Outcome\n\nRun pinned problemtools verification against the adapter view only after P17 measured baseline Linux isolation passes, without executing imported programs inside the API process. Parser/record/control-flow work may start with inert mocks; no imported validator/checker/reference program runs before the real baseline gate.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§7, 8; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§6, 7. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- problemtools v1.20260907 / 6010cbaa37a1612117f49566b2fff8646d53faa2 adapter preserving real structure/statement/test/validator/reference checks.\n- Isolated validator/checker/reference execution through reviewed runtime; private raw logs and safe TaskError summaries.\n- Append-only validation runs recording actual image digest, tool/adapter/config/toolchain/source/normalized hashes and documented format adaptations.\n\n## Acceptance and validation\n\n- [ ] At least one AC reference passes all tests; required validation categories and controlled checker/resource tests succeed before PASSED.\n- [ ] Broken references, validator/checker crash/timeout, malformed structure/tests and real tool errors fail; adaptation whitelist never suppresses technical failures.\n- [ ] No claimed validation without actual run/image digest; old records/logs remain traceable after new runs and Q01 Q-005 governs artifact pointer changes.\n- [ ] Real execution requires P17 sandbox evidence; portable mock fixtures prove DTO/control flow only and cannot authorize publication.\n\n## Dependencies\n\nP02, P03, P05, P10, P11, P17\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo trusted-open-source execution exception, unsafe problemtools subprocess path or automatic publication.\n",
+      "question_gates": [
+        "Q-005",
+        "Q-007"
+      ],
+      "github": {
+        "number": 10,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/10"
+      }
+    },
+    {
+      "id": "P07",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: persistent asynchronous OJ-Lab import jobs",
+      "labels": [
+        "type:feature",
+        "area:problems",
+        "area:api",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06"
+      ],
+      "body": "## Outcome\n\nExpose contracted fixed-source imports with durable recovery and independent per-package outcomes; validated imports create DRAFT versions only.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§2, 3, 7, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§8, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- POST/GET problem-imports strict request/DTO handlers with full 40-character revision, fixed repository and 1..100 unique safe problems/ paths.\n- Durable lease/fencing import worker with short SKIP LOCKED claims, bounded recovery and no network long transactions.\n- Fetch pinned commit in dedicated acquisition stage; execution stage offline; immutable checksum provenance and ordered atomic item updates.\n\n## Acceptance and validation\n\n- [ ] 202 first accept/200 identical replay, different body 409; concurrent duplicates create one persistent job.\n- [ ] SUCCEEDED/PARTIAL/FAILED item/count/error/finishedAt rules are correct; whole-source failure rejects all items; one failure preserves other validated drafts.\n- [ ] Restart/lease expiry resumes same job and fenced stale worker cannot commit; new import does not advance catalog or publish.\n- [ ] Package/license failures surface through item.errors on GET 200, with hidden paths/content/logs safely private; unsupported/rejected originals follow Q01 decision.\n\n## Dependencies\n\nP01, P02, P03, P04, P05, P06\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo arbitrary repository/archive URL, automatic publication or backend admin authorization implementation.\n",
+      "question_gates": [
+        "Q-003",
+        "Q-004",
+        "Q-006"
+      ],
+      "github": {
+        "number": 11,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/11"
+      }
+    },
+    {
+      "id": "P08",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: metadata versions, publication/withdrawal and problem query APIs",
+      "labels": [
+        "type:feature",
+        "area:problems",
+        "area:api",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P06"
+      ],
+      "body": "## Outcome\n\nProvide immutable metadata changes and atomic public catalog transitions while preserving historical problem views.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§3, 4, 7; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§2, 3, 9, 13. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Strict list/current/history and metadata-versions/publish/withdraw endpoints with shared publication eligibility gate.\n- Operation request transaction/idempotency with frozen replay DTO; in-progress response 409 REQUEST_IN_PROGRESS and Retry-After 2.\n- Publication state/current version/first-published marker/public updatedAt/catalog version in one short transaction.\n\n## Acceptance and validation\n\n- [ ] Metadata-only version copies read-only package and prior content, is DRAFT, validates tags/ratings and never mutates current version.\n- [ ] Cross-problem version/current links and unverified/invalid/unsupported package publish fail; withheld/missing current details return 404.\n- [ ] Publish/withdraw advance catalog only on real public change; drafts/no-op/replay do not; old published details survive withdrawal/new version.\n- [ ] Query sort/filter/pagination exact contract, same-query count/rows snapshot, source/namespace/units intact; public projection contains only sample/license/statement-safe data.\n\n## Dependencies\n\nP01, P02, P03, P04, P06\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nBackend owns ADMIN/session/historical user authorization and public routes; this Issue does not create user permissions or snapshot consumers.\n",
+      "question_gates": [
+        "Q-002",
+        "Q-005",
+        "Q-006"
+      ],
+      "github": {
+        "number": 12,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/12"
+      }
+    },
+    {
+      "id": "P09",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: consistent catalog snapshots and protected cursors",
+      "labels": [
+        "type:feature",
+        "area:problems",
+        "area:api",
+        "priority:P1"
+      ],
+      "depends_on": [
+        "P01",
+        "P02",
+        "P08"
+      ],
+      "body": "## Outcome\n\nDeliver complete, consistent platform catalog snapshots for backend-owned cache replacement.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§4; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§9. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- REPEATABLE READ snapshot creation with frozen public PUBLISHED entries and WITHDRAWN tombstones, numeric problemId order and no DRAFTs.\n- Integrity-protected opaque cursor locking snapshot/offset/limit, 30-minute TTL, cleanup and exact empty/end/expired response behavior.\n- Consumer fixtures explaining whole-snapshot atomic cache replacement and sourceOwner without judge owning backend cache.\n\n## Acceptance and validation\n\n- [ ] Concurrent publication between pages cannot mix snapshotId/catalogVersion; tombstone retains last published summary.\n- [ ] Limit 1..1000/default100 is frozen; tampering/changed limit/bad cursor is rejected; expiry 410 requires full refetch.\n- [ ] Empty catalog and final page return exact items/nextCursor semantics; count and frozen rows agree.\n- [ ] Snapshot cleanup removes only snapshot rows; historical problems/packages/results remain; no hidden fields enter summary JSON.\n\n## Dependencies\n\nP01, P02, P08\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nBackend cache, algorithm candidate push and recommendation ownership remain external.\n",
+      "question_gates": [],
+      "github": {
+        "number": 13,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/13"
+      }
+    },
+    {
+      "id": "P10",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: versioned server-controlled language capabilities and toolchains",
+      "labels": [
+        "type:feature",
+        "area:judge",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P02"
+      ],
+      "body": "## Outcome\n\nProvide inactive immutable compile/run configuration artifacts early, then expose only installed and isolation-validated execution languages. Configuration handoff enables P11/P16/P17; it does not advertise capabilities before qualification.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§4, 5, 8; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§10, 12. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Controlled cpp17/main.cpp compiler/run config, actual complete compiler version and actual toolchain digest; c11 optional.\n- Immutable language config versions, at most one active per language, deterministic capabilityVersion and safe /languages DTO.\n- Language/problem effective intersection and frozen task limits/template/digest handoff; analysisSupported local policy flag.\n\n## Acceptance and validation\n\n- [ ] Stage 1: cpp17/main.cpp template/toolchain artifacts are provided while inactive. Stage 2: cpp17 becomes available only after P17 baseline actual isolated compile/run verification; Java/Python never appear as planned capabilities.\n- [ ] No caller commands/environment/templates accepted; template version switch leaves old task configurations readable/reproducible.\n- [ ] Unavailable runtime yields 503 JUDGE_UNAVAILABLE, no fabricated compiler/digest or active unsafe language.\n- [ ] Judge makes no algorithm call; backend separately intersects analysisSupported with algorithm languages; absent analysis never rejects valid judging.\n\n## Dependencies\n\nP01, P02\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo new language rollout beyond validated cpp17/optional c11, no backend effective analysis computation.\n",
+      "question_gates": [
+        "Q-007"
+      ],
+      "github": {
+        "number": 14,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/14"
+      }
+    },
+    {
+      "id": "P11",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: provenance-preserving go-judge/demo runtime adapter",
+      "labels": [
+        "type:feature",
+        "area:judge",
+        "area:sandbox",
+        "type:upstream",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P03",
+        "P10"
+      ],
+      "body": "## Outcome\n\nAdapt mature pinned compile/execution and demo stream lifecycle while keeping sandbox internals upstream-owned.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§5, 8, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§10, 11, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- go-judge v1.13.0/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8 and demo ed6cc756082ee9f7d792238185dc3e6a47c84b52 source/module build with recorded patches/provenance.\n- Owned request adapter for Submit→persistent scheduling→bidirectional gRPC Judge progress/finished→update flow; no MongoDB or channel-only durable queue.\n- Minimal per-task files/templates/limits and checker contract; transport disconnect/cancel/cleanup distinction; private bounded diagnostics. Resolve Q-008 exact gRPC/HTTP binding before wiring.\n\n## Acceptance and validation\n\n- [ ] Audit all actual listeners and diagnostic routes: pinned demo exposes metrics/pprof on :2112, while runtime /version and /config are registered before HTTP token middleware. Disable unauthorized debug listeners/routes or use an explicitly reviewed binding/access configuration with provenance-tracked patches; prove the contract-approved listener allowlist and sandbox network denial. No default diagnostic exposure is accepted.\n- [ ] Caller cannot reach original demo bare submit/shell/test-answer controls; bottom API listens loopback:5050 with its independent token only.\n- [ ] Reviewed adapter/patch removes upstream startup token logging; no token enters stdout/stderr/logs, including failures.\n- [ ] No unsafe fallback/no-seccomp mode; unavailable isolation is failure, never host exec; mocks are explicit.\n- [ ] Compiler/runtime/test/checker response mapping preserves CPU/memory/output/time units; checker faults map IE rather than user WA.\n- [ ] Adapters contain no copied unattributed upstream safety code; provenance/patch/license inventory and upstream compatibility record updated.\n\n## Dependencies\n\nP01, P03, P10\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo rewritten sandbox, backend credentials in go-judge, extra business container or public underlying runtime port.\n",
+      "question_gates": [
+        "Q-007",
+        "Q-008"
+      ],
+      "github": {
+        "number": 15,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/15"
+      }
+    },
+    {
+      "id": "P12",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: durable JudgeTask admission and query/recovery APIs",
+      "labels": [
+        "type:feature",
+        "area:api",
+        "area:judge",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P02",
+        "P03",
+        "P08",
+        "P10",
+        "P14"
+      ],
+      "body": "## Outcome\n\nAccept exactly one contracted attempt for an existing backend submission only after source registration, QUEUED task and first callback event are durable.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§2, 5, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§10, 13. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- POST/GET judge-tasks and POST by-request with strict identities, source UTF-8 checksum/byte limits and exact DTO/status semantics.\n- Atomic request/submission uniqueness and frozen problem/version/checker/limits/template/sandbox/image execution context.\n- Object-first checksum write then task/outbox short transaction, loser/orphan cleanup, durable queue visibility and overload/readiness rejection.\n\n## Acceptance and validation\n\n- [ ] 202 new/200 same replay and canonical hash conflict 409; Q01 Q-006-approved duplicate-submission behavior; DB uniqueness wins concurrent races.\n- [ ] Invalid/withdrawn/not-current/cross-problem/unlicensed/unsupported language/source SHA/size cases create no task or fake remote IE.\n- [ ] Task/result/callback full bodies obey 32MiB; source body 2MiB/source 262144 bytes; source bytes/newlines are not normalized.\n- [ ] by-request accepts 1..100 unique IDs, known tasks retain original requestId in input order, missing IDs returned separately; GET is side-effect-free.\n- [ ] Once accepted, new publication/config changes do not alter task context; backend owns Submission/long-term source and has no cross-schema FK.\n\n## Dependencies\n\nP01, P02, P03, P08, P10, P14\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo public rejudge/cancel, user Submission creation, direct algorithm call or transient-only queue.\n",
+      "question_gates": [
+        "Q-002",
+        "Q-006"
+      ],
+      "github": {
+        "number": 16,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/16"
+      }
+    },
+    {
+      "id": "P13",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: persistent task scheduler, leases and fenced crash recovery",
+      "labels": [
+        "type:feature",
+        "area:judge",
+        "area:database",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P11",
+        "P12",
+        "P14"
+      ],
+      "body": "## Outcome\n\nRun accepted tasks durably with bounded resource concurrency and safe recovery from worker/runtime failure.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§5, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§10, 13. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Short SKIP LOCKED task claim, DISPATCHING before runtime dispatch and RUNNING only after confirmed execution; process-local concurrency is not the queue.\n- Lease owner/fencing token, 30s heartbeat/180s expiry, at most 3 recovery executions and fresh per-attempt artifacts.\n- Shutdown/maintenance handling and reconciliation of old processes/results; terminal source/workdir cleanup via private-storage lifecycle.\n\n## Acceptance and validation\n\n- [ ] Restart recovers same taskId/requestId/frozen version; stale/expired owner cannot update status/results/outbox.\n- [ ] Heartbeats do not increment revision; every visible change increments; terminal facts never regress; recovery-visible regressions use greater revision as DB contract requires.\n- [ ] Exhausted recovery becomes FAILED/IE+JUDGE_INTERRUPTED; ordinary TLE is completed user verdict, not infrastructure retry/new submission.\n- [ ] Kill/race/disconnect tests demonstrate exactly one committed terminal result and bounded concurrency protects colocated services.\n- [ ] No in-flight source cleanup or cross-attempt file reuse; cancellation is maintenance-only and obeys result/error/finishedAt contract.\n\n## Dependencies\n\nP11, P12, P14\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo Redis/pubsub durable dependency, user retry endpoint or recovery of backend-owned submissions.\n",
+      "question_gates": [
+        "Q-004"
+      ],
+      "github": {
+        "number": 17,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/17"
+      }
+    },
+    {
+      "id": "P14",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: atomic task transitions, raw/case results and outbox snapshots",
+      "labels": [
+        "type:feature",
+        "area:judge",
+        "area:database",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "body": "## Outcome\n\nProvide the shared transaction boundary used by admission and scheduler: every visible task state persists its exact callback snapshot, and terminal results remain immutable.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§5, 6; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§10, 11, 13. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Repository/state reducer enforcing revision and task/result/case invariants; QUEUED and later visible changes emit one outbox row per task/revision.\n- Batch manifest-order aggregation, frozen test association, raw result hash/canonical JSON, private case logs and safe public JudgeResult.\n- Terminal task/result/case/outbox commit in one transaction with delayed consistency constraints and fixed immutable event payload.\n\n## Acceptance and validation\n\n- [ ] AC/WA/TLE/MLE/RE/CE/OLE are COMPLETED with a non-null result and error=null; FAILED has result.verdict=IE and non-null error; CANCELLED has result=null and non-null error; in-flight result/error/finishedAt remain null.\n- [ ] First non-AC aggregate, true AC count/frozen total, max CPUms/peak bytes from executed cases, CE/null unused resources and score=null tested.\n- [ ] Case cannot link another artifact/test; skipped tests are not AC; committed original results cannot UPDATE.\n- [ ] Injected transaction failures expose neither an invalid terminal/result combination nor a committed transition-without-event; revisions/events are unique under races.\n- [ ] Compile log UTF-8≤16384 bytes and redacted; hidden input/answers/stdout/stderr/paths/source object addresses never appear in API/event/log projection.\n\n## Dependencies\n\nP01, P02, P03\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo backend inbox/projection updates; delivery transport is P15. This foundational Issue is intentionally before P12/P13 despite numeric ID.\n",
+      "question_gates": [
+        "Q-002",
+        "Q-004"
+      ],
+      "github": {
+        "number": 18,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/18"
+      }
+    },
+    {
+      "id": "P15",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: durable callback delivery, dead letters and reconciliation operations",
+      "labels": [
+        "type:feature",
+        "area:api",
+        "area:judge",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P14"
+      ],
+      "body": "## Outcome\n\nDeliver persisted JudgeTask events to the fixed backend receiver without losing events during authentication, mapping or network failures.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§6, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§13. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Persistent leased outbox dispatcher to backend:8081/internal/v2/events/judge with JUDGE_BACKEND_TOKEN distinct from inbound/runtime tokens.\n- Immutable eventId/payload/hash/requestId/aggregateId/revision across retries; canonical vectors agreed with backend.\n- 1/2/4/8/16/30-second retries for 24h, then retained DEAD_LETTER events for reconciliation; redacted diagnostics and operator redelivery procedure. The retry deadline does not delete the dead letter.\n\n## Acceptance and validation\n\n- [ ] Only accepted:true contract ACK marks DELIVERED; 404 unknown task, 409 conflict, authentication/network/invalid-body failures retain evidence and never fake success.\n- [ ] Crash/restart/expired lease does not drop event; fenced stale dispatcher cannot commit; backend callback-before-POST mapping race is retried.\n- [ ] Out-of-order and duplicate event delivery retains same facts; event X-Request-Id matches original task requestId; no caller callback URL.\n- [ ] Dead letters are visible for reconciliation without editing task facts or exposing hidden data; retry clock tests cover the full 24h path.\n\n## Dependencies\n\nP01, P14\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nBackend inbox/version checks/30s polling implementation is external and coordinated in P19; no generic callbacks.\n",
+      "question_gates": [
+        "Q-002"
+      ],
+      "github": {
+        "number": 19,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/19"
+      }
+    },
+    {
+      "id": "P16",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: production service image, supervision and deployment operations",
+      "labels": [
+        "type:infra",
+        "area:deployment",
+        "area:sandbox",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P01",
+        "P10",
+        "P11",
+        "U01"
+      ],
+      "body": "## Outcome\n\nPackage one judge business container with non-root API/worker and supervised demo judger/go-judge, preserving least-privilege process credential boundaries.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§2, 8; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§1, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Locked multi-stage image with actual upstream/toolchain evidence, LICENSE/NOTICE/SBOM inventory and recorded image digest.\n- Supervision/graceful shutdown, runtime-only independent token/process environment and loopback-only 5050; API 8082 only.\n- Reviewed Linux cgroup/namespaces/limited mounts/capabilities deployment profile, secrets injection, health/readiness and DB/storage backup/upgrade/runbook.\n\n## Acceptance and validation\n\n- [ ] Audit all actual listeners and diagnostic routes: pinned demo exposes metrics/pprof on :2112, while runtime /version and /config are registered before HTTP token middleware. Disable unauthorized debug listeners/routes or use an explicitly reviewed binding/access configuration with provenance-tracked patches; prove the contract-approved listener allowlist and sandbox network denial. No default diagnostic exposure is accepted.\n- [ ] No fifth business container, host-root/Docker-socket mount, backend DB/source-store credentials, public runtime port or shared S2S/runtime token.\n- [ ] Reviewed mitigation removes known upstream token logging in all startup/error output; go-judge process receives no service DB/S2S/SMTP secrets; untrusted execution cannot see sibling-process credentials or management API.\n- [ ] Early runtime image/config artifacts are provided to P17 before business feature completion; final production image is rebuilt/revalidated in P20. Actual image build and deployment config validate on Linux; known upstream privileged quick-start is not production default.\n- [ ] Readiness fails when isolation/resource/network/filesystem checks fail; graceful stop drains or maintenance-finalizes accepted tasks without losing queue/outbox.\n- [ ] Release metadata links git/tag/contract/migration/upstreams/image digest/checks; no project/public distribution until L01/compliance gate is resolved.\n\n## Dependencies\n\nP01, P10, P11, U01\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo full infrastructure platform/Kubernetes requirement or undocumented manual database alteration. Security guarantee requires P17 evidence.\n",
+      "question_gates": [
+        "Q-008"
+      ],
+      "github": {
+        "number": 20,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/20"
+      }
+    },
+    {
+      "id": "P17",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: real Linux sandbox adversarial verification and readiness gate",
+      "labels": [
+        "type:security",
+        "area:sandbox",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "P10",
+        "P11",
+        "P16"
+      ],
+      "body": "## Outcome\n\nStage 1: prove baseline security and resource isolation on a suitable dedicated Linux host using inactive P10 toolchain artifacts and the early P16 runtime image. This checkpoint precedes real untrusted package validation and advertised languages. Stage 2: P20 reruns all applicable tests on the exact final image digest and validates four-service co-location; early evidence is not final release proof. Portable CI or preflight observations cannot substitute for these tests.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§8, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§7, 10, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Separate protected/trusted sandbox validation workflow and recorded Linux/kernel/cgroup v2/seccomp/namespace/toolchain/image evidence.\n- Adversarial compiler/runtime/validator/checker/reference fixtures for CPU/wall/memory/output/process/filesystem/network/cleanup isolation.\n- Readiness self-test gate tied to measured baseline runtime configuration; record exact tested image/host, initial single-service capacity and the final-digest/four-service co-location revalidation handoff to P20.\n\n## Acceptance and validation\n\n- [ ] Audit all actual listeners and diagnostic routes: pinned demo exposes metrics/pprof on :2112, while runtime /version and /config are registered before HTTP token middleware. Disable unauthorized debug listeners/routes or use an explicitly reviewed binding/access configuration with provenance-tracked patches; prove the contract-approved listener allowlist and sandbox network denial. No default diagnostic exposure is accepted.\n- [ ] no-fallback enabled, no-seccomp prohibited; missing isolation fails readiness/new execution rather than unrestricted execution or rlimit-only success.\n- [ ] Fork/process escape, unauthorized file/hidden-data reads, network/DNS/loopback metadata access and cross-submission contamination are prevented.\n- [ ] CPU/wall/memory/output/fork limits trigger observed expected outcomes; compile and runtime both isolated; checker fault maps IE.\n- [ ] Sandbox cannot reach sibling credentials, backend source bucket, host root or Docker socket; task cleanup removes only current work.\n- [ ] Baseline tests run actual pinned runtime on real Linux and publish exact evidence; P20 must repeat for the final image digest and four-service resource co-location; privileged upstream experiments are confined to disposable isolated hosts, not production approval.\n\n## Dependencies\n\nP10, P11, P16\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo implementation of a custom sandbox, running untrusted PRs on privileged infrastructure or a green mocked security report.\n",
+      "question_gates": [
+        "Q-008"
+      ],
+      "github": {
+        "number": 21,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/21"
+      }
+    },
+    {
+      "id": "P18",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: backend mock and independent contract acceptance harness",
+      "labels": [
+        "type:feature",
+        "area:api",
+        "area:judge",
+        "priority:P1"
+      ],
+      "depends_on": [
+        "P07",
+        "P08",
+        "P09",
+        "P12",
+        "P13",
+        "P14",
+        "P15",
+        "P17"
+      ],
+      "body": "## Outcome\n\nComplete the judge owner acceptance independently with a backend mock and failure-injection harness before depending on external backend delivery.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§4–9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Mock fixed event receiver with mapping race, duplicate/reordered revision/event, conflicts/auth failures and delayed/invalid ACK scenarios.\n- End-to-end imports→rights/validation→publish→snapshot and cpp17 AC/WA/TLE/MLE/RE/CE/OLE/IE fixtures on real validated runtime.\n- Durability/recovery/idempotency/withdrawal/historical-version/private-data tests and reproducible CI evidence.\n\n## Acceptance and validation\n\n- [ ] Same request produces one task; POST timeout recovers by-request; new publish does not change accepted tasks; withdrawn new submission fails but history remains.\n- [ ] Duplicate/older callbacks cannot regress projected facts; callback-before-task binding and dead-letter reconciliation covered.\n- [ ] Restart/fenced lease expiry/object cleanup/transaction failure tests pass; hashes/IDs/envelopes/size limits match shared contract vectors.\n- [ ] Hidden tests/answers/private logs/internal paths/private source and artifact object addresses are absent from public DTO/event/error paths; contract-authorized statements, samples, license.sourceUrl and attribution remain available. Tests distinguish infrastructure IE from code failure.\n- [ ] Actual Linux sandbox evidence is linked, while portable mocked tests are identified as control-flow coverage.\n\n## Dependencies\n\nP07, P08, P09, P12, P13, P14, P15, P17\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nMock behavior is a test fixture, not backend business implementation; real backend integration and final release validation remain P19/P20.\n",
+      "question_gates": [
+        "Q-002",
+        "Q-004",
+        "Q-006",
+        "Q-007",
+        "Q-008"
+      ],
+      "github": {
+        "number": 22,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/22"
+      }
+    },
+    {
+      "id": "P19",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: coordinate real backend consumer compatibility and integration handoff",
+      "labels": [
+        "type:feature",
+        "area:api",
+        "priority:P1"
+      ],
+      "depends_on": [
+        "P18"
+      ],
+      "body": "## Outcome\n\nValidate the real backend against the frozen judge contract with clear external ownership and release compatibility evidence.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§1, 4, 5, 6, 7, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§1, 9, 14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Joint compatibility record naming backend commit/release, judge commit/contract, identities/DTO/hash vectors and designated integration owners.\n- Cross-repository backend task links for Submission/long-term source/outbound dispatch inbox/projection, admin role proxy, snapshot cache, reconciliation and analysis orchestration.\n- Authenticated real-service integration scenarios including deterministic rejection, POST timeout, callback-before-response, duplicate/reordered events, unavailable algorithm and snapshot expiry.\n\n## Acceptance and validation\n\n- [ ] Backend owns/create/authenticates Submission and retains source; judge has no backend DB/source-bucket privileges and never calls algorithm.\n- [ ] Backend persists dispatch requestId, maps by-request and 30s reconciliation; deterministic admission 4xx rejection marks local failure without fabricating remote IE or second Submission; transient/rate-limit/in-progress handling follows approved contract fixtures and Retry-After. Network/dependency dispatch errors retain retry state.\n- [ ] Real inbox validates mapped frozen context/submission and same revision hashes, acknowledges duplicates/older events and alerts conflicts.\n- [ ] Backend atomically replaces complete snapshot cache, filters public/admin/historical reads and computes effective analysis flags; algorithm outage leaves judging intact.\n- [ ] Backend-owner sign-off and external blocked tasks are explicit; no green completion based solely on the mock.\n\n## Dependencies\n\nP18\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nDo not implement users/RBAC/backend Submission tables/analysis/profiles/recommendations in this repository. Missing external owner delivery blocks only integrated release gate.\n",
+      "question_gates": [
+        "Q-001",
+        "Q-002",
+        "Q-006"
+      ],
+      "github": {
+        "number": 23,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/23"
+      }
+    },
+    {
+      "id": "P20",
+      "kind": "implementation",
+      "milestone": true,
+      "title": "V0.2: final acceptance, release evidence and deployment rehearsal",
+      "labels": [
+        "type:infra",
+        "area:deployment",
+        "priority:P0"
+      ],
+      "depends_on": [
+        "Q01",
+        "P07",
+        "P08",
+        "P09",
+        "P13",
+        "P15",
+        "P16",
+        "P17",
+        "P18",
+        "P19",
+        "U01"
+      ],
+      "body": "## Outcome\n\nValidate the full V0.2 production candidate and prepare the deliberate dev→main release only after all contract/security/compliance gates pass.\n\n## Authority\n\n[API contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/api.md), §§8, 9; [Database contract](https://github.com/STAR-Ability/code-startrack-judge/blob/dev/docs/contracts/v0.2/database.md), §§14. Implement the published `0.2.0` contract; record unresolved conflicts in the contract clarification tracker before changing semantics.\n\n## Deliverables\n\n- Four-service Submission→judge→result projection→analysis→profile→recommendation acceptance evidence; rerun P17 isolation tests on the exact final image digest and measure four-service Linux resource/co-location limits.\n- Migration fresh/upgrade validation, backup/restore and failure rehearsal; image provenance/license/NOTICE/SBOM and historical artifact/toolchain recoverability checks.\n- Release notes/changelog/compatibility matrix and release record containing commit/tag, 0.2.0 contract, migration level, exact upstream pins, actual image digest, CI/sandbox results and deployment steps.\n\n## Acceptance and validation\n\n- [ ] All milestone acceptance criteria and resolved contract questions trace to passing test evidence; no waived sandbox/hidden-data/idempotency/history gate.\n- [ ] Stopping algorithm does not change completed judge results/catalog availability; backend training/analysis behavior is verified by its owner.\n- [ ] Production readiness refuses unavailable isolation; deploy/rollback-to-compatible-image/forward-migration recovery are rehearsed with documented constraints.\n- [ ] L01 owner license decision and software/problem attribution are complete before distribution; required real CI checks actually exist/stable.\n- [ ] Only after approval through normal release flow: dev→main PR, final validation, tag/image digest/release and deployment record. This future Issue does not authorize those actions during Phase 0.\n\n## Dependencies\n\nQ01, P07, P08, P09, P13, P15, P16, P17, P18, P19, U01\n\nReferences identify prerequisite interfaces/artifacts/checkpoints; design and inert fixtures may proceed in parallel. Security/compatibility acceptance gates must pass before affected behavior is enabled. P10 supplies inactive configuration before P17; P17 baseline precedes P06 execution, and P20 repeats against the final image.\n\n## Outside this Issue\n\nNo silent contract revision, unsafe emergency fallback, destructive migration rollback, arbitrary dependency upgrade or Phase0 release PR.\n",
+      "question_gates": [
+        "Q-001",
+        "Q-002",
+        "Q-003",
+        "Q-004",
+        "Q-005",
+        "Q-006",
+        "Q-007",
+        "Q-008"
+      ],
+      "github": {
+        "number": 24,
+        "url": "https://github.com/STAR-Ability/code-startrack-judge/issues/24"
+      }
+    }
+  ],
+  "dependency_policy": "depends_on identifies required reviewed interfaces/artifacts/checkpoints, not a rule that every predecessor Issue must be closed before design or fixtures can start. P10 provides inactive templates/toolchain artifacts to P11/P16/P17 first. P17 baseline must pass before real untrusted P06 validation or advertising active P10 capabilities. P20 revalidates exact final image digest and four-service co-location. No mock may satisfy a security gate."
+}

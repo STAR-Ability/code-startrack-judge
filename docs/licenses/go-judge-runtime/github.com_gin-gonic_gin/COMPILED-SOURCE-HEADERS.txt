@@ -1,0 +1,297 @@
+===== auth.go sha256:be38ef38614d2b9488d0e73ff2f8b432fc61cc90f4b7e071d0bbf78d898464c1 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/binding.go sha256:176e200c0c0ae26eff015202787285d5205ff068d475dce9339fc5dd29008cd2 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+//go:build !nomsgpack
+
+
+===== binding/bson.go sha256:9f3b944f8079a616f08197adfc00e9e623fffd572e6faba3975c70406f5e6c4f =====
+// Copyright 2025 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/default_validator.go sha256:298c57e4adeeac4021088a8bfc167257afcfca44029fb6dc717001ed70277816 =====
+// Copyright 2017 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/form.go sha256:f0fd8f3de4ffd97ed820bc183256327e9feaae5e4aaddc9d60325be4eef78cb1 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/form_mapping.go sha256:f4614e1a18dd51ee8cfa6030c4a62b55920675d74eca9b54c0891038bbf098dc =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/header.go sha256:0f36662833235b1403ae1a4ba91319d70926564de4a7aace2a77c790987e1be3 =====
+// Copyright 2022 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/json.go sha256:d243c6e10cf15fb599b2251359c822604029af7d4e1cfa415a58d7b9939f9c44 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/msgpack.go sha256:6467b18f19ae296551cfee362331b536726f6b1a030fcc61e8b4775a5f9d88b3 =====
+// Copyright 2017 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+//go:build !nomsgpack
+
+
+===== binding/multipart_form_mapping.go sha256:94e6763b541ff04d66388e0d3b07285da85e02ed154aea0842239c857b6db21a =====
+// Copyright 2019 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/protobuf.go sha256:ecf334672b445c9344eee175a12fa222fbb7941153530772b28af6561fb8b828 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/query.go sha256:65e8a3f81069398c364049951aae37e0316598b0601967a4f44efaeced9e26be =====
+// Copyright 2017 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/toml.go sha256:ce9f395dd0c2d62da942cc9f9a8a576cb81b4cacc9934fa6f3d3f19881a82790 =====
+// Copyright 2022 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/uri.go sha256:ef9e498347257b91f2679af03c3b07a09794e2cff7d02e16475b9e6939daf87c =====
+// Copyright 2018 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/xml.go sha256:02ada76ed4d142b4d3e1813c068c2c43e9e01c19276eda5c875039355947b18a =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== binding/yaml.go sha256:5da314ba640364ffed38940f5c922499a6b5966ac90f782666a32bf8fef3e592 =====
+// Copyright 2018 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== codec/json/api.go sha256:8415df4e9bb8eeeebdfb9998c0c1c95bd2f0707d1c144b5293943a8d36033425 =====
+// Copyright 2025 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== codec/json/json.go sha256:e5f9ca595f98cd59a4dbf2e5a69a952ccfdee0a5fe14e106bfd207d23d9d89af =====
+// Copyright 2025 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+//go:build !jsoniter && !go_json && !(sonic && (linux || windows || darwin))
+
+
+===== context.go sha256:d2ef92395e01aefd21796623338c6baacaa1e6930a5bf994f62f010e4765e41b =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== debug.go sha256:b0d7cf5455f4a0f7969e39e65de131f72ad44018f51cbf9d70ede0eeecaa8737 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== deprecated.go sha256:72b6893e15bb053bedaee8292166f1430991f45aa11ae5614439b71c90cf448f =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== errors.go sha256:98e86f323c9bf2b960f631d85f080417394758d79d1a9bfd7a45dd0f51fb57ea =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== fs.go sha256:adc80ccabbe903cd7be2ae755ebc879629cb77e59a22c94957c679ddeab5a791 =====
+// Copyright 2017 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== gin.go sha256:7489e54df8c18c20bb60c30ff82c0aed2f72332ba7c124be000502645fc12be8 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== internal/bytesconv/bytesconv.go sha256:efca594b11389030979a5e90083f5d6d3119356b923195d3c31dcb65b162b3e2 =====
+// Copyright 2023 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== logger.go sha256:ea27eff2d108922bfb0f4f669beefcfe44727b4a749dfff3e596980063a339c7 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== mode.go sha256:ce47afda3ca06f979b1689e1340c604f72639d2d8dfca5265bec56f7bb6dfb7e =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== path.go sha256:473ee61725b145280b4278f4d1e7b5d5d57534afdd5a9451672fe7799aadd32f =====
+// Copyright 2013 Julien Schmidt. All rights reserved.
+// Based on the path package, Copyright 2009 The Go Authors.
+// Use of this source code is governed by a BSD-style license that can be found
+// at https://github.com/julienschmidt/httprouter/blob/master/LICENSE.
+
+
+===== recovery.go sha256:02cd9e0ec287f8a7ea385ba34959f078d976843ecb042cd0cdcc5af72a9e5e51 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/bson.go sha256:322a38dda80d538f01c782592f14aa2f124cd3cf5a6d5fd147718c98f9733bff =====
+// Copyright 2025 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/data.go sha256:125bc263ba1adaa1a9e8baf7768db0ba0ee6da88369b801bbf6f5b8cb8874a6b =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/html.go sha256:04202d9220d5cae9665d88772d9e58a99f1a4cc7d828f4d0d66e7147b50eeaa2 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/json.go sha256:fa3d00b7dcbc6af8cfab53d99eb2adf21951230109376b06d6dce263fa41fd11 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/msgpack.go sha256:a68718ee772fb9c7ce07e571b78d4da9a43234b316134c1bb957e745c05ad264 =====
+// Copyright 2017 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+//go:build !nomsgpack
+
+
+===== render/protobuf.go sha256:f602a8b82e658c19d075e44a3cdc3ef230905a44ba783afd13f3dd24e9e6491a =====
+// Copyright 2018 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/reader.go sha256:be509151872af8fbce922ad971843c2faa7cc5f7e49ad921bc290281f39b1786 =====
+// Copyright 2018 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/redirect.go sha256:d00418bf3fc3918824f30dd80254415f15a34096263371dc1d8de841d3147757 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/render.go sha256:709fe913e78f59dff8aa42f5cc3a582ef7f0af3595cd124183f409beaab9d4e8 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/text.go sha256:577425b4241128ad49c23799008966c731a1cc81392b2b5104857fbfdc311a1b =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/toml.go sha256:d5dcd2baaafb85ca5d25891179c45a0880ef2161f07ea5313d6386276fc4405f =====
+// Copyright 2022 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/xml.go sha256:6f39fd2b0fa715c31ab97a943f0e5885b0bbd117ebe45f8f8ee995baf3d62573 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== render/yaml.go sha256:c5af9504304e2e180a1a97dbc3ff61fe1fe801d6e0ae8bc8d00ce159524829e3 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== response_writer.go sha256:ba31f0d43862f3f38fad4d860b31b4a37cb272a1babe1e5442a11031b530adec =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== routergroup.go sha256:e00c81913a4f1da0406ee0a53108ad51eb3d2c3f77d177f9696b31636d4a5b7c =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== test_helpers.go sha256:9c8f08587c0544abd40e185015b4243c0e263018f1c6d2d92f4fdbf120529758 =====
+// Copyright 2017 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== tree.go sha256:89d06fd0d30e5b6531b04af306ce71bec079e3e7446ee0496f2260613ede0fe7 =====
+// Copyright 2013 Julien Schmidt. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be found
+// at https://github.com/julienschmidt/httprouter/blob/master/LICENSE
+
+
+===== utils.go sha256:fa56dc5cda7167649957f412bfb4acbd498ceb7e259ff76195ac0d256cd52e45 =====
+// Copyright 2014 Manu Martinez-Almeida. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+
+===== version.go sha256:64a9cd75a68233df9d82eae6d72df5aec5a468af253d437d078ca82f6409c501 =====
+// Copyright 2018 Gin Core Team. All rights reserved.
+// Use of this source code is governed by a MIT style
+// license that can be found in the LICENSE file.
+
+

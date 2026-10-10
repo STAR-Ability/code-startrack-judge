@@ -1,0 +1,449 @@
+{
+  "schema_version": 1,
+  "contract_version": "0.2.0",
+  "audit_date": "2026-10-07",
+  "inventory_scope": "Four contractual source baselines and selected security-critical license evidence; not an artifact SBOM or full transitive inventory",
+  "components": [
+    {
+      "name": "go-judge-demo",
+      "repository": "https://github.com/criyle/go-judge-demo.git",
+      "version": null,
+      "commit": "ed6cc756082ee9f7d792238185dc3e6a47c84b52",
+      "role": "Workflow and supervised judger reference",
+      "integration": "pinned-source-adapter",
+      "license": {
+        "spdx_expression": "MIT",
+        "scope": "project source; not a complete transitive dependency audit",
+        "evidence": [
+          {
+            "upstream_path": "LICENSE",
+            "local_path": "docs/licenses/go-judge-demo-LICENSE",
+            "sha256": "a84a0427c3a1c25851a4689410a54283962a759a02558058a107470993b80c5a",
+            "source_url": "https://github.com/criyle/go-judge-demo/blob/ed6cc756082ee9f7d792238185dc3e6a47c84b52/LICENSE"
+          }
+        ]
+      },
+      "patches": [
+        {
+          "path": "patches/go-judge-demo/0001-startrack-distribution-hardening.patch",
+          "sha256": "ea73df9bbc56dffea986b014392debd553b510ea6ceb17cd4990b02d30f90e0c",
+          "reason": "Remove the unsolicited :2112 diagnostics listener and raw source/test/result logs; owned UDS scheduling and REST executor wiring remains a separate adapter.",
+          "licenseImpact": "Modified upstream source remains MIT; original LICENSE and applicable NOTICE stay byte-identical. New Code Startrack regression tests retain Apache-2.0 attribution.",
+          "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+          "files": [
+            {
+              "path": "judger/main.go",
+              "baseSha256": "d1c54eeac97f776aec358b015a2283aa4253fd386d1793e15005f5db2ba90d4d",
+              "patchedSha256": "e9723d74324acfecb90e6be030fea638e552e43473f40c9e9207340d069f56fd",
+              "mode": "100644"
+            },
+            {
+              "path": "judger/grpc.go",
+              "baseSha256": "83a93d46e521b20e36558748597f7a6eb53e417fc8ebacb6b77c1252f1f0b5b0",
+              "patchedSha256": "79ef7134701239e25dbdb0723c7139412ca241b59b15969d7cc66ee6afff1f1d",
+              "mode": "100644"
+            }
+          ]
+        }
+      ],
+      "source_evidence": [
+        {
+          "upstream_path": "go.mod",
+          "sha256": "16c0c5011de4d02d94adad38ab651024e241dc9021415df7dacac2afd1f1d1db",
+          "source_url": "https://github.com/criyle/go-judge-demo/blob/ed6cc756082ee9f7d792238185dc3e6a47c84b52/go.mod"
+        },
+        {
+          "upstream_path": "go.sum",
+          "sha256": "6e0e52897e55690331262cf19ee230ac00e4c394378517e95c5c55d413c877be",
+          "source_url": "https://github.com/criyle/go-judge-demo/blob/ed6cc756082ee9f7d792238185dc3e6a47c84b52/go.sum"
+        },
+        {
+          "upstream_path": "package-lock.json",
+          "sha256": "f9c9f3d835b6d02be54851846f47e716b8d93766daccc63b0fd79f20fb931eb8",
+          "source_url": "https://github.com/criyle/go-judge-demo/blob/ed6cc756082ee9f7d792238185dc3e6a47c84b52/package-lock.json"
+        }
+      ]
+    },
+    {
+      "name": "go-judge",
+      "repository": "https://github.com/criyle/go-judge.git",
+      "version": "v1.13.0",
+      "commit": "e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8",
+      "role": "Linux sandbox and execution runtime",
+      "integration": "pinned-source-binary",
+      "license": {
+        "spdx_expression": "MIT AND Apache-2.0",
+        "scope": "project source and vendored Moby seccomp profile; not a complete transitive dependency audit",
+        "evidence": [
+          {
+            "upstream_path": "LICENSE",
+            "local_path": "docs/licenses/go-judge-LICENSE",
+            "sha256": "a84a0427c3a1c25851a4689410a54283962a759a02558058a107470993b80c5a",
+            "source_url": "https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/LICENSE"
+          },
+          {
+            "upstream_path": "seccomp/NOTICE",
+            "local_path": "docs/licenses/go-judge-seccomp-NOTICE",
+            "sha256": "a8130acef4b119510fe89f6070ec27d50fbb188c8ed29c3c839bcb8dfe2b4184",
+            "source_url": "https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/seccomp/NOTICE"
+          }
+        ]
+      },
+      "patches": [
+        {
+          "path": "patches/go-judge/0001-startrack-distribution-hardening.patch",
+          "sha256": "d95cee353386f04a8384a6ad2e44da11f089f0cbdba47101f229af53ff989ec5",
+          "reason": "Protect version diagnostics, remove internal config/WebSocket routes and omit secret/raw-payload logs without altering sandbox isolation.",
+          "licenseImpact": "Modified upstream source remains MIT; original LICENSE and applicable NOTICE stay byte-identical. New Code Startrack regression tests retain Apache-2.0 attribution.",
+          "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+          "files": [
+            {
+              "path": "cmd/go-judge/main.go",
+              "baseSha256": "713fcb05386484593906bfbe87a72699966d18bf2c0361128c0f07a449baeec2",
+              "patchedSha256": "b55144357d0afec3adbfaaf890d1da613bbff93c2b4827100204fd4e9a4f7bce",
+              "mode": "100644"
+            },
+            {
+              "path": "cmd/go-judge/rest_executor/cmd_handler.go",
+              "baseSha256": "09a083c8adf1b18b3bf2c924d390c0544172da41b6ba02c793366b8a74dc7853",
+              "patchedSha256": "a55ed13cbca0a8174b9c3d7b810c124ad992004aef7a5a041eb01355c2482a39",
+              "mode": "100644"
+            },
+            {
+              "path": "cmd/go-judge/grpc_executor/grpc.go",
+              "baseSha256": "03e6c0e954311aa295bfba11ecf505868065638ebc495b0337bc038e84273297",
+              "patchedSha256": "1b0ba3ad6dc75b0de412383bde5cf5ac1c4640c1b1085c11f5168a3544cf8ee5",
+              "mode": "100644"
+            },
+            {
+              "path": "cmd/go-judge/startrack_hardening_test.go",
+              "baseSha256": null,
+              "patchedSha256": "c9f1b4284ce9bb878f3ed7db5c4839f209dce29a2429d588c622b6a1579385a7",
+              "mode": "100644"
+            }
+          ]
+        },
+        {
+          "path": "patches/go-judge/0002-final-process-memory-hardening.patch",
+          "sha256": "d10f627b3786c349718cbc0fdd5aa5e5802ee5e4b60b00d30528cf964f664536",
+          "reason": "Set and measure PR_SET_DUMPABLE=0 inside the final credential-bearing Linux go-judge executable, because execve resets launcher-only hardening. A failed syscall/readback stops startup before main. No sandbox role or namespace/capability boundary is weakened.",
+          "licenseImpact": "New Code Startrack Linux startup integration source is separately Apache-2.0 attributed; original upstream files and MIT license remain unchanged.",
+          "upgradeCondition": "Retain until a reviewed exact upstream executable measures nondumpability after exec. Verify actual sibling /proc memory/environment denial and final runtime PID under the released Linux profile; portable compilation is insufficient.",
+          "files": [
+            {
+              "path": "cmd/go-judge/startrack_processguard_linux.go",
+              "baseSha256": null,
+              "patchedSha256": "d6c67d0e9b6373536b794c1681905de83de46c599d599a3eddde3c9e3703ba9e",
+              "mode": "100644"
+            }
+          ]
+        },
+        {
+          "path": "patches/go-judge/0003-workload-namespace-seccomp.patch",
+          "sha256": "e064c45be2a87a2f369386d3dd584d8d4181b5d25d196e907967293ecc8ba3d0",
+          "reason": "Assemble a fixed embedded workload-only namespace guard with the pinned Elastic API and supply it through both existing linuxcontainer builder paths and ExecveParam.Seccomp. Preserve the unchanged broad init whitelist and trusted clone3(CLONE_INTO_CGROUP) setup; only workload unshare/setns, namespace clone flags and clone3 are restricted. Workload clone3 returns ENOSYS for libc fallback; conditional clone is terminal to avoid pinned assembler accumulator fall-through changing ordinary syscalls. Refuse disabled or caller-replaced init policies.",
+          "licenseImpact": "Modified upstream env source remains MIT with prominent Code Startrack comments and byte-identical upstream LICENSE/NOTICE. New fixed profile, assembler integration and inert VM regression tests are separately Apache-2.0 attributed. No custom BPF or isolation implementation is introduced.",
+          "upgradeCondition": "Rebase only against reviewed exact go-judge and go-sandbox pins. Inspect both builder paths, inherited init-profile identity, mature final-exec seccomp ordering, assembler argument accumulator and clone ABI. Rerun actual loader VM ordinary-syscall/clone/clone3/x32/foreign-architecture stack regressions, source/license closure and final Linux compiler/reference/validator/thread/fork/verdict/isolation matrix with at least three workload filters. Portable VM tests do not establish Linux installation or sandbox acceptance.",
+          "files": [
+            {
+              "path": "env/env_linux.go",
+              "baseSha256": "1e8f80884194c8be04a2045d609d534b381c11ca9feaeadbd68e424cae8657c9",
+              "patchedSha256": "518a61f6cfeb7a2aa97043b1595698c5e5498118a82c78d3cec5ebeb074c8afd",
+              "mode": "100644"
+            },
+            {
+              "path": "env/linuxcontainer/environment_linux.go",
+              "baseSha256": "eb2ef5b2d2960efbebf1d607307d997b07b2e65b4a8d43504720e77faa380c47",
+              "patchedSha256": "d93ed8b9f75bfe19a08c5c8a3693d123087f003706170501a320d31d2fb973a5",
+              "mode": "100644"
+            },
+            {
+              "path": "seccomp/startrack_workload.go",
+              "baseSha256": null,
+              "patchedSha256": "49315b0e0b318c17892c7d7f9e29f026fa6dec6a0832d7405746a44c121ac4f9",
+              "mode": "100644"
+            },
+            {
+              "path": "seccomp/startrack-workload.yaml",
+              "baseSha256": null,
+              "patchedSha256": "e47a2805e1f4c70bf359b4df5500fc9ed7dca3ddfc004733ec66d17b801dc417",
+              "mode": "100644"
+            },
+            {
+              "path": "seccomp/startrack_workload_test.go",
+              "baseSha256": null,
+              "patchedSha256": "323d8e376054c2f9e2b3088c32a2480ecedcf1c8938394f21995e3291ecf6116",
+              "mode": "100644"
+            }
+          ]
+        }
+      ],
+      "source_evidence": [
+        {
+          "upstream_path": "go.mod",
+          "sha256": "e56d8e069f4ea4e51b5927f323609af89aea7c45eb2e663ac9429704a07171e5",
+          "source_url": "https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/go.mod"
+        },
+        {
+          "upstream_path": "go.sum",
+          "sha256": "b0289f584ef4cdb6a6aa71e4fa134ca6dd85880e06f94198a87f410a7876c4dd",
+          "source_url": "https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/go.sum"
+        },
+        {
+          "upstream_path": "seccomp/moby-default.json",
+          "sha256": "943b28b599fee5f54199f57e6f58b64fedc47b31179bc8d493402be3d07dc2de",
+          "source_url": "https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/seccomp/moby-default.json"
+        },
+        {
+          "upstream_path": "seccomp/moby.yaml",
+          "sha256": "5d42a7d288d62b78b01bdf29898630df3641aeef9562a44f0f048febc8740090",
+          "source_url": "https://github.com/criyle/go-judge/blob/e9d70a0d9a3df0c62182a6e7090d7af650a1d5f8/seccomp/moby.yaml"
+        }
+      ]
+    },
+    {
+      "name": "problem-packages",
+      "repository": "https://github.com/oj-lab/problem-packages.git",
+      "version": null,
+      "commit": "a4e1d6f106879043eb30af640ba46d0fcbf8053f",
+      "role": "Initial immutable problem content",
+      "integration": "pinned-source-import",
+      "license": {
+        "spdx_expression": "MIT",
+        "scope": "repository source license; imported content requires independent per-package review",
+        "evidence": [
+          {
+            "upstream_path": "LICENSE",
+            "local_path": "docs/licenses/problem-packages-LICENSE",
+            "sha256": "993eef9bb1b6f8cda0db7f7b6adee2d44ce6967fdc51dd1d21b42f3a1b3c87d1",
+            "source_url": "https://github.com/oj-lab/problem-packages/blob/a4e1d6f106879043eb30af640ba46d0fcbf8053f/LICENSE"
+          }
+        ]
+      },
+      "patches": [],
+      "source_evidence": [
+        {
+          "upstream_path": "README.md",
+          "sha256": "d3a7bb73e42e9eaf6e389a25328b15003f4dbbb0f63e65888cfc61e26d9f701e",
+          "source_url": "https://github.com/oj-lab/problem-packages/blob/a4e1d6f106879043eb30af640ba46d0fcbf8053f/README.md"
+        },
+        {
+          "upstream_path": "package.json",
+          "sha256": "6b04f7fcdae68bf9ee567050e3ed9178ed1129c7b947c438979bdff9cfd578c2",
+          "source_url": "https://github.com/oj-lab/problem-packages/blob/a4e1d6f106879043eb30af640ba46d0fcbf8053f/package.json"
+        }
+      ]
+    },
+    {
+      "name": "problemtools",
+      "repository": "https://github.com/Kattis/problemtools.git",
+      "version": "v1.20260907",
+      "commit": "6010cbaa37a1612117f49566b2fff8646d53faa2",
+      "role": "Isolated package validation and mature checkers",
+      "integration": "pinned-source-tool-adapter",
+      "license": {
+        "spdx_expression": "MIT",
+        "scope": "project source; bundled VIVA and nested binaries require separate review",
+        "evidence": [
+          {
+            "upstream_path": "LICENSE",
+            "local_path": "docs/licenses/problemtools-LICENSE",
+            "sha256": "8a5b4dd1e3fd8d0587518ad581545490a02af95165781f6ea0d1527f0e492599",
+            "source_url": "https://github.com/Kattis/problemtools/blob/6010cbaa37a1612117f49566b2fff8646d53faa2/LICENSE"
+          },
+          {
+            "upstream_path": "debian/copyright",
+            "local_path": "docs/licenses/problemtools-debian-copyright",
+            "sha256": "857eee94f57c6cf1c220d506e719e22678ae1f1d7377d087510b5094199223d1",
+            "source_url": "https://github.com/Kattis/problemtools/blob/6010cbaa37a1612117f49566b2fff8646d53faa2/debian/copyright"
+          }
+        ]
+      },
+      "patches": [
+        {
+          "path": "patches/problemtools/0001-startrack-distribution-hardening.patch",
+          "sha256": "25153dc6e016c48b15bf97036f1d94c28dad2c2b5efa87b3abe35a020be523b3",
+          "reason": "Exclude unnecessary VIVA and its unresolved nested binaries before distribution, retaining all batch checker/verification categories.",
+          "licenseImpact": "No license text is modified. Unresolved nested VIVA binaries are excluded from build inputs and install output; no rights are asserted for excluded bytes.",
+          "upgradeCondition": "Rebase only through a reviewed upstream-pin change; recheck exact source and patch hashes, notices, native builds, private routes/log canaries and affected Linux regressions.",
+          "files": [
+            {
+              "path": "support/Makefile",
+              "baseSha256": "6c866648fa44bf69d15b3ea982430082baab799ccab1879484ebb51add8c58f9",
+              "patchedSha256": "a7649537c97b370b7b2dd7384583f1468522d0006183527c2127c36507a14c8b",
+              "mode": "100644"
+            }
+          ]
+        }
+      ],
+      "source_evidence": [
+        {
+          "upstream_path": "pyproject.toml",
+          "sha256": "e61ed4b07d3097465f4389d8157f7a906090611256a9b90c7b76edb6921d44ca",
+          "source_url": "https://github.com/Kattis/problemtools/blob/6010cbaa37a1612117f49566b2fff8646d53faa2/pyproject.toml"
+        },
+        {
+          "upstream_path": "requirements.txt",
+          "sha256": "dc1eaa16f5b9993d1e2ef562a1798e55a11f17e40d501c723c8d6a7d2d6ca6dd",
+          "source_url": "https://github.com/Kattis/problemtools/blob/6010cbaa37a1612117f49566b2fff8646d53faa2/requirements.txt"
+        },
+        {
+          "upstream_path": "support/Makefile",
+          "sha256": "6c866648fa44bf69d15b3ea982430082baab799ccab1879484ebb51add8c58f9",
+          "source_url": "https://github.com/Kattis/problemtools/blob/6010cbaa37a1612117f49566b2fff8646d53faa2/support/Makefile"
+        },
+        {
+          "upstream_path": "support/viva/viva.jar",
+          "sha256": "6590cf1bcea23e27bc4c0ca86ca365343ee85a19671b42ef9815aaaa451b8aa9",
+          "source_url": "https://github.com/Kattis/problemtools/blob/6010cbaa37a1612117f49566b2fff8646d53faa2/support/viva/viva.jar"
+        },
+        {
+          "upstream_path": "support/viva/vivagui.jar",
+          "sha256": "65e7a791bcb39437ef98562f29fa098124ae81736d9376296e95d6afedac6ba7",
+          "source_url": "https://github.com/Kattis/problemtools/blob/6010cbaa37a1612117f49566b2fff8646d53faa2/support/viva/vivagui.jar"
+        }
+      ]
+    }
+  ],
+  "supplemental_licenses": [
+    {
+      "name": "moby-profiles",
+      "repository": "https://github.com/moby/profiles.git",
+      "commit": "2ceae35d351c156cb5a8efc0fdc4a08cf94569d8",
+      "version": null,
+      "scope": "License-text provenance only; original Moby snapshot revision is not recorded by go-judge NOTICE",
+      "license": {
+        "spdx_expression": "Apache-2.0",
+        "evidence": [
+          {
+            "upstream_path": "LICENSE",
+            "local_path": "docs/licenses/moby-profiles-Apache-2.0-LICENSE",
+            "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+            "source_url": "https://github.com/moby/profiles/blob/2ceae35d351c156cb5a8efc0fdc4a08cf94569d8/LICENSE"
+          }
+        ]
+      }
+    },
+    {
+      "name": "go-sandbox",
+      "repository": "https://github.com/criyle/go-sandbox.git",
+      "commit": "99ea73b939bda24c55256cb7dc57be636634a056",
+      "version": "v0.14.0",
+      "scope": "Selected security-critical direct dependency declared by pinned go-judge go.mod",
+      "license": {
+        "spdx_expression": "MIT",
+        "evidence": [
+          {
+            "upstream_path": "LICENSE",
+            "local_path": "docs/licenses/go-sandbox-LICENSE",
+            "sha256": "0b59bcad25e89e86ebdac1686510933ffb66f84148b27d3ea23d87ea95339f66",
+            "source_url": "https://github.com/criyle/go-sandbox/blob/99ea73b939bda24c55256cb7dc57be636634a056/LICENSE"
+          }
+        ]
+      },
+      "patches": [
+        {
+          "path": "patches/go-sandbox/0001-readonly-bind-remount-flags.patch",
+          "sha256": "5d59498f4896f0f3ee79b9c191eac1a754f12706fe618090908f1fdde29a35c4",
+          "reason": "Remove only propagation-operation flags from the read-only bind remount after a successful initial private recursive bind; preserve MS_BIND, MS_RDONLY and inherited nosuid/nodev/noexec/time lock flags. AppArmor rejects the redundant propagation/remount combination. Remount failure still aborts sandbox creation.",
+          "licenseImpact": "Modified go-sandbox source remains MIT. Original license is retained byte-identically; source carries a prominent Code Startrack modification comment. No upstream isolation implementation is replaced.",
+          "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Recheck initial mount and namespace propagation flags, inherited statfs lock flags and remount failure behavior; qualify read-only write denial on every configured bind including nested mounts under the reviewed Linux AppArmor/capability profile.",
+          "files": [
+            {
+              "path": "pkg/mount/mount_linux.go",
+              "baseSha256": "1f19091bed984cffbb8fa2785f66df6a16155707dd0bfde4263733dc449c1c50",
+              "patchedSha256": "ba0065276c3a8e2efdc9d61a3daca82cc52c6ebdc78a3bd2dd916772876ee831",
+              "mode": "100644"
+            }
+          ]
+        },
+        {
+          "path": "patches/go-sandbox/0002-namespace-init-securebits-capability.patch",
+          "sha256": "43d4ce5270d573e8ced05515effec3c2285dfc8a3ad08206ffedcaeb48a19036",
+          "reason": "Retain CAP_SETPCAP across exec only for the trusted nested namespace init so upstream keep_capability can set securebits under inherited no_new_privs. Actual prefork init had full namespace bounding capabilities but only the eight outer permitted/effective capabilities and lacked SETPCAP; its securebits transition returned EPERM. The outer capability set and AppArmor profile are unchanged, and upstream child DropCaps remains mandatory.",
+          "licenseImpact": "Modified go-sandbox source remains MIT with its original license retained byte-identically and a prominent Code Startrack modification comment. The reviewed upstream isolation, no_new_privs, securebits locking and child capability removal remain in place.",
+          "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Inspect startContainer, exec capability propagation, keep_capability securebits and DropCaps; qualify actual trusted-init execution, zero effective/permitted/inheritable/ambient child capabilities, measured namespace-scoped bounding set, locked securebits47 and no_new_privs1, actual capability-regain/mount/pivot_root/user-and-network-namespace denials, and credential isolation under the exact released Linux profile.",
+          "files": [
+            {
+              "path": "container/environment_linux.go",
+              "baseSha256": "cfbdaac989df68f1b7f9f80a4f25d626a41086b4762e300c6513ff4a13fb3f0a",
+              "patchedSha256": "868927206d53177f8058a438fa83b0560ea9c79e96059d36d995e776b3dc6905",
+              "mode": "100644"
+            }
+          ]
+        },
+        {
+          "path": "patches/go-sandbox/0003-complete-capability-v3-buffer.patch",
+          "sha256": "6805b0ae30b6169c9e4a37e5a713717b3f5ea2a4dfc262db851414a8366fef75",
+          "reason": "Supply the two zeroed CapUserData words required by Linux capability ABI v3 and pass element zero in each of the three existing CAPSET calls. The pinned single 12-byte structure let the kernel read the required second word from adjacent globals, potentially failing capability removal with EPERM. This repairs the existing intended zero-drop semantics without changing securebits, bounding-set, credential, namespace or seccomp policy.",
+          "licenseImpact": "Modified go-sandbox source remains MIT; original license stays byte-identical and a prominent Code Startrack comment identifies the ABI correction. Mature upstream isolation and failure propagation remain in place.",
+          "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Verify the Linux capability header version, full kernel data size, all CAPSET call sites and zero-array bytes in the actual Linux ELF; rerun child capability, securebits, no_new_privs, capability-regain denial, compiler/reference/validator and full sandbox verdict/security qualification.",
+          "files": [
+            {
+              "path": "pkg/forkexec/consts_linux.go",
+              "baseSha256": "4d1389694817d36d808cf9f2d4c0b28ede8df3ed216d56616011d9cb9585062e",
+              "patchedSha256": "da02b8496b4a9a7bf21354d533e322a09386a368f0e624c3c7179abaf8273474",
+              "mode": "100644"
+            },
+            {
+              "path": "pkg/forkexec/fork_child_linux.go",
+              "baseSha256": "141c5411b9eb35e916d5669b7b9e4e997eab14759230cc31dce09e9a7d1367ee",
+              "patchedSha256": "29a8117e7489358daa8ffbd8257dd025bfaef9bf2d5de300de567afad330a262",
+              "mode": "100644"
+            }
+          ]
+        },
+        {
+          "path": "patches/go-sandbox/0004-workload-seccomp-plumbing.patch",
+          "sha256": "6d9be7a3456cdb565fa979f8a86f11d306173ec5e7e5daea706979e570ae2816",
+          "reason": "Pass the already-supported execCmd.Seccomp filter to forkexec.Runner.Seccomp using existing Filter.SockFprog, activating the mature post-setup workload installation path. The exact upstream had deliberately set this field nil; the broad inherited init policy remains installed, trusted cgroup/namespace setup and DropCaps remain unchanged.",
+          "licenseImpact": "Modified go-sandbox source remains MIT with original license byte-identical and a prominent Code Startrack comment. This reconnects existing mature filter plumbing and does not introduce custom BPF, new sandbox machinery or outer profile/capability changes.",
+          "upgradeCondition": "Rebase only against a reviewed exact go-sandbox pin. Inspect ExecveParam/execCmd serialization, SockFprog lifetime and existing forkexec filter installation after trusted namespace/cgroup and capability removal. Verify nonempty workload guard on ordinary and clone3 cgroup paths; rerun actual source loader VM and complete exact-image Linux isolation, fork/thread, compiler/reference/validator and verdict qualification.",
+          "files": [
+            {
+              "path": "container/container_exec_linux.go",
+              "baseSha256": "770b6d842ec1fe9e96d082366e0dbd3c3106c8e8e2e829d138fdc194948a6187",
+              "patchedSha256": "94446cd836438a917c6e02f6ad1a3e0c87e9d889b79179392d47daf6694663fb",
+              "mode": "100644"
+            }
+          ]
+        }
+      ],
+      "source_assembly": {
+        "policy": "verified-go-module-vendor",
+        "descriptor": "patches/go-sandbox/series.json"
+      }
+    },
+    {
+      "name": "go-seccomp-bpf",
+      "repository": "https://github.com/elastic/go-seccomp-bpf.git",
+      "commit": "9375c0f7fb340aa2e8715cc30cc0247be18971c9",
+      "version": "v1.6.0",
+      "scope": "Selected security-critical direct dependency declared by pinned go-judge go.mod",
+      "license": {
+        "spdx_expression": "Apache-2.0",
+        "evidence": [
+          {
+            "upstream_path": "LICENSE.txt",
+            "local_path": "docs/licenses/go-seccomp-bpf-Apache-2.0-LICENSE",
+            "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+            "source_url": "https://github.com/elastic/go-seccomp-bpf/blob/9375c0f7fb340aa2e8715cc30cc0247be18971c9/LICENSE.txt"
+          },
+          {
+            "upstream_path": "NOTICE.txt",
+            "local_path": "docs/licenses/go-seccomp-bpf-NOTICE",
+            "sha256": "d892be068634056d1c54c94c7caae6e555ee38f943c4f5edc4f70aa68e52bff8",
+            "source_url": "https://github.com/elastic/go-seccomp-bpf/blob/9375c0f7fb340aa2e8715cc30cc0247be18971c9/NOTICE.txt"
+          }
+        ]
+      }
+    }
+  ],
+  "release_review_gates": [
+    "Resolve project license owner decision",
+    "Lock and audit actually included language/module/OS dependencies before image release",
+    "Exclude or establish redistributable licensing for bundled problemtools VIVA and nested binaries",
+    "Review imported problem content independently before publication",
+    "Verify Linux sandbox and inter-component protocol compatibility before production use"
+  ]
+}

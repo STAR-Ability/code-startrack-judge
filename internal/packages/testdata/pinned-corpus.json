@@ -1,0 +1,148 @@
+{
+  "repositoryUrl": "https://github.com/oj-lab/problem-packages",
+  "revision": "a4e1d6f106879043eb30af640ba46d0fcbf8053f",
+  "adapterVersion": "ojlab-kattis-v0.2.1",
+  "scope": "Host-only byte adaptation of reviewed Git objects; structural readiness is not license approval, technical validation, or Linux qualification.",
+  "packages": [
+    {
+      "packagePath": "problems/compute-collection",
+      "sourceSha256": "57ff3b9161f1caef52e91195afc5deb9799df06a65e4ffdcd70de4929ef39b2b",
+      "normalizedSha256": "3bd12870ceca299a267cf5c25a68688de5173833cf97b7f1f883b8bdeb3c7d45",
+      "manifestSha256": "129a0e2c7612296cfadc77507c22fdf295161db2da7001306c8516d22c28f4b0",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 3,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/compute-knapsack",
+      "sourceSha256": "258baa0392982b00edc2748c7c929e653b776d4e9bc3cdb39367128fd7715d70",
+      "normalizedSha256": "9f0edcaaa692ce018558f76b8b01580c2eb880bac3a0e82a8b39a12fcce304a5",
+      "manifestSha256": "2a9328c1a5770a6b2f0d491c888fe8aa21c70b2ad79f41201016bdb56493c002",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 19,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/compute-math",
+      "sourceSha256": "f1fad40c4547106ee8dc345a96b2ba58f50fd2312a7ac01cae6133317899c750",
+      "normalizedSha256": "3ff67bfaf06e120dc9618440e9d7dec9dcba815068860ef109ac0ebed2777786",
+      "manifestSha256": "f9083267f5b67284d52447b4e6c56cbe202a56aefe14e706f62d3936db8e825e",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 9,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/compute-matrix",
+      "sourceSha256": "8b77b1866d1e5bcf4056197b573dd39984b1cb51570cd7c7ecb3327829a500d0",
+      "normalizedSha256": "97d53febba489db84ffb3fbf5776631f1bafcb21d4be3ddf44d220fc15dd6516",
+      "manifestSha256": "29adc628e857330889c6ce90125f375f8934973a5f5c46af14b3b11f7cbd9a16",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 4,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/compute-ocd",
+      "sourceSha256": "e5d32d3f2808decab83240f79b0c92b7f70c0e572b1ab07d7cb49733a8bf856a",
+      "normalizedSha256": "a5bba72b4777cd77cd4fa6559f4c4cc10d021c23a5e61ce4fa00a38ca29c760b",
+      "manifestSha256": "6b4e260c6fe47af09a91abf73168266acd3f52efcc31a6729c299612b2a89cc5",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 12,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/compute-wallpaper",
+      "sourceSha256": "fa868524fa4453a021f6c93d8479ef1b913d229c671743ea0fc308d48bd49810",
+      "normalizedSha256": "c7b489db705bf60023fddfd690a55218db550d6d779d6303089702938eb8ae81",
+      "manifestSha256": "1b1470dcf87e4dac5860bccc537970806fda8fe04e414a99e1443d5269e282d9",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 22,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/hello-world",
+      "sourceSha256": "3ba09c605d66dc4ff89f65f391dafd2ba4b06e8f941546b38974f47bf17d5dd2",
+      "normalizedSha256": "f08a214687ebcb35b86eafd860c5ced2c085667e616882cfa9deeff585b6b6f9",
+      "manifestSha256": "c7ba100da71d654b9ba36b828a3075a033ab10b597eaf4b7e7877290a2a213c8",
+      "statementPath": "problem_statement/problem.en.md",
+      "testCount": 2,
+      "manifestReady": true,
+      "rejection": ""
+    },
+    {
+      "packagePath": "problems/jige-AIdrive",
+      "sourceSha256": "9fb72c8d4ac443cc95eebfb075061de237ac8d8a5cd22098c4f1f4c581a1c4aa",
+      "normalizedSha256": "b8f1aa7a91cda395d1e5a19f0c632cc893d717162cb89906715343516ab55bc2",
+      "manifestSha256": "74129f5cbe9586236296f18c778c64c95a41da41c6713e0313dd00fb654ac236",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 14,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/jige-statue",
+      "sourceSha256": "95b6be3ee7085b8af8d060c933ca3714b4acd0e003beddeae63872faf0453642",
+      "normalizedSha256": "38270df1d2f8b4570a9c2df2245de824b2bcb8a53600e74d15f1aaab367c588a",
+      "manifestSha256": "380e437a0eeacb3a8fa8c03050ac354140c11d74a321e2805c3afd85ea418396",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 5,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/lin88-palindrome",
+      "sourceSha256": "bfc076887f348c66e586721de0e07fc8105eef9a4ccc11e05b5fe9bf55547ed8",
+      "normalizedSha256": "23e09b6a81b553bb492e7cfd244b201345625e801c4feb01cf23d4221ebfb7c8",
+      "manifestSha256": "0425afd29e46f32af8264cecf41bc9ce2aea4fa7d95311b540c15594a6ab7f0b",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 3,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/mole-fish",
+      "sourceSha256": "1a363fa38f5ce4078a538a11f34b9f9a9dbf4508dcab50794a5f72472a46f07a",
+      "normalizedSha256": "768964254323964d880f7b16f68db166cfa08a2744fd6800fc976a0570f306c7",
+      "manifestSha256": "273a62dcf67ce683fee905602b553aeb17beee737bd8d9a258dfe090d6055b09",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 23,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/nth-element",
+      "sourceSha256": "fa2c39be802b9ec4993b8c4ba78df04bef978aba63a0b58d87d671f1837b55ac",
+      "normalizedSha256": "35f1cf0e413e52d311630b636cf72ea62aa29e08ca762d256ce94579ec746e30",
+      "manifestSha256": "7d866da19192f32d6e31607901338542ff568c2b47cd0b1f010d6b63bb0c2bbb",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 3,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/ssyze-geometry",
+      "sourceSha256": "7be378e4641760f9f059a3758054687fe81f583cb138c3d500947eee68abcad0",
+      "normalizedSha256": "e02a5b2a3b8a578b34603d7075876bc596d71f8939b4a3aeda1cc515cff25c62",
+      "manifestSha256": "d9755118a299b80d8c4a307680a97cb2ae161d94166c7ef0de2abb0b9499727f",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 26,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    },
+    {
+      "packagePath": "problems/ssyze-hard-drive",
+      "sourceSha256": "7e9e3ff10db3228c5ad32bc40f371de9a50de3fdee9d69a796c9b1526c157b53",
+      "normalizedSha256": "9d5d5e72594a4ae780c964a144803ffb024869167adcaa6d1017b665cbe3b012",
+      "manifestSha256": "37e920f8c20bd20bed13baf06dec433667a52d0fdb80d1bacc25d419a1360b3e",
+      "statementPath": "problem_statement/problem.md",
+      "testCount": 2,
+      "manifestReady": false,
+      "rejection": "INPUT_VALIDATOR_MISSING"
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+Qualification example data
+
+The original example files are copied verbatim from Kattis/problemtools at
+commit 6010cbaa37a1612117f49566b2fff8646d53faa2 (v1.20260907):
+
+* examples/hello: "Hello World!", source: Kattis, upstream declared public domain.
+  https://github.com/Kattis/problemtools/tree/6010cbaa37a1612117f49566b2fff8646d53faa2/examples/hello
+* examples/different: "A Different Problem", source: Kattis, upstream declared
+  CC BY-SA 3.0; http://creativecommons.org/licenses/by-sa/3.0/ .
+  https://github.com/Kattis/problemtools/tree/6010cbaa37a1612117f49566b2fff8646d53faa2/examples/different
+
+Original problem.yaml title/source/license declarations and all original files
+are retained in the qualification carrier. Neither declaration names an author.
+The separate problemtools MIT grant and Kattis/respective-contributor notice are
+preserved in problemtools-LICENSE; the example declarations are not flattened
+into a blanket software-license assignment.
+
+Runtime execution uses an explicitly reported supported-profile projection of
+hello. Original executable, validator, test and English TeX bytes are unchanged.
+Unsupported reference languages and the Swedish statement are not executed.
+Authored transport Markdown/timing metadata, normalized metadata and an exact
+duplicate of the original secret case as a synthetic sample are declared in
+the qualification receipt. different remains an expected unsupported exclusion.
+These qualification records assert no platform problem publication approval.
