@@ -38,7 +38,9 @@ jobs:
           python3 scripts/validation-tools.py fetch
           python3 scripts/validation-sources.py fetch
           python3 - <<'PY'
-          import importlib.util,os,subprocess
+          import importlib.util,os,subprocess,sys
+          from pathlib import Path
+          sys.path.insert(0,str(Path('scripts').resolve()))
           spec=importlib.util.spec_from_file_location('context','scripts/prepare-image-context.py')
           module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
           original_run=subprocess.run
